@@ -1,4 +1,16 @@
-"""Fire simulation using alpha-blended point particles"""
+#############################################################################
+#
+# Copyright (c) 2008 by Casey Duncan and contributors
+# All Rights Reserved.
+#
+# This software is subject to the provisions of the MIT License
+# A copy of the license should accompany this distribution.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+#
+#############################################################################
+"""Fire simulation using textured billboard quads"""
 
 __version__ = '$Id$'
 
@@ -65,23 +77,16 @@ if __name__ == '__main__':
 	glTexParameteri(texture.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 	glBindTexture(texture.target, texture.id)
 
-	def print_fps(dt):
-		print len(group), group.killed_count(), pyglet.clock.get_fps()
-
 	win.resize = resize
 	win.set_visible(True)
 	win.resize(win.width, win.height)
 	pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
-	pyglet.clock.schedule_interval(print_fps, 1.0)
 	pyglet.clock.set_fps_limit(None)
-
-	#fps_display = pyglet.clock.ClockDisplay()
 
 	@win.event
 	def on_draw():
 		win.clear()
 		glLoadIdentity()
-		#fps_display.draw()
 		default_system.draw()
 
 	pyglet.app.run()
