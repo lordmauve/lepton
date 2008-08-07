@@ -1,12 +1,9 @@
-- Spruce up setup.py to find OpenGL headers and libs on Linux, Windows and Mac
-- Fix imports in examples and do a little cleanup
+2008-08-06 -- 0.2a (pre)release
 
---This line, and those below, will be ignored--
+- Spruce up the setup.py to add include and library dirs for particular oses
+- Fix imports in examples and clean up a little
+- Add boring license headers
 
-M    lepton/__init__.py
-AM   CHANGES.txt
-M    setup.py
-M    examples/point_fire.py
-M    examples/smoke.py
-M    examples/billboard_fire.py
-M    examples/bouncy.py
+2008-08-06 -- 0.1a (pre)release
+
+- Throw it over the wall...duck!
