@@ -63,9 +63,10 @@ typedef struct {
 static void
 StaticEmitter_dealloc(StaticEmitterObject *self) {
 	int i;
-	for (i = 0; i < DISCRETE_COUNT; i++)
+	for (i = 0; i < DISCRETE_COUNT; i++) {
 		Py_XDECREF(self->domain[i]);
 		Py_XDECREF(self->discrete[i]);
+	}
 	PyObject_Del(self);
 }
 

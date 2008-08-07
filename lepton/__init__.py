@@ -1,6 +1,6 @@
 """Lepton particle engine"""
 
-__version__ = "0.2a"
+__version__ = "0.3a"
 
 from system import ParticleSystem
 from group import ParticleGroup

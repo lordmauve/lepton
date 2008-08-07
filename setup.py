@@ -34,7 +34,7 @@ compile_args = [] # disable compile args for now
 
 setup(
 	name='lepton',
-    version='0.2a', # *** REMEMBER TO UPDATE __init__.py ***
+    version='0.3a', # *** REMEMBER TO UPDATE __init__.py ***
 	description='Lepton: A high-performance, pluggable particle engine and API for Python',
 	long_description='''\
 Lepton is designed to make complex and beautiful particle effects possible,
