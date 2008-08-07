@@ -5,16 +5,36 @@
 import sys
 from distutils.core import setup, Extension
 
-if sys.platform != 'win32':
-	compile_args = ['-ftree-vectorize', '-ftree-vectorizer-verbose=5']
+extra_link_args = []
+
+if sys.platform.startswith('linux'):
+	include_dirs = ['/usr/include', '/usr/local/include/', 
+		'/usr/X11/include', '/usr/X11R6/include']
+	library_dirs = ['/usr/lib', '/usr/local/lib', 
+		'/usr/X11/lib', '/usr/X11R6/lib']
+	libraries = ['GL', 'X11', 'Xext']
+elif sys.platform == 'win32':
+	include_dirs = ['../include']
+	library_dirs = ['../lib']
+	libraries = ['opengl32']
+elif sys.platform == 'darwin':
+	include_dirs = ['/System/Library/Frameworks/OpenGL.framework/Headers', 
+		'/System/Library/Frameworks/GLUT.framework/Headers', 
+		'/System/Library/Frameworks/Kernel.framework/Headers']
+	library_dirs = []
+	libraries = []
+	extra_link_args = ['-framework:OpenGL']
 else:
-	# XXX insert win32 flag to unroll loops here
-	compile_args = []
+	print >>sys.stderr, "Platform", sys.platform, "not really supported just yet"
+	include_dirs = []
+	library_dirs = []
+	libraries = []
+
 compile_args = [] # disable compile args for now
 
 setup(
 	name='lepton',
-    version='0.1a', # *** REMEMBER TO UPDATE __init__.py ***
+    version='0.2a', # *** REMEMBER TO UPDATE __init__.py ***
 	description='Lepton: A high-performance, pluggable particle engine and API for Python',
 	long_description='''\
 Lepton is designed to make complex and beautiful particle effects possible,
@@ -53,20 +73,36 @@ order to render particles.
 		Extension('lepton.group', 
 			['lepton/group.c', 'lepton/vector.c', 
 			 'lepton/groupmodule.c'], 
+			include_dirs=include_dirs,
+			library_dirs=library_dirs,
+			libraries=libraries,
+			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
 		),
 		Extension('lepton.renderer', 
 			['lepton/group.c', 'lepton/renderermodule.c'], 
+			include_dirs=include_dirs,
+			library_dirs=library_dirs,
+			libraries=libraries,
+			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
 		),
 		Extension('lepton._controller', 
 			['lepton/group.c', 'lepton/vector.c', 
 			 'lepton/controllermodule.c'], 
+			include_dirs=include_dirs,
+			library_dirs=library_dirs,
+			libraries=libraries,
+			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
 		),
 		Extension('lepton.emitter', 
 			['lepton/group.c', 'lepton/vector.c', 
 			 'lepton/fastrng.c', 'lepton/emittermodule.c'], 
+			include_dirs=include_dirs,
+			library_dirs=library_dirs,
+			libraries=libraries,
+			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
 		),
 	],

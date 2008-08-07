@@ -17,20 +17,15 @@ __version__ = '$Id$'
 import os
 from pyglet import image
 from pyglet.gl import *
-import sys
-sys.path.append('../..')
 
-from particle import Particle, ParticleGroup, default_system
-from particle.renderer import BillboardRenderer
-from particle.emitter import StaticEmitter
-from particle.controller import Gravity, Lifetime, Movement, Fader, ColorBlender
+from lepton import Particle, ParticleGroup, default_system
+from lepton.renderer import BillboardRenderer
+from lepton.emitter import StaticEmitter
+from lepton.controller import Gravity, Lifetime, Movement, Fader, ColorBlender
 
 if __name__ == '__main__':
-	"""This file is meant to show how to use controller, renderer, system, particle, group to implement
-	the effect in pyparticle.py"""
 	win = pyglet.window.Window(resizable=True, visible=False)
 	win.clear()
-
 
 	def resize(widthWindow, heightWindow):
 		"""Initial settings for the OpenGL state machine, clear color, window size, etc"""
