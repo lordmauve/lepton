@@ -465,6 +465,23 @@ static PyMethodDef ParticleGroup_methods[] = {
 	{NULL,		NULL}		/* sentinel */
 };
 
+static PyObject *
+StaticEmitter_getattr(StaticEmitterObject *self, PyObject *o)
+{
+	char *name = PyString_AS_STRING(o);
+	if (!strcmp(name, "template")) {
+		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);	
+	} else if (!strcmp(name, "deviation")) {
+		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);	
+	} else if (!strcmp(name, "rate")) {
+		return PyMember_GetOne((char *)self, &StaticEmitter_members[0]);
+	} else if (!strcmp(name, "time_to_live")) {
+		return PyMember_GetOne((char *)self, &StaticEmitter_members[1]);
+	} else {
+		return Py_FindMethod(ParticleGroup_methods, (PyObject *)self, name);
+	}
+}
+
 PyDoc_STRVAR(StaticEmitter__doc__, 
 	"Creates particles in a group at a fixed rate deriving partice\n"
 	"attributes from a configurable mix of domain, discrete value lists\n"
@@ -501,7 +518,7 @@ static PyTypeObject StaticEmitter_Type = {
 	/* methods */
 	(destructor)StaticEmitter_dealloc, /*tp_dealloc*/
 	0,			/*tp_print*/
-	0,          /*tp_getattr*/
+	0,   /*tp_getattr*/
 	0,          /*tp_setattr*/
 	0,			/*tp_compare*/
 	0,			/*tp_repr*/
@@ -511,7 +528,7 @@ static PyTypeObject StaticEmitter_Type = {
 	0,			/*tp_hash*/
 	(ternaryfunc)StaticEmitter_call, /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	(getattrofunc)StaticEmitter_getattr, /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/

@@ -233,7 +233,9 @@ MovementController_call(MovementControllerObject *self, PyObject *args)
 		/* simple case, no damping or velocity bounds */
 		while (count--) {
 			Vec3_scalar_mul(&v, &p->velocity, td);
-			Vec3_add(&p->position, &p->position, &v);
+			Vec3_addi(&p->position, &v);
+			Vec3_scalar_mul(&v, &p->rotation, td);
+			Vec3_addi(&p->up, &v);
 			p++;
 		}
 	} else {
@@ -248,7 +250,9 @@ MovementController_call(MovementControllerObject *self, PyObject *args)
 				Vec3_scalar_mul(&p->velocity, &p->velocity, v_adj);
 			}
 			Vec3_scalar_mul(&v, &p->velocity, td);
-			Vec3_add(&p->position, &p->position, &v);
+			Vec3_addi(&p->position, &v);
+			Vec3_scalar_mul(&v, &p->rotation, td);
+			Vec3_addi(&p->up, &v);
 			p++;
 		}
 	}
@@ -348,7 +352,7 @@ LifetimeController_call(LifetimeControllerObject *self, PyObject *args)
 	float td, max_age;
 	GroupObject *pgroup;
 	register Particle *p;
-	register unsigned long i, count;
+	register unsigned long count;
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
@@ -359,9 +363,10 @@ LifetimeController_call(LifetimeControllerObject *self, PyObject *args)
 	p = pgroup->plist->p;
 	max_age = self->max_age;
 	count = GroupObject_ActiveCount(pgroup);
-	for (i = 0; i < count; i++) {
-		if (p[i].age > max_age)
-			Group_kill_p(pgroup, i);
+	while (count--) {
+		if (p->age > max_age)
+			Group_kill_p(pgroup, p);
+		p++;
 	}
 	
 	Py_INCREF(Py_None);
