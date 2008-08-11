@@ -89,28 +89,31 @@ PointRenderer_draw(PointRendererObject *self)
 {
 	Particle *p;
 	int GL_error;
+	unsigned long count_particles;
 
 	if (self->pgroup == NULL) {
 		PyErr_SetString(PyExc_RuntimeError, "cannot draw, no group set");
 		return NULL;
 	}
 
-	p = self->pgroup->plist->p;
-	glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
-	glPointSize(self->point_size);
-	glVertexPointer(3, GL_FLOAT, sizeof(Particle), &p[0].position);
-	glColorPointer(4, GL_FLOAT, sizeof(Particle), &p[0].color);
-	glDrawArrays(GL_POINTS, 0, GroupObject_ActiveCount(self->pgroup));
-	glPopClientAttrib();
+	count_particles = GroupObject_ActiveCount(self->pgroup);
+	if (count_particles > 0){
+		p = self->pgroup->plist->p;
+		glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_COLOR_ARRAY);
+		glPointSize(self->point_size);
+		glVertexPointer(3, GL_FLOAT, sizeof(Particle), &p[0].position);
+		glColorPointer(4, GL_FLOAT, sizeof(Particle), &p[0].color);
+		glDrawArrays(GL_POINTS, 0, GroupObject_ActiveCount(self->pgroup));
+		glPopClientAttrib();
 
-	GL_error = glGetError();
-	if (GL_error != GL_NO_ERROR) {
-		PyErr_Format(PyExc_RuntimeError, "GL error %d", GL_error);
-		return NULL;
-	}
-	
+		GL_error = glGetError();
+		if (GL_error != GL_NO_ERROR) {
+			PyErr_Format(PyExc_RuntimeError, "GL error %d", GL_error);
+			return NULL;
+		}
+	}	
 	Py_INCREF(Py_None);
 	return Py_None;
 }
