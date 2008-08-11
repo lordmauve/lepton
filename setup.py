@@ -101,7 +101,7 @@ order to render particles.
 			extra_compile_args=compile_args,
 		),
 		Extension('lepton.emitter', 
-			['lepton/group.c', 'lepton/vector.c', 
+			['lepton/group.c', 'lepton/groupmodule.c', 'lepton/vector.c', 
 			 'lepton/fastrng.c', 'lepton/emittermodule.c'], 
 			include_dirs=include_dirs,
 			library_dirs=library_dirs,
