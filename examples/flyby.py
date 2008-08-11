@@ -69,8 +69,13 @@ if __name__ == '__main__':
 	group_tex = []
 	for i in range(4):
 		group = ParticleGroup(controllers=[comet], renderer=BillboardRenderer())
-		texture = image.load(os.path.join(os.path.dirname(__file__), 
-			'flare%s.png' % (i+1))).get_mipmapped_texture()
+		try:
+			texture = image.load(os.path.join(os.path.dirname(__file__), 
+				'flare%s.png' % (i+1))).get_mipmapped_texture()
+		except NotImplementedError:
+			#Problem with mips not being implemented everywhere (cygwin?)
+			texture = image.load(os.path.join(os.path.dirname(__file__), 
+				'flare%s.png' % (i+1))).texture
 		group_tex.append((group, texture))
 	
 	glEnable(texture.target)
