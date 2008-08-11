@@ -16,6 +16,7 @@
 
 #include <Python.h>
 #include <structmember.h>
+#include <math.h>
 
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
@@ -238,8 +239,8 @@ BillboardRenderer_draw(RendererObject *self)
 	unsigned long remaining, batch_size;
 	BBData data[BILLBOARD_BATCH_SIZE*4];
 	register int i;
-	float mvmatrix[16];
-	Vec3 vright, vright_unit, vup, vup_unit;
+	float mvmatrix[16], rotcos, rotsin;
+	Vec3 vright, vright_unit, vup, vup_unit, vrot;
 
 	if (self->pgroup == NULL) {
 		PyErr_SetString(PyExc_RuntimeError, "cannot draw, no group set");
@@ -296,10 +297,29 @@ BillboardRenderer_draw(RendererObject *self)
 
 			*/
 			
+
 			/* vertex coords */
-			Vec3_scalar_mul(&vright, &vright_unit, p->size.x * 0.5);
-			Vec3_scalar_mul(&vup, &vup_unit, p->size.y * 0.5);
-			/* TODO support rotation */
+
+			if (p->up.z) {
+				/* billboard supports only z-axis rotation
+				   where the z-axiz is always that of the
+				   model-view matrix
+				*/
+				rotsin = sin(p->up.z);
+				rotcos = cos(p->up.z);
+				Vec3_scalar_mul(&vright, &vright_unit, rotcos);
+				Vec3_scalar_mul(&vrot, &vup_unit, rotsin);
+				Vec3_addi(&vright, &vrot);
+				Vec3_scalar_mul(&vup, &vup_unit, rotcos);
+				Vec3_scalar_mul(&vrot, &vright_unit, rotsin);
+				Vec3_subi(&vup, &vrot);
+				Vec3_scalar_muli(&vright, p->size.x * 0.5);
+				Vec3_scalar_muli(&vup, p->size.y * 0.5);
+			} else {
+				Vec3_scalar_mul(&vright, &vright_unit, p->size.x * 0.5);
+				Vec3_scalar_mul(&vup, &vup_unit, p->size.y * 0.5);
+			}
+
 			Vec3_sub(&data[POINT0].vert, &p->position, &vright);
 			Vec3_subi(&data[POINT0].vert, &vup);
 			Vec3_add(&data[POINT1].vert, &p->position, &vright);

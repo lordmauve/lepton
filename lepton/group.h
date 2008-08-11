@@ -98,7 +98,7 @@ typedef struct {
 	PyObject_HEAD
 	GroupObject		*pgroup;
 	unsigned long	iteration; /* update iteration reference is valid for */ 
-	unsigned long	pindex;    /* index in the group's plist */
+	Particle		*p; /* pointer to particle in group */
 } ParticleRefObject;
 
 /* Vector objects are used to manipulate Vec3/Color structs from Python
@@ -129,7 +129,7 @@ Group_new_p(GroupObject *group);
  * not point to a valid particle
  */
 void inline
-Group_kill_p(GroupObject *group, unsigned long pindex);
+Group_kill_p(GroupObject *group, Particle *p);
 
 /* Return true if o is a bon-a-fide GroupObject */
 int
@@ -146,5 +146,11 @@ get_Color(Color *color, PyObject *template, const char *attrname);
 /* Get a number from an attrbute of the template and store it in f */
 int
 get_Float(float *f, PyObject *template, const char *attrname);
+
+/* Create a new particle reference object for the given group and index
+ * no range checking is done
+ */
+inline ParticleRefObject *
+ParticleRefObject_New(GroupObject *pgroup, Particle *p);
 
 #endif

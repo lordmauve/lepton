@@ -46,21 +46,18 @@ Group_new_p(GroupObject *group) {
 	return pindex;
 }
 
-/* Kill the particle at the index specified. Does nothing if the index does
- * not point to a valid particle
+/* Kill the particle specified.
  */
 void inline
-Group_kill_p(GroupObject *group, unsigned long pindex) {
-	Particle *p;
-	if (pindex < GroupObject_ActiveCount(group) + group->plist->pnew) {
-		p = group->plist->p;
-		if (Particle_IsAlive(p[pindex]) && pindex < GroupObject_ActiveCount(group)) {
-			group->plist->pactive--;
-			group->plist->pkilled++;
-		}
-		p[pindex].age = -FLT_MAX;
-		p[pindex].position.z = -FLT_MAX;
+Group_kill_p(GroupObject *group, Particle *p) {
+	Particle *lastactive;
+	lastactive = &group->plist->p[GroupObject_ActiveCount(group)];	
+	if (Particle_IsAlive(*p) && p < lastactive) {
+		group->plist->pactive--;
+		group->plist->pkilled++;
 	}
+	p->age = -FLT_MAX;
+	p->position.z = FLT_MAX;
 }
 
 /* Return true if o is a bon-a-fide GroupObject */

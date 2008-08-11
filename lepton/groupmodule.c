@@ -114,8 +114,8 @@ error:
 
 /* Group methods */
 
-static inline ParticleRefObject *
-ParticleRefObject_New(GroupObject *pgroup, unsigned long pindex);
+inline ParticleRefObject *
+ParticleRefObject_New(GroupObject *pgroup, Particle *p);
 
 /* Create a new particle in the group from a template */
 static ParticleRefObject *
@@ -144,7 +144,7 @@ ParticleGroup_new(GroupObject *self, PyObject *ptemplate)
 	if (!success)
 		return NULL;
 
-	return ParticleRefObject_New(self, pindex);
+	return ParticleRefObject_New(self, pnew);
 }
 
 static inline int
@@ -162,7 +162,7 @@ ParticleGroup_kill(GroupObject *self, ParticleRefObject *pref)
 	if (!ParticleRefObject_IsValid(pref)) 
 		return NULL;
 
-	Group_kill_p(self, pref->pindex);
+	Group_kill_p(self, pref->p);
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -192,10 +192,9 @@ ParticleGroup_killed_count(GroupObject *self)
 static PyObject *
 ParticleGroup_iter(PyObject *self)
 {
-	GroupObject *group;
+	GroupObject *group = (GroupObject *)self;
 	ParticleRefObject *piter;
 
-	group = (GroupObject *)self;
 	piter = PyObject_New(ParticleRefObject, &ParticleIter_Type);
 	if (piter == NULL) {
 		PyErr_NoMemory();
@@ -203,7 +202,7 @@ ParticleGroup_iter(PyObject *self)
 	}
 	piter->pgroup = group;
 	Py_INCREF(group);
-	piter->pindex = 0;
+	piter->p = group->plist->p;
 	piter->iteration = group->iteration;
 	return (PyObject *)piter;
 }
@@ -514,7 +513,8 @@ static PyTypeObject Vector_Type;
 static void
 Vector_dealloc(VectorObject *self)
 {
-	Py_CLEAR(self->pgroup);
+	if (self->pgroup != NULL)
+		Py_CLEAR(self->pgroup);
 	PyObject_Del(self);
 }
 
@@ -535,8 +535,12 @@ Vector_new(GroupObject *pgroup, Vec3 *vec, int length)
 		return NULL;
 	}
 	newvec->pgroup = pgroup;
-	Py_INCREF(pgroup);
-	newvec->iteration = pgroup->iteration;
+	if (pgroup != NULL) {
+		Py_INCREF(pgroup);
+		newvec->iteration = pgroup->iteration;
+	} else {
+		newvec->iteration = 0;
+	}
 	newvec->length = length;
 	newvec->vec = vec;
 	return newvec;
@@ -545,7 +549,7 @@ Vector_new(GroupObject *pgroup, Vec3 *vec, int length)
 static PyObject *
 Vector_getattr(VectorObject *self, char *name)
 {
-	if (self->iteration != self->pgroup->iteration) {
+	if (self->pgroup != NULL && self->iteration != self->pgroup->iteration) {
 		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
 		return NULL;
 	}
@@ -570,7 +574,7 @@ static int
 Vector_setattr(VectorObject *self, char *name, PyObject *v)
 {
 	int result;
-	if (self->iteration != self->pgroup->iteration) {
+	if (self->pgroup != NULL && self->iteration != self->pgroup->iteration) {
 		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
 		return -1;
 	}
@@ -612,7 +616,7 @@ Vector_repr(VectorObject *self)
 {
 	const int bufsize = 255;
 	char buf[bufsize];
-	if (self->iteration == self->pgroup->iteration) {
+	if (self->pgroup == NULL || self->iteration == self->pgroup->iteration) {
 		buf[0] = 0; /* paranoid */
 		if (self->length == 3) 
 			snprintf(buf, bufsize, "Vector(%.1f, %.1f, %.1f)",
@@ -636,7 +640,7 @@ Vector_length(VectorObject *self)
 static PyObject *
 Vector_getitem(VectorObject *self, Py_ssize_t index)
 {
-	if (self->iteration != self->pgroup->iteration) {
+	if (self->pgroup != NULL && self->iteration != self->pgroup->iteration) {
 		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
 		return NULL;
 	}
@@ -728,15 +732,16 @@ static PyTypeObject Vector_Type = {
 static void
 ParticleProxy_dealloc(ParticleRefObject *self)
 {
-	Py_CLEAR(self->pgroup);
+	if (self->pgroup != NULL)
+		Py_CLEAR(self->pgroup);
 	PyObject_Del(self);
 }
 
 /* Create a new particle reference object for the given group and index
  * no range checking is done
  */
-static inline ParticleRefObject *
-ParticleRefObject_New(GroupObject *pgroup, unsigned long pindex)
+inline ParticleRefObject *
+ParticleRefObject_New(GroupObject *pgroup, Particle *p)
 {
 	ParticleRefObject *pproxy;
 	pproxy = PyObject_New(ParticleRefObject, &ParticleProxy_Type);
@@ -745,15 +750,19 @@ ParticleRefObject_New(GroupObject *pgroup, unsigned long pindex)
 		return NULL;
 	}
 	pproxy->pgroup = pgroup;
-	Py_INCREF(pgroup);
-	pproxy->iteration = pgroup->iteration;
-	pproxy->pindex = pindex;
+	if (pgroup != NULL) {
+		Py_INCREF(pgroup);
+		pproxy->iteration = pgroup->iteration;
+	} else {
+		pproxy->iteration = 0;
+	}
+	pproxy->p = p;
 	return pproxy;
 }
 
 static inline int
 ParticleRefObject_IsValid(ParticleRefObject *pref) {
-	if ((pref)->iteration == (pref)->pgroup->iteration) {
+	if (pref->pgroup == NULL || pref->iteration == pref->pgroup->iteration) {
 		return 1;
 	} else {
 		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
@@ -771,7 +780,6 @@ static PyObject *
 ParticleProxy_getattr(ParticleRefObject *self, char *name)
 {
 	int attr_no;
-	Particle *p = NULL;
 
 	if (!ParticleRefObject_IsValid(self))
 		return NULL;
@@ -784,18 +792,17 @@ ParticleProxy_getattr(ParticleRefObject *self, char *name)
 		PyErr_SetString(PyExc_AttributeError, name);
 		return NULL;
 	}
-	p = &self->pgroup->plist->p[self->pindex];
 	switch (attr_no) {
-		case 0: return (PyObject *)Vector_new(self->pgroup, &p->position, 3);
-		case 1: return (PyObject *)Vector_new(self->pgroup, &p->velocity, 3);
-		case 2: return (PyObject *)Vector_new(self->pgroup, &p->size, 3);
-		case 3: return (PyObject *)Vector_new(self->pgroup, &p->up, 3);
-		case 4: return (PyObject *)Vector_new(self->pgroup, &p->rotation, 3);
-		case 5: return (PyObject *)Vector_new(self->pgroup, &p->last_position, 3);
-		case 6: return (PyObject *)Vector_new(self->pgroup, &p->last_velocity, 3);
-		case 7: return (PyObject *)Vector_new(self->pgroup, (Vec3 *)&p->color, 4);
-		case 8: return Py_BuildValue("f", p->mass);
-		case 9: return Py_BuildValue("f", p->age);
+		case 0: return (PyObject *)Vector_new(self->pgroup, &self->p->position, 3);
+		case 1: return (PyObject *)Vector_new(self->pgroup, &self->p->velocity, 3);
+		case 2: return (PyObject *)Vector_new(self->pgroup, &self->p->size, 3);
+		case 3: return (PyObject *)Vector_new(self->pgroup, &self->p->up, 3);
+		case 4: return (PyObject *)Vector_new(self->pgroup, &self->p->rotation, 3);
+		case 5: return (PyObject *)Vector_new(self->pgroup, &self->p->last_position, 3);
+		case 6: return (PyObject *)Vector_new(self->pgroup, &self->p->last_velocity, 3);
+		case 7: return (PyObject *)Vector_new(self->pgroup, (Vec3 *)&self->p->color, 4);
+		case 8: return Py_BuildValue("f", self->p->mass);
+		case 9: return Py_BuildValue("f", self->p->age);
 	};
 	return NULL; /* shouldn't get here */
 }
@@ -804,7 +811,6 @@ static int
 ParticleProxy_setattr(ParticleRefObject *self, char *name, PyObject *v)
 {
 	int attr_no, result = 0;
-	Particle *p = NULL;
 
 	if (!ParticleRefObject_IsValid(self))
 		return -1;
@@ -824,45 +830,60 @@ ParticleProxy_setattr(ParticleRefObject *self, char *name, PyObject *v)
 	}
 	if (v == NULL)
 		return -1;
-
-	p = &self->pgroup->plist->p[self->pindex];
+	
 	switch (attr_no) {
 		case 0: 
 			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&p->position.x, &p->position.y, &p->position.z) - 1;
+				&self->p->position.x, 
+				&self->p->position.y, 
+				&self->p->position.z) - 1;
 			break;
 		case 1: 
 			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&p->velocity.x, &p->velocity.y, &p->velocity.z) - 1;
+				&self->p->velocity.x, 
+				&self->p->velocity.y, 
+				&self->p->velocity.z) - 1;
 			break;
 		case 2: 
 			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&p->size.x, &p->size.y, &p->size.z) - 1;
+				&self->p->size.x, 
+				&self->p->size.y, 
+				&self->p->size.z) - 1;
 			break;
 		case 3: 
 			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&p->up.x, &p->up.y, &p->up.z) - 1;
+				&self->p->up.x, 
+				&self->p->up.y, 
+				&self->p->up.z) - 1;
 			break;
 		case 4: 
 			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&p->rotation.x, &p->rotation.y, &p->rotation.z) - 1;
+				&self->p->rotation.x, 
+				&self->p->rotation.y, 
+				&self->p->rotation.z) - 1;
 			break;
 		case 5: 
 			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&p->last_position.x, &p->last_position.y, &p->last_position.z) - 1;
+				&self->p->last_position.x, 
+				&self->p->last_position.y, 
+				&self->p->last_position.z) - 1;
 			break;
 		case 6: 
 			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&p->last_velocity.x, &p->last_velocity.y, &p->last_velocity.z) - 1;
+				&self->p->last_velocity.x, &self->p->last_velocity.y, 
+				&self->p->last_velocity.z) - 1;
 			break;
 		case 7: 
-			p->color.a = 1.0f;
+			self->p->color.a = 1.0f;
 			result = PyArg_ParseTuple(v, "fff|f;3 or 4 floats expected", 
-				&p->color.r, &p->color.g, &p->color.b, &p->color.a) - 1;
+				&self->p->color.r, 
+				&self->p->color.g, 
+				&self->p->color.b, 
+				&self->p->color.a) - 1;
 			break;
-		case 8: p->mass = PyFloat_AS_DOUBLE(v);
+		case 8: self->p->mass = PyFloat_AS_DOUBLE(v);
 			break;
-		case 9: p->age = PyFloat_AS_DOUBLE(v);
+		case 9: self->p->age = PyFloat_AS_DOUBLE(v);
 	};
 
 	Py_XDECREF(v);
@@ -873,10 +894,9 @@ static PyObject *
 ParticleProxy_repr(ParticleRefObject *self)
 {
 	const int bufsize = 1024;
-	Particle *p;
 	char buf[bufsize];
+
 	if (ParticleRefObject_IsValid(self)) {
-		p = &self->pgroup->plist->p[self->pindex];
 		buf[0] = 0; /* paranoid */
 		snprintf(buf, bufsize, "<Particle %lu of group 0x%lx: "
 			"position=(%.1f, %.1f, %.1f) velocity=(%.1f, %.1f, %.1f) "
@@ -884,20 +904,20 @@ ParticleProxy_repr(ParticleRefObject *self)
 			"up=(%.1f, %.1f, %.1f) rotation=(%.1f, %.1f, %.1f) "
 			"last_position=(%.1f, %.1f, %.1f) last_velocity=(%.1f, %.1f, %.1f) "
 			"mass=%.1f age=%.1f>",
-			self->pindex, (unsigned long)self->pgroup,
-			p->position.x, p->position.y, p->position.z,
-			p->velocity.x, p->velocity.y, p->velocity.z,
-			p->color.r, p->color.g, p->color.b, p->color.a,
-			p->size.x, p->size.y, p->size.z,
-			p->up.x, p->up.y, p->up.z,
-			p->rotation.x, p->rotation.y, p->rotation.z,
-			p->last_position.x, p->last_position.y, p->last_position.z,
-			p->last_velocity.x, p->last_velocity.y, p->last_velocity.z,
-			p->mass, p->age);
+			(unsigned long)(self->p), (unsigned long)self->pgroup,
+			self->p->position.x, self->p->position.y, self->p->position.z,
+			self->p->velocity.x, self->p->velocity.y, self->p->velocity.z,
+			self->p->color.r, self->p->color.g, self->p->color.b, self->p->color.a,
+			self->p->size.x, self->p->size.y, self->p->size.z,
+			self->p->up.x, self->p->up.y, self->p->up.z,
+			self->p->rotation.x, self->p->rotation.y, self->p->rotation.z,
+			self->p->last_position.x, self->p->last_position.y, self->p->last_position.z,
+			self->p->last_velocity.x, self->p->last_velocity.y, self->p->last_velocity.z,
+			self->p->mass, self->p->age);
 		return PyString_FromString(buf);
 	} else {
 		return PyString_FromFormat("<INVALID Particle %lu of group %p>",
-			self->pindex, self->pgroup);
+			(unsigned long)(self->p), self->pgroup);
 	}
 }
 
@@ -964,19 +984,20 @@ ParticleIter_dealloc(ParticleRefObject *self)
 static PyObject *
 ParticleIter_next(ParticleRefObject *self)
 {
-	ParticleList *plist;
+	Particle *lastp;
 
 	if (!ParticleRefObject_IsValid(self))
 		return NULL;
 
-	plist = self->pgroup->plist;
+	lastp = &self->pgroup->plist->p[GroupObject_ActiveCount(self->pgroup)];
+
 	/* Scan to the next active particle */
-	while (self->pindex < GroupObject_ActiveCount(self->pgroup) && 
-		!Particle_IsAlive(plist->p[self->pindex]))
-		self->pindex++;
+	while (self->p < lastp && !Particle_IsAlive(*self->p)) {
+		self->p++;
+	}
 	
-	if (self->pindex < GroupObject_ActiveCount(self->pgroup)) {
-		return (PyObject *)ParticleRefObject_New(self->pgroup, self->pindex++);
+	if (self->p < lastp) {
+		return (PyObject *)ParticleRefObject_New(self->pgroup, self->p++);
 	} else {
 		/* End of iteration */
 		return NULL;

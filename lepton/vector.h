@@ -61,6 +61,11 @@ inline float InvSqrt (float x);
 	(result)->y = (v0)->y * s; \
 	(result)->z = (v0)->z * s
 
+#define Vec3_scalar_muli(result, s) \
+	(result)->x *= s; \
+	(result)->y *= s; \
+	(result)->z *= s
+
 #define Vec3_div(result, v0, v1) \
 	(result)->x = (v0)->x / (v1)->x; \
 	(result)->y = (v0)->y / (v1)->y; \
