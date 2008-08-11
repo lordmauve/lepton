@@ -13,6 +13,10 @@ if sys.platform.startswith('linux'):
 	library_dirs = ['/usr/lib', '/usr/local/lib', 
 		'/usr/X11/lib', '/usr/X11R6/lib']
 	libraries = ['GL', 'X11', 'Xext']
+elif  sys.platform == 'cygwin':
+	include_dirs = ['/usr/include',  '/usr/include/win32api/']
+	library_dirs = ['/usr/lib']
+	libraries = ['opengl32']
 elif sys.platform == 'win32':
 	include_dirs = ['../include']
 	library_dirs = ['../lib']
@@ -80,7 +84,7 @@ order to render particles.
 			extra_compile_args=compile_args,
 		),
 		Extension('lepton.renderer', 
-			['lepton/group.c', 'lepton/renderermodule.c'], 
+			['lepton/group.c', 'lepton/renderermodule.c', 'lepton/vector.c'], 
 			include_dirs=include_dirs,
 			library_dirs=library_dirs,
 			libraries=libraries,
