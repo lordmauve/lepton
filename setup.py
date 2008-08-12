@@ -48,7 +48,7 @@ Lepton is under development, but even now it has some useful features:
 
 - Native-code core for high-performance particle dynamics and rendering
 - Pluggable particle controllers for specifying particle behavior
-- Two pluggable OpenGL renderers (more in development)
+- Two pluggable OpenGL renderers, and two pygame renderers
 - Spacial domains, used to control particle emission and behavior
 - Modular architecture that lets you easily configure and customize the engine
 
