@@ -10,7 +10,7 @@
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 #
 #############################################################################
-"""Fire simulation using textured billboard quads"""
+"""Flying comet using textured billboard quads"""
 
 __version__ = '$Id$'
 
@@ -59,7 +59,6 @@ if __name__ == '__main__':
 
 	default_system.add_global_controller(
 		Lifetime(1.75),
-		#Gravity((0,-20,0)), 
 		Movement(min_velocity=20), 
 		Fader(max_alpha=0.7, fade_out_start=1, fade_out_end=1.75),
 	)
