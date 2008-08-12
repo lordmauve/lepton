@@ -1,3 +1,13 @@
+2008-08-11 -- 0.4a
+
+- Fix setup.py to support cygwin on windows (Still need to work on VC)
+- Implement rotation in billboard renderer
+- Allow dynamic modifications of emitter template and deviation
+- Add pygame renderers
+- Fix some renderer bugs on win32
+- Add flyby example
+- Add WIP bonk example game
+
 2008-08-06 -- 0.3a (pre)release
 
 - Fix crash-bug in StaticEmitter_dealloc(), thanks to Drew Perttula
