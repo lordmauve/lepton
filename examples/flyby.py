@@ -45,25 +45,23 @@ if __name__ == '__main__':
 	glDisable(GL_DEPTH_TEST)
 
 	comet = StaticEmitter(
-		rate=20,
+		rate=150,
 		template=Particle(
-			position=(0,0,-20), 
-			velocity=(0,0,5), 
-			size=(1,1,0),
-			color=(1,1,1,0.7),
+			size=(2,2,0),
+			color=(1,1,0),
 		),
 		deviation=Particle(
-			velocity=(0.25, 0.25, 0.25),
+			velocity=(0.7,0.7,0.7), 
 			up=(0,0,math.pi),
 			rotation=(0,0,math.pi),
 			color=(0.5, 0.5, 0.5))
 	)
 
 	default_system.add_global_controller(
-		Lifetime(5),
+		Lifetime(1.75),
 		#Gravity((0,-20,0)), 
 		Movement(min_velocity=20), 
-		#Fader(fade_in_end=5.0, max_alpha=0.005, fade_out_start=17, fade_out_end=20),
+		Fader(max_alpha=0.7, fade_out_start=1, fade_out_end=1.75),
 	)
 
 	group_tex = []
@@ -86,13 +84,23 @@ if __name__ == '__main__':
 
 	pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
 	pyglet.clock.set_fps_limit(None)
-	time = 0
+	arc_radius = 150
+	angle = math.pi * 0.7
+	speed = 1.0
 
 	def move_comet(td):
-		global time
-		time += td
-		comet.template.position.x = math.sin(time) * 5
+		global angle, arc_radius, speed
+		comet.template.position = (
+			-math.sin(angle) * arc_radius * 0.3, 
+			 math.sin(angle * 0.7) * arc_radius * 0.03,
+			-math.cos(angle) * arc_radius - arc_radius * 1.05)
+		comet.template.velocity = (
+			comet.template.position.x*0.05 - comet.template.last_position.x,
+			comet.template.position.y*0.05 - comet.template.last_position.y,
+			comet.template.position.z*0.05 - comet.template.last_position.z)
+		angle -= td * speed
 	pyglet.clock.schedule_interval(move_comet, (1.0/30.0))
+	move_comet(0)
 
 	@win.event
 	def on_draw():
