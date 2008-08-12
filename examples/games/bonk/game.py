@@ -1,3 +1,4 @@
+import math
 from pyglet.gl import *
 from pyglet import font
 import sys, os
@@ -6,32 +7,14 @@ sys.path.append('../..')
 sys.path.append('../../..')
 from sprite_struct import Sprite, Vec3, Color
 from controls import Controls, message
+#imports for particle effects
+from pyglet import image
+from lepton import Particle, ParticleGroup, default_system
+from lepton.renderer import BillboardRenderer
+from lepton.emitter import StaticEmitter
+from lepton.controller import Gravity, Lifetime, Movement, Fader, ColorBlender
 
-"""
-The next thing I need to work on is getting the ball to move around.
-On its own. Then collision detection. I should look at the movement 
-controller in order to figure this out.
 
-At this point its time to take the gamesystem used in bonk. The game
-system will handle how objects within the game interact. Perhaps I even
-need to integrate the message_handler into it. Game system is the clock
-which schedules updates of all other components.
-
-Controllers will handle things like collision detection. I don't think the particle
-movement strategy will work here. Game_system is not using a set of particles.
-Should I move the movement code inside each sprite? No. I should find a different
-way to update the sprites. It should still be instigated from within the game_system
-maybe different rates of movement based on name? So, movement, collision detection,
-phsyics, should all be done from within the game_system. I don't need to iterate over loads of 
-particles here.
-
-Maybe if I make objects a set I could iterate it? Ok that works.
-Next thing I need to do is to take the boundry box example and work out how to do collision detection.
-
-I need to import box and bouncy from the controllers.
-
-So how am I going to integate bounce?
-"""
 
 class game_system(object):
 	"""game system controls when objects in the system get updated"""
@@ -50,6 +33,9 @@ class game_system(object):
 		self.draw_score()
 		self.height = window.width
 		self.width  = window.height
+		#should this not be handled within the object?
+		#map effects to different objects in the game
+		effects_map = { "fire": None}
 	def draw_score(self):
 		self.score.text = ("left: %d right: %d") % (self.score_left, self.score_right)
 		self.score.draw()
@@ -101,8 +87,9 @@ class game_system(object):
 		"""
 		self.control.update(self, time_delta)
 		for object in self.objects:
-			object.sprite.last_position = object.sprite.position
-			object.sprite.last_velocity = object.sprite.velocity
+			object.update(time_delta)
+			#object.sprite.last_position = object.sprite.position
+			#object.sprite.last_velocity = object.sprite.velocity
 
 		#for group in self:
 		for controller in self.controllers:
@@ -183,8 +170,10 @@ class Paddle(object):
 		glVertex3f(x2, y2, z2) #Bottom right
 		glVertex3f(x1, y2, z1)#Bottom left
 		glEnd()
-	def update(self):
-		"""Update state of paddle"""
+	def update(self, td):
+		"""Update state of ball"""
+		self.sprite.last_position = self.sprite.position
+		self.sprite.last_velocity = self.sprite.velocity
 
 class ball(object):
 	"""draw a ball using glpoints"""
@@ -192,12 +181,16 @@ class ball(object):
 		self.sprite = Sprite(position=position, velocity=velocity, color=color, size=size)
 		self.name ="ball"
 		self.keys=None
+		self.particle_group = None
 		#We don't care if anything collides with the ball
 		self.domain = None
 	def move(self, message):
 		print message
 		if message == "a":
 			self.sprite.position.x += 10
+	def add_particle_group(self, group):
+		"""Bind a particle group to this ball"""
+		self.particle_group = group
 	def draw(self):
 		"""Render the particles as points"""
 		x =  self.sprite.position.x
@@ -211,11 +204,26 @@ class ball(object):
 		"""reset ball to set location on the screen"""
 		self.sprite.position.x = x
 		self.sprite.position.y = y
-def update(self):
+	def update_particle_group(self, td):
+		#print "update particle group"
+		self.particle_group.template.position = (
+			self.sprite.position.x, 
+			self.sprite.position.y,
+			self.sprite.position.z)
+		comet.template.velocity = (
+			self.sprite.position.x*0.05 - self.sprite.last_position.x,
+			self.sprite.position.y*0.05 - self.sprite.last_position.y,
+			self.sprite.position.z*0.05 - self.sprite.last_position.z)
+		default_system.update(td)
+	def update(self, td):
 		"""Update state of ball"""
+		self.sprite.last_position = self.sprite.position
+		self.sprite.last_velocity = self.sprite.velocity
+		if self.particle_group != None:
+			self.update_particle_group(td)
 
 
-class Movement(object):
+class Movement_Game(object):
 	"""Updates the position and velocity of particles"""
 
 	def __init__(self, acceleration=None, damping=None, max_velocity=None):
@@ -547,7 +555,7 @@ if __name__ == '__main__':
 	"""Paddle game."""
 	win = pyglet.window.Window(resizable=True, visible=False)
 	paddle = Paddle((10,200,0), (1.0,0.0,0.0,1.0), (10.0,100.0,0.0), "paddle", win.height, keys=("up", "down"))
-	ball = ball(position=(210,100,0), velocity=(60,60,0),color=(0.0,0.0,1.0,1.0),size=(10.0,0.0,0.0))
+	ball = ball(position=(210,100,0), velocity=(100,100,0),color=(0.0,0.0,1.0,1.0),size=(10.0,0.0,0.0))
 	paddle2 = Paddle((620,200,0), (1.0,0.0,0.0,1.0), (10.0,100.0,0.0), "paddle2", win.height, keys=("w", "s"))
 
 	def resize(widthWindow, heightWindow):
@@ -559,6 +567,39 @@ if __name__ == '__main__':
 		glHint(GL_POINT_SMOOTH_HINT,GL_NICEST);#Really Nice Point Smoothing
 		glDisable(GL_DEPTH_TEST)
 
+	comet = StaticEmitter(
+		rate=250,
+		template=Particle(
+			size=(5,5,0),
+			color=(1,1,0),
+		),
+		deviation=Particle(
+			position=(1.0,1.0,0),
+			velocity=(0.7,0.7,0.7), 
+			up=(0,0,math.pi),
+			rotation=(0,0,math.pi),
+			color=(0.5, 0.5, 0.5))
+	)
+	#Add group to ball
+	ball.add_particle_group(comet)
+	default_system.add_global_controller(
+		Lifetime(1.75),
+		#Gravity((0,-20,0)), 
+		Movement(min_velocity=20), 
+		Fader(max_alpha=0.7, fade_out_start=1, fade_out_end=1.75),
+	)
+
+	group_tex = []
+	for i in range(4):
+		group = ParticleGroup(controllers=[comet], renderer=BillboardRenderer())
+		try:
+			texture = image.load(os.path.join(os.path.dirname(__file__), 
+				'Particle.bmp')).texture#'flare%s.png' % (i+1))).get_mipmapped_texture()
+		except NotImplementedError:
+			#Problem with mips not being implemented everywhere (cygwin?)
+			texture = image.load(os.path.join(os.path.dirname(__file__), 
+				'Particle.bmp')).texture
+		group_tex.append((group, texture))
 	win.resize = resize
 	win.set_visible(True)
 	win.resize(win.width, win.height)
@@ -567,15 +608,26 @@ if __name__ == '__main__':
 		(win.width-ball_size/2.0,win.height-ball_size/2.0,0))
 
 	messageHandler = game_system(window=win, objects=[ball, paddle, paddle2], 
-			controllers=[Movement(max_velocity=200), Bounce(friction=0.0), Bounce(screen_box, friction=0.01)])
+			controllers=[Movement_Game(max_velocity=200), Bounce(friction=0.0), Bounce(screen_box, friction=0.01)])
 
 	pyglet.clock.schedule_interval(messageHandler.update, (1.0/30.0))
-
+	#schedule particle effect to be drawn
+#	pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
+#	pyglet.clock.set_fps_limit(None)
 
 	@win.event
 	def on_draw():
 		win.clear()
 		messageHandler.draw()
+		for group, texture in group_tex:
+			glEnable(texture.target)
+			glTexParameteri(texture.target, GL_TEXTURE_WRAP_S, GL_CLAMP)
+			glTexParameteri(texture.target, GL_TEXTURE_WRAP_T, GL_CLAMP)
+			glTexParameteri(texture.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+			glTexParameteri(texture.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+			glBindTexture(texture.target, texture.id)
+			group.draw()
+			glDisable(texture.target)
 		glLoadIdentity()
 
 	pyglet.app.run()
