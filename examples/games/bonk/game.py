@@ -100,9 +100,11 @@ class game_system(object):
 		This method is convenient to call from you Pyglet window's
 		on_draw handler to redraw particles when needed.
 		"""
+		glPushAttrib(GL_ALL_ATTRIB_BITS)
 		self.draw_score()
 		for sprite in self:
 			sprite.draw()
+		glPopAttrib()
 
 class Paddle(object):
 	"""Draw a rectangle paddle"""
@@ -193,13 +195,13 @@ class ball(object):
 		self.particle_group = group
 	def draw(self):
 		"""Render the particles as points"""
-		x =  self.sprite.position.x
-		y =  self.sprite.position.y
-		glPointSize( self.sprite.size.x)
-		glBegin(GL_POINTS)
-		glColor4fv(self.sprite.color)
-		glVertex3f(x, y, 0)
-		glEnd()
+	#	x =  self.sprite.position.x
+	#	y =  self.sprite.position.y
+	#	glPointSize( self.sprite.size.x)
+	#	glBegin(GL_POINTS)
+	#	glColor4fv(self.sprite.color)
+	#	glVertex3f(x, y, 0)
+	#	glEnd()
 	def reset_ball(self, x, y):
 		"""reset ball to set location on the screen"""
 		self.sprite.position.x = x
@@ -210,10 +212,10 @@ class ball(object):
 			self.sprite.position.x, 
 			self.sprite.position.y,
 			self.sprite.position.z)
-		comet.template.velocity = (
-			self.sprite.position.x*0.05 - self.sprite.last_position.x,
-			self.sprite.position.y*0.05 - self.sprite.last_position.y,
-			self.sprite.position.z*0.05 - self.sprite.last_position.z)
+	#	comet.template.velocity = (
+	#		self.sprite.position.x*0.05 - self.sprite.last_position.x,
+	#		self.sprite.position.y*0.05 - self.sprite.last_position.y,
+	#		self.sprite.position.z*0.05 - self.sprite.last_position.z)
 		default_system.update(td)
 	def update(self, td):
 		"""Update state of ball"""
@@ -279,7 +281,7 @@ class Movement_Game(object):
 				if max_vel is not None:
 					vel_sq = vel.x**2 + vel.y**2 + vel.z**2
 					if vel_sq > max_vel_sq:
-						vel_mag = sqrt(vel_sq)
+						vel_mag = math.sqrt(vel_sq)
 						adjustment = max_vel / vel_mag
 						vel.x *= adjustment
 						vel.y *= adjustment
@@ -554,28 +556,33 @@ class Boundary(Box):
 if __name__ == '__main__':
 	"""Paddle game."""
 	win = pyglet.window.Window(resizable=True, visible=False)
+	win.clear()
 	paddle = Paddle((10,200,0), (1.0,0.0,0.0,1.0), (10.0,100.0,0.0), "paddle", win.height, keys=("up", "down"))
-	ball = ball(position=(210,100,0), velocity=(100,100,0),color=(0.0,0.0,1.0,1.0),size=(10.0,0.0,0.0))
+	ball = ball(position=(210,100,0), velocity=(200,200,0),color=(0.0,0.0,1.0,1.0),size=(10.0,0.0,0.0))
 	paddle2 = Paddle((620,200,0), (1.0,0.0,0.0,1.0), (10.0,100.0,0.0), "paddle2", win.height, keys=("w", "s"))
 
 	def resize(widthWindow, heightWindow):
 		"""Initial settings for the OpenGL state machine, clear color, window size, etc"""
-		glEnable(GL_BLEND)
-		glShadeModel(GL_SMOOTH)# Enables Smooth Shading
-		glBlendFunc(GL_SRC_ALPHA,GL_ONE)#Type Of Blending To Perform
-		glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);#Really Nice Perspective Calculations
-		glHint(GL_POINT_SMOOTH_HINT,GL_NICEST);#Really Nice Point Smoothing
-		glDisable(GL_DEPTH_TEST)
+		glMatrixMode(GL_PROJECTION)
+		glLoadIdentity()
+		glMatrixMode(GL_MODELVIEW)
+		glLoadIdentity()
+
+	glEnable(GL_BLEND)
+	glShadeModel(GL_SMOOTH)
+	glBlendFunc(GL_SRC_ALPHA,GL_ONE)
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);
+	glDisable(GL_DEPTH_TEST)
 
 	comet = StaticEmitter(
-		rate=250,
+		rate=150,
 		template=Particle(
-			size=(5,5,0),
-			color=(1,1,0),
+			size=(10,10,0),
+			color=(1,1,0)
 		),
 		deviation=Particle(
-			position=(1.0,1.0,0),
-			velocity=(0.7,0.7,0.7), 
+			position=(0.1,0.1,0),
+			velocity=(10,10,0.7), 
 			up=(0,0,math.pi),
 			rotation=(0,0,math.pi),
 			color=(0.5, 0.5, 0.5))
@@ -585,7 +592,7 @@ if __name__ == '__main__':
 	default_system.add_global_controller(
 		Lifetime(1.75),
 		#Gravity((0,-20,0)), 
-		Movement(min_velocity=20), 
+		Movement(min_velocity=20), 		
 		Fader(max_alpha=0.7, fade_out_start=1, fade_out_end=1.75),
 	)
 
@@ -594,11 +601,11 @@ if __name__ == '__main__':
 		group = ParticleGroup(controllers=[comet], renderer=BillboardRenderer())
 		try:
 			texture = image.load(os.path.join(os.path.dirname(__file__), 
-				'Particle.bmp')).texture#'flare%s.png' % (i+1))).get_mipmapped_texture()
+				'flare1.png')).texture#'flare%s.png' % (i+1))).get_mipmapped_texture()
 		except NotImplementedError:
 			#Problem with mips not being implemented everywhere (cygwin?)
 			texture = image.load(os.path.join(os.path.dirname(__file__), 
-				'Particle.bmp')).texture
+				'flare1.png')).texture
 		group_tex.append((group, texture))
 	win.resize = resize
 	win.set_visible(True)
@@ -611,24 +618,22 @@ if __name__ == '__main__':
 			controllers=[Movement_Game(max_velocity=200), Bounce(friction=0.0), Bounce(screen_box, friction=0.01)])
 
 	pyglet.clock.schedule_interval(messageHandler.update, (1.0/30.0))
-	#schedule particle effect to be drawn
-#	pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
-#	pyglet.clock.set_fps_limit(None)
 
 	@win.event
 	def on_draw():
 		win.clear()
+		glLoadIdentity()
 		messageHandler.draw()
 		for group, texture in group_tex:
+			glEnable(GL_BLEND)
 			glEnable(texture.target)
 			glTexParameteri(texture.target, GL_TEXTURE_WRAP_S, GL_CLAMP)
 			glTexParameteri(texture.target, GL_TEXTURE_WRAP_T, GL_CLAMP)
 			glTexParameteri(texture.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-			glTexParameteri(texture.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+			glTexParameteri(texture.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)			
 			glBindTexture(texture.target, texture.id)
 			group.draw()
 			glDisable(texture.target)
-		glLoadIdentity()
 
 	pyglet.app.run()
 
