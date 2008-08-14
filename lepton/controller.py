@@ -25,7 +25,7 @@ __version__ = '$Id$'
 
 from math import sqrt
 from particle_struct import Color, Vec3
-from _controller import Gravity, Movement, Lifetime, ColorBlender
+from _controller import Gravity, Movement, Lifetime, ColorBlender, Growth
 
 
 def NoopController(time_delta, group):

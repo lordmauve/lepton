@@ -683,6 +683,169 @@ static PyTypeObject ColorBlenderController_Type = {
 	0,                      /*tp_is_gc*/
 };
 
+/* --------------------------------------------------------------------- */
+
+static PyTypeObject GrowthController_Type;
+
+typedef struct {
+	PyObject_HEAD
+	Vec3 growth;
+	Vec3 damping;
+} GrowthControllerObject;
+
+static void
+GrowthController_dealloc(GrowthControllerObject *self) {
+	PyObject_Del(self);
+}
+
+static int
+GrowthController_init(GrowthControllerObject *self, PyObject *args, PyObject *kwargs)
+{
+	PyObject *damping_arg = NULL;
+	PyObject *growth_arg = NULL;
+
+	static char *kwlist[] = {"growth", "damping", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|O:__init__", kwlist,
+		&growth_arg, &damping_arg))
+		return -1;
+
+	if (PySequence_Check(growth_arg)) {
+		growth_arg = PySequence_Tuple(growth_arg);
+		if (growth_arg == NULL)
+			return -1;
+		if (!PyArg_ParseTuple(growth_arg, "fff", 
+			&self->growth.x, &self->growth.y, &self->growth.z)) {
+			Py_DECREF(growth_arg);
+			return -1;
+		}
+	} else {
+		/* scalar growth value */
+		growth_arg = PyNumber_Float(growth_arg);
+		if (growth_arg == NULL)
+			return -1;
+		self->growth.x = PyFloat_AS_DOUBLE(growth_arg);
+		self->growth.y = PyFloat_AS_DOUBLE(growth_arg);
+		self->growth.z = PyFloat_AS_DOUBLE(growth_arg);
+	}
+	Py_DECREF(growth_arg);
+
+	if (damping_arg != NULL) {
+		if (PySequence_Check(damping_arg)) {
+			damping_arg = PySequence_Tuple(damping_arg);
+			if (damping_arg == NULL)
+				return -1;
+			if (!PyArg_ParseTuple(damping_arg, "fff", 
+				&self->damping.x, &self->damping.y, &self->damping.z)) {
+				Py_DECREF(damping_arg);
+				return -1;
+			}
+			Py_DECREF(damping_arg);
+		} else {
+			/* scalar damping value */
+			damping_arg = PyNumber_Float(damping_arg);
+			if (damping_arg == NULL)
+				return -1;
+			self->damping.x = PyFloat_AS_DOUBLE(damping_arg);
+			self->damping.y = PyFloat_AS_DOUBLE(damping_arg);
+			self->damping.z = PyFloat_AS_DOUBLE(damping_arg);
+			Py_DECREF(damping_arg);
+		}
+	} else {
+		self->damping.x = 1.0f;
+		self->damping.y = 1.0f;
+		self->damping.z = 1.0f;
+	}
+
+	return 0;
+}
+
+static PyObject *
+GrowthController_call(GrowthControllerObject *self, PyObject *args)
+{
+	float td;
+	GroupObject *pgroup;
+	register Particle *p;
+	Vec3 g;
+	register unsigned long count;
+
+	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
+		return NULL;
+	
+	if (!GroupObject_Check(pgroup))
+		return NULL;
+
+	p = pgroup->plist->p;
+	g.x = self->growth.x * td;
+	g.y = self->growth.y * td;
+	g.z = self->growth.z * td;
+	count = GroupObject_ActiveCount(pgroup);
+	while (count--) {
+		Vec3_addi(&p->size, &g);
+		p++;
+	}
+	Vec3_muli(&self->growth, &self->damping);
+	
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyDoc_STRVAR(GrowthController__doc__, 
+	"Changes the size of particles over time\n\n"
+	"Growth(growth, damping=1.0)\n\n"
+	"growth -- Change in particle size per unit time.\n"
+	"May be specified as a 3-tuple or scalar\n\n"
+	"damping -- Growth multiplier to accelerate or\n"
+	"decelerate growth over time. Also a 3-tuple or scalar.");
+
+static PyTypeObject GrowthController_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"controller.Growth",		/*tp_name*/
+	sizeof(GrowthControllerObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)GrowthController_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	0,	        /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	(ternaryfunc)GrowthController_call, /*tp_call*/
+	0,                      /*tp_str*/
+	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	GrowthController__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	0,  /*tp_methods*/
+	0,  /*tp_members*/
+	0,                      /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)GrowthController_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
+
+
 PyMODINIT_FUNC
 init_controller(void)
 {
@@ -694,22 +857,24 @@ init_controller(void)
 	if (PyType_Ready(&GravityController_Type) < 0)
 		return;
 
-	/* Bind tp_new and tp_alloc here to appease certain compilers */
 	MovementController_Type.tp_alloc = PyType_GenericAlloc;
 	MovementController_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&MovementController_Type) < 0)
 		return;
 
-	/* Bind tp_new and tp_alloc here to appease certain compilers */
 	LifetimeController_Type.tp_alloc = PyType_GenericAlloc;
 	LifetimeController_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&LifetimeController_Type) < 0)
 		return;
 
-	/* Bind tp_new and tp_alloc here to appease certain compilers */
 	ColorBlenderController_Type.tp_alloc = PyType_GenericAlloc;
 	ColorBlenderController_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&ColorBlenderController_Type) < 0)
+		return;
+
+	GrowthController_Type.tp_alloc = PyType_GenericAlloc;
+	GrowthController_Type.tp_new = PyType_GenericNew;
+	if (PyType_Ready(&GrowthController_Type) < 0)
 		return;
 
 	/* Create the module and add the types */
@@ -725,4 +890,6 @@ init_controller(void)
 	PyModule_AddObject(m, "Lifetime", (PyObject *)&LifetimeController_Type);
 	Py_INCREF(&ColorBlenderController_Type);
 	PyModule_AddObject(m, "ColorBlender", (PyObject *)&ColorBlenderController_Type);
+	Py_INCREF(&GrowthController_Type);
+	PyModule_AddObject(m, "Growth", (PyObject *)&GrowthController_Type);
 }
