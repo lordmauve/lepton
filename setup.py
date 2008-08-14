@@ -23,8 +23,7 @@ elif sys.platform == 'win32':
 	libraries = ['opengl32']
 elif sys.platform == 'darwin':
 	include_dirs = ['/System/Library/Frameworks/OpenGL.framework/Headers', 
-		'/System/Library/Frameworks/GLUT.framework/Headers', 
-		'/System/Library/Frameworks/Kernel.framework/Headers']
+		'/System/Library/Frameworks/GLUT.framework/Headers']
 	library_dirs = []
 	libraries = []
 	extra_link_args = ['-framework:OpenGL']
