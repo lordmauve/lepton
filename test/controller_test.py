@@ -37,8 +37,8 @@ class ControllerTest(unittest.TestCase):
 		from lepton import Particle, ParticleGroup
 		g = ParticleGroup()
 		g.new(Particle((0,0,0), (0,0,0)))
-		g.new(Particle((0,0,0), (1,1,1)))
-		g.new(Particle((1,1,1), (-2,-2,-2)))
+		g.new(Particle((0,0,0), (1,1,1), size=(2,2,2)))
+		g.new(Particle((1,1,1), (-2,-2,-2), size=(3,2,0)))
 		g.update(0)
 		return g
 
@@ -102,6 +102,44 @@ class ControllerTest(unittest.TestCase):
 		self.assertVector(p[0].velocity, (0,0,0))
 		self.assertVector(p[1].velocity, (1.0,0.9,1.0))
 		self.assertVector(p[2].velocity, (-2.0,-1.8,-2.0))
+
+	def test_Growth_controller_simple(self):
+		from lepton import controller
+		group = self._make_group()
+
+		# Simple growth, no damping
+		growth = controller.Growth(1)
+		growth(0.2, group)
+		p = list(group)
+		self.assertVector(p[0].size, (0.2,0.2,0.2))
+		self.assertVector(p[1].size, (2.2,2.2,2.2))
+		self.assertVector(p[2].size, (3.2,2.2,0.2))
+
+	def test_Growth_controller_damping_scalar(self):
+		from lepton import controller
+		group = self._make_group()
+
+		# Growth w/damping
+		growth = controller.Growth(growth=1, damping=0.9)
+		growth(0.1, group)
+		growth(0.1, group)
+		p = list(group)
+		self.assertVector(p[0].size, (0.19,0.19,0.19))
+		self.assertVector(p[1].size, (2.19,2.19,2.19))
+		self.assertVector(p[2].size, (3.19,2.19,0.19))
+
+	def test_Growth_controller_damping_vector(self):
+		from lepton import controller
+		group = self._make_group()
+
+		# Growth w/damping vector
+		growth = controller.Growth(growth=(2,1,0), damping=(1,0.9,0))
+		growth(0.1, group)
+		growth(0.1, group)
+		p = list(group)
+		self.assertVector(p[0].size, (0.4,0.19,0))
+		self.assertVector(p[1].size, (2.4,2.19,2))
+		self.assertVector(p[2].size, (3.4,2.19,0))
 
 	def test_Movement_controller_max_velocity(self):
 		from lepton import controller
