@@ -47,7 +47,7 @@ if __name__ == '__main__':
 	sparks = ParticleGroup(
 		controllers=[
 			Lifetime(3),
-			Movement(damping=0.97),
+			Movement(damping=0.93),
 			Fader(fade_out_start=0.75, fade_out_end=3.0),
 		],
 		renderer=BillboardRenderer())
@@ -59,7 +59,7 @@ if __name__ == '__main__':
 			size=(2,2,0)),
 		deviation=Particle(
 			position=(1,1,1), 
-			velocity=(35,35,35), 
+			velocity=(75,75,75), 
 			size=(0.2,0.2,0),
 			age=1.5))
 	spark_emitter.emit(400, sparks)
