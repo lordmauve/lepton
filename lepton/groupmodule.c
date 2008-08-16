@@ -480,7 +480,7 @@ static PyTypeObject ParticleGroup_Type = {
 	0,			/*tp_hash*/
 	0,                      /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -1027,7 +1027,7 @@ static PyTypeObject ParticleIter_Type = {
 	0,			            /*tp_hash*/
 	0,                      /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -1036,7 +1036,7 @@ static PyTypeObject ParticleIter_Type = {
 	0,                      /*tp_clear*/
 	0,                      /*tp_richcompare*/
 	0,                      /*tp_weaklistoffset*/
-	PyObject_SelfIter,       /*tp_iter*/
+	0,                      /*tp_iter*/
 	(iternextfunc)ParticleIter_next,  /*tp_iternext*/
 	0,                      /*tp_methods*/
 	0,                      /*tp_members*/
@@ -1060,9 +1060,10 @@ initgroup(void)
 {
 	PyObject *m;
 
-	/* Bind tp_new and tp_alloc here to appease certain compilers */
+	/* Bind external consts here to appease certain compilers */
 	ParticleGroup_Type.tp_alloc = PyType_GenericAlloc;
 	ParticleGroup_Type.tp_new = PyType_GenericNew;
+	ParticleGroup_Type.tp_getattro = PyObject_GenericGetAttr;
 	if (PyType_Ready(&ParticleGroup_Type) < 0)
 		return;
 
@@ -1071,6 +1072,8 @@ initgroup(void)
 		return;
 
 	ParticleIter_Type.tp_alloc = PyType_GenericAlloc;
+	ParticleIter_Type.tp_getattro = PyObject_GenericGetAttr;
+	ParticleIter_Type.tp_iter = PyObject_SelfIter;
 	if (PyType_Ready(&ParticleIter_Type) < 0)
 		return;
 
