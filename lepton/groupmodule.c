@@ -546,30 +546,6 @@ Vector_new(GroupObject *pgroup, Vec3 *vec, int length)
 	return newvec;
 }
 
-static PyObject *
-Vector_getattr(VectorObject *self, char *name)
-{
-	if (self->pgroup != NULL && self->iteration != self->pgroup->iteration) {
-		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
-		return NULL;
-	}
-	
-	if (strlen(name) != 1) {
-		PyErr_SetString(PyExc_AttributeError, name);
-		return NULL;
-	}
-
-	switch (name[0]) {
-		case 'r': case 'x': return PyFloat_FromDouble(self->vec->x);
-		case 'g': case 'y': return PyFloat_FromDouble(self->vec->y);
-		case 'b': case 'z': return PyFloat_FromDouble(self->vec->z);
-		case 'a': return PyFloat_FromDouble(self->color->a);
-	}
-
-	PyErr_SetString(PyExc_AttributeError, name);
-	return NULL;
-}
-
 static int
 Vector_setattr(VectorObject *self, char *name, PyObject *v)
 {
@@ -668,6 +644,41 @@ Vector_assitem(VectorObject *self, Py_ssize_t index, PyObject *v)
 	return -1;
 }
 
+static PyObject *
+Vector_clamp(VectorObject *self, PyObject *args)
+{
+	float min, max;
+
+	if (!PyArg_ParseTuple(args, "ff:clamp",  &min, &max))
+		return NULL;
+
+	if (min > max) {
+		PyErr_Format(PyExc_ValueError, "clamp: Expected min <= max");
+		return NULL;
+	}
+
+	if (self->length == 3) {
+		self->vec->x = (self->vec->x < min) ? min : self->vec->x;
+		self->vec->x = (self->vec->x > max) ? max : self->vec->x;
+		self->vec->y = (self->vec->y < min) ? min : self->vec->y;
+		self->vec->y = (self->vec->y > max) ? max : self->vec->y;
+		self->vec->z = (self->vec->z < min) ? min : self->vec->z;
+		self->vec->z = (self->vec->z > max) ? max : self->vec->z;
+	} else {
+		self->color->r = (self->color->r < min) ? min : self->color->r;
+		self->color->r = (self->color->r > max) ? max : self->color->r;
+		self->color->g = (self->color->g < min) ? min : self->color->g;
+		self->color->g = (self->color->g > max) ? max : self->color->g;
+		self->color->b = (self->color->b < min) ? min : self->color->b;
+		self->color->b = (self->color->b > max) ? max : self->color->b;
+		self->color->a = (self->color->a < min) ? min : self->color->a;
+		self->color->a = (self->color->a > max) ? max : self->color->a;
+	}
+
+	Py_INCREF(self);
+	return (PyObject *)self;
+}
+
 static PySequenceMethods Vector_as_sequence = {
 	(lenfunc)Vector_length,	/* sq_length */
 	0,		/*sq_concat*/
@@ -676,6 +687,36 @@ static PySequenceMethods Vector_as_sequence = {
 	0,		/* sq_slice */
 	(ssizeobjargproc)Vector_assitem,	/* sq_ass_item */
 };
+
+static PyMethodDef Vector_methods[] = {
+	{"clamp", (PyCFunction)Vector_clamp, METH_VARARGS,
+		PyDoc_STR("clamp(min, max) -> vector\n"
+			"Clamp all values of the vector between min and max\n"
+			"return the resulting vector")},
+	{NULL, NULL}
+};
+
+static PyObject *
+Vector_getattr(VectorObject *self, PyObject *o)
+{
+	char *name = PyString_AS_STRING(o);
+
+	if (self->pgroup != NULL && self->iteration != self->pgroup->iteration) {
+		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
+		return NULL;
+	}
+	
+	if (strlen(name) == 1) {
+		switch (name[0]) {
+			case 'r': case 'x': return PyFloat_FromDouble(self->vec->x);
+			case 'g': case 'y': return PyFloat_FromDouble(self->vec->y);
+			case 'b': case 'z': return PyFloat_FromDouble(self->vec->z);
+			case 'a': return PyFloat_FromDouble(self->color->a);
+		}
+	}
+
+	return Py_FindMethod(Vector_methods, (PyObject *)self, name);
+}
 
 PyDoc_STRVAR(Vector__doc__, "Vector swizzler");
 
@@ -690,7 +731,7 @@ static PyTypeObject Vector_Type = {
 	/* methods */
 	(destructor)Vector_dealloc, /*tp_dealloc*/
 	0,			            /*tp_print*/
-	(getattrfunc)Vector_getattr, /*tp_getattr*/
+	0,                      /*tp_getattr*/
 	(setattrfunc)Vector_setattr, /*tp_setattr*/
 	0,			            /*tp_compare*/
 	(reprfunc)Vector_repr,  /*tp_repr*/
@@ -700,7 +741,7 @@ static PyTypeObject Vector_Type = {
 	0,			            /*tp_hash*/
 	0,                      /*tp_call*/
 	0,                      /*tp_str*/
-	0,                      /*tp_getattro*/
+	(getattrfunc)Vector_getattr, /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -711,7 +752,7 @@ static PyTypeObject Vector_Type = {
 	0,                      /*tp_weaklistoffset*/
 	0,                      /*tp_iter*/
 	0,                      /*tp_iternext*/
-	0,                      /*tp_methods*/
+	Vector_methods,         /*tp_methods*/
 	0,                      /*tp_members*/
 	0,                      /*tp_getset*/
 	0,                      /*tp_base*/

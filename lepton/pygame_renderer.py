@@ -52,11 +52,13 @@ class FillRenderer(Renderer):
 		fill = self.surface.fill
 		if self.flags is None:
 			for p in self.group:
-				fill(p.color, (p.position.x, p.position.y, p.size.x, p.size.y))
+				fill(p.color.clamp(0, 255), 
+					(p.position.x, p.position.y, p.size.x, p.size.y))
 		else:
 			flags = self.flags
 			for p in self.group:
-				fill(p.color, (p.position.x, p.position.y, p.size.x, p.size.y), flags)
+				fill(p.color.clamp(0, 255), 
+					(p.position.x, p.position.y, p.size.x, p.size.y), flags)
 
 
 class BlitRenderer(Renderer):
