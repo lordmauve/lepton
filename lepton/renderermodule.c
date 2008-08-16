@@ -163,7 +163,7 @@ static PyTypeObject PointRenderer_Type = {
 	0,			/*tp_hash*/
 	0,                      /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -407,7 +407,7 @@ static PyTypeObject BillboardRenderer_Type = {
 	0,			/*tp_hash*/
 	0,                      /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -438,15 +438,16 @@ initrenderer(void)
 {
 	PyObject *m;
 
-	/* Bind tp_new and tp_alloc here to appease certain compilers */
+	/* Bind external consts here to appease certain compilers */
 	PointRenderer_Type.tp_alloc = PyType_GenericAlloc;
 	PointRenderer_Type.tp_new = PyType_GenericNew;
+	PointRenderer_Type.tp_getattro = PyObject_GenericGetAttr;
 	if (PyType_Ready(&PointRenderer_Type) < 0)
 		return;
 
-	/* Bind tp_new and tp_alloc here to appease certain compilers */
 	BillboardRenderer_Type.tp_alloc = PyType_GenericAlloc;
 	BillboardRenderer_Type.tp_new = PyType_GenericNew;
+	BillboardRenderer_Type.tp_getattro = PyObject_GenericGetAttr;
 	if (PyType_Ready(&BillboardRenderer_Type) < 0)
 		return;
 
