@@ -100,7 +100,7 @@ static PyTypeObject GravityController_Type = {
 	0,			/*tp_hash*/
 	(ternaryfunc)GravityController_call, /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -295,7 +295,7 @@ static PyTypeObject MovementController_Type = {
 	0,			/*tp_hash*/
 	(ternaryfunc)MovementController_call, /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -399,7 +399,7 @@ static PyTypeObject LifetimeController_Type = {
 	0,			/*tp_hash*/
 	(ternaryfunc)LifetimeController_call, /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -657,7 +657,7 @@ static PyTypeObject ColorBlenderController_Type = {
 	0,			/*tp_hash*/
 	(ternaryfunc)ColorBlenderController_call, /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -819,7 +819,7 @@ static PyTypeObject GrowthController_Type = {
 	0,			/*tp_hash*/
 	(ternaryfunc)GrowthController_call, /*tp_call*/
 	0,                      /*tp_str*/
-	PyObject_GenericGetAttr, /*tp_getattro*/
+	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
@@ -851,29 +851,34 @@ init_controller(void)
 {
 	PyObject *m;
 
-	/* Bind tp_new and tp_alloc here to appease certain compilers */
+	/* Bind external consts here to appease certain compilers */
 	GravityController_Type.tp_alloc = PyType_GenericAlloc;
 	GravityController_Type.tp_new = PyType_GenericNew;
+	GravityController_Type.tp_getattro = PyObject_GenericGetAttr;
 	if (PyType_Ready(&GravityController_Type) < 0)
 		return;
 
 	MovementController_Type.tp_alloc = PyType_GenericAlloc;
 	MovementController_Type.tp_new = PyType_GenericNew;
+	MovementController_Type.tp_getattro = PyObject_GenericGetAttr;
 	if (PyType_Ready(&MovementController_Type) < 0)
 		return;
 
 	LifetimeController_Type.tp_alloc = PyType_GenericAlloc;
 	LifetimeController_Type.tp_new = PyType_GenericNew;
+	LifetimeController_Type.tp_getattro = PyObject_GenericGetAttr;
 	if (PyType_Ready(&LifetimeController_Type) < 0)
 		return;
 
 	ColorBlenderController_Type.tp_alloc = PyType_GenericAlloc;
 	ColorBlenderController_Type.tp_new = PyType_GenericNew;
+	ColorBlenderController_Type.tp_getattro = PyObject_GenericGetAttr;
 	if (PyType_Ready(&ColorBlenderController_Type) < 0)
 		return;
 
 	GrowthController_Type.tp_alloc = PyType_GenericAlloc;
 	GrowthController_Type.tp_new = PyType_GenericNew;
+	GrowthController_Type.tp_getattro = PyObject_GenericGetAttr;
 	if (PyType_Ready(&GrowthController_Type) < 0)
 		return;
 
