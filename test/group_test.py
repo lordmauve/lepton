@@ -277,6 +277,18 @@ class GroupTest(unittest.TestCase):
 		self.assertEqual(newp.color.b, 4)
 		self.assertEqual(newp.color.a, 1)
 	
+	def test_particle_vector_clamp(self):
+		from lepton import ParticleGroup
+		group = ParticleGroup()
+		p = TestParticle()
+		p.color = (2,0.5,-1,5)
+		p.size = (0, 2, 0)
+		newp = group.new(p)
+		self.assertEqual(tuple(newp.color), p.color)
+		self.assertEqual(tuple(newp.size), p.size)
+		self.assertEqual(tuple(newp.color.clamp(0, 1)), (1, 0.5, 0, 1))
+		self.assertEqual(tuple(newp.size.clamp(1, 1.5)), (1, 1.5, 1))
+	
 	def test_mass_new_particles(self):
 		from lepton import ParticleGroup
 		count = 12345
