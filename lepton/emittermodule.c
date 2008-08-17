@@ -18,13 +18,6 @@
 #include <structmember.h>
 #include <float.h>
 #include <time.h>
-
-#ifdef WIN32
-#include <stdlib.h>
-/* yes, we really do want to inline */
-#define inline __forceinline
-#endif
-
 #include "fastrng.h"
 #include "group.h"
 #include "vector.h"
