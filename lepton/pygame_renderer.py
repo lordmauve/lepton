@@ -83,13 +83,13 @@ class BlitRenderer(Renderer):
 				blit(psurface, (p.position.x, p.position.y))
 		else:
 			last_rot = 0
-			last_size = psurface.width
+			last_size = psurface.get_width()
 			last_psurface = psurface
 			for p in self.group:
 				if p.rotation.x != last_rot or p.size.x != last_size:
 					last_rot = p.rotation.x
 					last_size = p.size.x
-					scale = p.size.x / psurface.width
+					scale = p.size.x / psurface.get_width()
 					last_psurface = rotozoom(psurface, last_rot, scale)
 				blit(last_psurface, (p.position.x, p.position.y))
 				
