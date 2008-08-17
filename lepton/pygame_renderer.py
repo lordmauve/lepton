@@ -61,8 +61,65 @@ class FillRenderer(Renderer):
 					(p.position.x, p.position.y, p.size.x, p.size.y), flags)
 
 
+class Cache:
+	"""Simple, fast, bounded cache that gives approximate MRU behavior"""
+
+	def __init__(self, max_size, load_factor=0.85):
+		self.max_size = max_size
+		self.max_recent_size = int(max_size * load_factor)
+		self._recent = {} # Recently accessed bucket
+		self._aged = {} # Less recently accessed bucket
+		self.accesses = 0
+		self.misses = 0
+		self.adds = 0
+		self.flips = 0
+		self.purged = 0
+	
+	def __getitem__(self, key):
+		#self.accesses += 1
+		try:
+			try:
+				return self._recent[key]
+			except KeyError:
+				# Promote aged element to "recent"
+				value = self._aged.pop(key)
+				self._recent[key] = value
+				return value
+		except KeyError:
+			#self.misses += 1
+			raise
+	
+	def __len__(self):
+		return len(self._recent) + len(self._aged)
+	
+	def __contains__(self, key):
+		return key in self._recent or key in self._aged
+	
+	def __setitem__(self, key, value):
+		assert value is not None
+		#self.adds += 1
+		if key in self._aged:
+			del self._aged[key]
+		if len(self._recent) >= self.max_recent_size:
+			# Flip the cache discarding aged entries
+			#self.flips += 1
+			#print self.flips, 'cache flips in', self.adds, ' adds. ',
+			#print self.misses, 'misses in', self.accesses, 'accesses (',
+			#print (self.accesses - self.misses) * 100 / self.accesses, '% hit rate) ',
+			#print 'with', self.purged, 'purged'
+			self._aged = self._recent
+			self._recent = {}
+		self._recent[key] = value
+		while self._aged and len(self) > self.max_size:
+			# Over max size, purge aged entries
+			#self.purged += 1
+			self._aged.popitem()
+
+
 class BlitRenderer(Renderer):
 	"""Renders particles by blitting to a pygame surface"""
+
+	surf_cache = Cache(200)
 
 	def __init__(self, surface, particle_surface, rotate_and_scale=False):
 		"""
@@ -82,14 +139,16 @@ class BlitRenderer(Renderer):
 			for p in self.group:
 				blit(psurface, (p.position.x, p.position.y))
 		else:
-			last_rot = 0
-			last_size = psurface.get_width()
-			last_psurface = psurface
+			cache = self.surf_cache
+			surfid = id(psurface)
 			for p in self.group:
-				if p.rotation.x != last_rot or p.size.x != last_size:
-					last_rot = p.rotation.x
-					last_size = p.size.x
+				size = int(p.size.x)
+				rot = int(p.rotation.x)
+				cachekey = (surfid, size, rot)
+				try:
+					surface = cache[cachekey]
+				except KeyError:
 					scale = p.size.x / psurface.get_width()
-					last_psurface = rotozoom(psurface, last_rot, scale)
-				blit(last_psurface, (p.position.x, p.position.y))
-				
+					surface = cache[cachekey] = rotozoom(psurface, rot, scale)
+				blit(surface, (p.position.x, p.position.y))
+
