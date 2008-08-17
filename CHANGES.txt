@@ -1,3 +1,13 @@
+2008-08-16 -- 0.5a
+
+- (Hopefully) Fix "initializer element is not constant" error compiling 
+  on Windows with Python binary release
+- Fix bug building on Mac with Python Binary release (issue #1)
+- Add particle growth controller
+- Add explosion example
+- Add clamp() method to particle vectors
+- Add simple pygame fill example
+
 2008-08-11 -- 0.4a
 
 - Fix setup.py to support cygwin on windows (Still need to work on VC)
