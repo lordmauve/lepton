@@ -379,9 +379,9 @@ FaderController_call(FaderControllerObject *self, PyObject *args)
 	float td;
 	GroupObject *pgroup;
 	register Particle *p;
-	Vec3 v;
 	float in_start, in_end, in_time, in_alpha, out_start, out_end, out_time, out_alpha;
 	register unsigned long count;
+
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
 	
@@ -417,6 +417,7 @@ FaderController_call(FaderControllerObject *self, PyObject *args)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
+
 static PyTypeObject FaderController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
@@ -463,6 +464,7 @@ static PyTypeObject FaderController_Type = {
 	0,                      /*tp_free*/
 	0,                      /*tp_is_gc*/
 };
+
 /* --------------------------------------------------------------------- */
 
 static PyTypeObject LifetimeController_Type;
