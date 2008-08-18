@@ -149,8 +149,8 @@ MovementController_init(MovementControllerObject *self, PyObject *args, PyObject
 
 	static char *kwlist[] = {"damping", "min_velocity", "max_velocity", NULL};
 
-	self->min_velocity = 0;
-	self->max_velocity = FLT_MAX;
+	self->min_velocity  = 0.0;
+	self->max_velocity  = FLT_MAX;
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|Off:__init__", kwlist,
 		&damping_arg, &self->min_velocity, &self->max_velocity))
 		return -1;
@@ -320,7 +320,149 @@ static PyTypeObject MovementController_Type = {
 	0,                      /*tp_free*/
 	0,                      /*tp_is_gc*/
 };
+/* --------------------------------------------------------------------- */
 
+static PyTypeObject FaderController_Type;
+
+typedef struct {
+	PyObject_HEAD
+	float start_alpha;
+	float fade_in_start;
+	float fade_in_end;
+	float max_alpha;
+	float fade_out_start;
+	float fade_out_end;
+	float end_alpha;
+	float min_velocity;
+	float max_velocity;
+} FaderControllerObject;
+
+static void
+FaderController_dealloc(FaderControllerObject *self) {
+	PyObject_Del(self);
+}
+
+static int
+FaderController_init(FaderControllerObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"start_alpha", "fade_in_start", "fade_in_end", "max_alpha", "fade_out_start", "fade_out_end", "end_alpha", "min_velocity", "max_velocity", NULL};
+	self->start_alpha   = 0.0; 
+	self->fade_in_start = 0.0; 
+	self->fade_in_end   = 0.0;
+	self->max_alpha     = 1.0;
+	self->end_alpha     = 0.0;
+	self->fade_out_start = FLT_MAX;
+	self->fade_out_end = FLT_MAX;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|fffffffff:__init__", kwlist,
+	&self->start_alpha, &self->fade_in_start, &self->fade_in_end, &self->max_alpha, &self->end_alpha,
+	&self->fade_out_start, &self->fade_out_end))
+		return -1;
+
+	return 0;
+}
+
+PyDoc_STRVAR(FaderController__doc__, 
+	"Alters the alpha of particles to fade them in and out over time\n\n"
+	"start_alpha -- Initial alpha value.\n"
+	"fade_in_start -- Time to start fading in to max_alpha\n"
+	"fade_in_end -- Time when alpha reaches max\n"
+	"max_alpha -- Maximum alpha level\n"
+	"fade_out_start -- Time to start fading out to end_alpha. If None\n"
+	"no fade out is performed.\n"
+	"fade_out_end -- Time when alpha reaches end\n"
+	"end_alpha -- Ending alpha leve\n");
+
+static PyObject *
+FaderController_call(FaderControllerObject *self, PyObject *args)
+{
+	float td;
+	GroupObject *pgroup;
+	register Particle *p;
+	Vec3 v;
+	float in_start, in_end, in_time, in_alpha, out_start, out_end, out_time, out_alpha;
+	register unsigned long count;
+	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
+		return NULL;
+	
+	if (!GroupObject_Check(pgroup))
+		return NULL;
+
+	p = pgroup->plist->p;
+	in_start = self->fade_in_start;
+	in_end = self->fade_in_end;
+	in_time = in_end - in_start;
+	in_alpha = self->max_alpha - self->start_alpha;
+	out_start = self->fade_out_start;
+	out_end = self->fade_out_end;
+	out_time = out_end - out_start;
+	out_alpha = self->end_alpha - self->max_alpha;
+	count = GroupObject_ActiveCount(pgroup);
+	while (count--) {
+		//if p.age > in_end and (out_start is None or p.age <= out_start):
+		if ((p->age > in_end) && (p->age <= out_start)) {
+		//if ((p->age > in_end) && (p->age < out_start)) {
+			p->color.a = self->max_alpha;
+		} else if ( (p->age > in_start) && (p->age < in_end)) {
+			p->color.a = self->start_alpha + in_alpha * ((p->age - in_start) / in_time);
+		//out_start is not None and p.age > out_start and p.age < out_end
+		}else if ((p->age >= out_start) && (p->age < out_end)) {
+			p->color.a = self->max_alpha + out_alpha * ((p->age - out_start) / out_time);
+		//elif out_end is not None and p.age >= out_end:
+		} else if (p->age >= out_end) {
+			p->color.a = self->end_alpha;
+		}
+		p++;
+	}
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+static PyTypeObject FaderController_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"controller.Fader",		/*tp_name*/
+	sizeof(FaderControllerObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)FaderController_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	0,	        /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	(ternaryfunc)FaderController_call, /*tp_call*/
+	0,                      /*tp_str*/
+	0,                      /*tp_getattro*/
+	0,                      /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	FaderController__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	0,  /*tp_methods*/
+	0,  /*tp_members*/
+	0,                      /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)FaderController_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
 /* --------------------------------------------------------------------- */
 
 static PyTypeObject LifetimeController_Type;
@@ -864,6 +1006,12 @@ init_controller(void)
 	if (PyType_Ready(&MovementController_Type) < 0)
 		return;
 
+	FaderController_Type.tp_alloc = PyType_GenericAlloc;
+	FaderController_Type.tp_new = PyType_GenericNew;
+	FaderController_Type.tp_getattro = PyObject_GenericGetAttr;
+	if (PyType_Ready(&FaderController_Type) < 0)
+		return;
+
 	LifetimeController_Type.tp_alloc = PyType_GenericAlloc;
 	LifetimeController_Type.tp_new = PyType_GenericNew;
 	LifetimeController_Type.tp_getattro = PyObject_GenericGetAttr;
@@ -890,6 +1038,8 @@ init_controller(void)
 	Py_INCREF(&GravityController_Type);
 	PyModule_AddObject(m, "Gravity", (PyObject *)&GravityController_Type);
 	Py_INCREF(&MovementController_Type);
+	PyModule_AddObject(m, "Fader", (PyObject *)&FaderController_Type);
+	Py_INCREF(&FaderController_Type);
 	PyModule_AddObject(m, "Movement", (PyObject *)&MovementController_Type);
 	Py_INCREF(&LifetimeController_Type);
 	PyModule_AddObject(m, "Lifetime", (PyObject *)&LifetimeController_Type);

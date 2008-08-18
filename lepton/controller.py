@@ -25,58 +25,11 @@ __version__ = '$Id$'
 
 from math import sqrt
 from particle_struct import Color, Vec3
-from _controller import Gravity, Movement, Lifetime, ColorBlender, Growth
+from _controller import Gravity, Fader, Movement, Lifetime, ColorBlender, Growth
 
 
 def NoopController(time_delta, group):
 	"""Do nothing controller"""
-
-
-class Fader(object):
-	"""Alters the alpha of particles to fade them in and out over time"""
-
-	def __init__(self, start_alpha=0.0, fade_in_start=0.0, fade_in_end=0.0, max_alpha=1.0, 
-		fade_out_start=None, fade_out_end=None, end_alpha=0.0):
-		"""
-		start_alpha -- Initial alpha value.
-		fade_in_start -- Time to start fading in to max_alpha
-		fade_in_end -- Time when alpha reaches max
-		max_alpha -- Maximum alpha level
-		fade_out_start -- Time to start fading out to end_alpha. If None
-		no fade out is performed.
-		fade_out_end -- Time when alpha reaches end
-		end_alpha -- Ending alpha level
-		"""
-		assert fade_in_end >= fade_in_start, "Fader: expected fade_in_end >= fade_in_start"
-		assert fade_out_start is None or (fade_out_end is not None and
-			fade_out_end >= fade_out_start), "Fader: expected fade_out_end >= fade_out_start"
-		self.start_alpha = start_alpha
-		self.fade_in_start = fade_in_start
-		self.fade_in_end = fade_in_end
-		self.max_alpha = max_alpha
-		self.fade_out_start = fade_out_start
-		self.fade_out_end = fade_out_end
-		self.end_alpha = end_alpha
-	
-	def __call__(self, td, group):
-		in_start = self.fade_in_start
-		in_end = self.fade_in_end
-		in_time = in_end - in_start
-		in_alpha = self.max_alpha - self.start_alpha
-		out_start = self.fade_out_start
-		out_end = self.fade_out_end
-		out_time = out_end - out_start
-		out_alpha = self.end_alpha - self.max_alpha
-
-		for p in group:
-			if p.age > in_end and (out_start is None or p.age <= out_start):
-				p.color.a = self.max_alpha
-			elif p.age > in_start and p.age < in_end:
-				p.color.a = self.start_alpha + in_alpha * ((p.age - in_start) / in_time)
-			elif out_start is not None and p.age > out_start and p.age < out_end:
-				p.color.a = self.max_alpha + out_alpha * ((p.age - out_start) / out_time)
-			elif out_end is not None and p.age >= out_end:
-				p.color.a = self.end_alpha
 
 
 class Collector(object):
