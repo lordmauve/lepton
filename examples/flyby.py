@@ -58,9 +58,9 @@ if __name__ == '__main__':
 	)
 
 	default_system.add_global_controller(
-		Lifetime(1.75),
-		Movement(min_velocity=20), 
-		Fader(max_alpha=0.7, fade_out_start=1, fade_out_end=1.75),
+		Lifetime(3.0),
+		Movement(min_velocity=5), 
+		Fader(max_alpha=0.7, fade_out_start=1, fade_out_end=3.0),
 	)
 
 	group_tex = []
