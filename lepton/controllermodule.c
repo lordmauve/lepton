@@ -345,7 +345,7 @@ FaderController_dealloc(FaderControllerObject *self) {
 static int
 FaderController_init(FaderControllerObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"start_alpha", "fade_in_start", "fade_in_end", "max_alpha", "fade_out_start", "fade_out_end", "end_alpha", "min_velocity", "max_velocity", NULL};
+	static char *kwlist[] = {"start_alpha", "fade_in_start", "fade_in_end", "max_alpha", "fade_out_start", "fade_out_end", "end_alpha", NULL};
 	self->start_alpha   = 0.0; 
 	self->fade_in_start = 0.0; 
 	self->fade_in_end   = 0.0;
@@ -354,9 +354,9 @@ FaderController_init(FaderControllerObject *self, PyObject *args, PyObject *kwar
 	self->fade_out_start = FLT_MAX;
 	self->fade_out_end = FLT_MAX;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|fffffffff:__init__", kwlist,
-	&self->start_alpha, &self->fade_in_start, &self->fade_in_end, &self->max_alpha, &self->end_alpha,
-	&self->fade_out_start, &self->fade_out_end))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|fffffff:__init__", kwlist,
+		&self->start_alpha, &self->fade_in_start, &self->fade_in_end, &self->max_alpha, 
+		&self->fade_out_start, &self->fade_out_end, &self->end_alpha))
 		return -1;
 
 	return 0;
