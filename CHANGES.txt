@@ -1,3 +1,12 @@
+2008-08-17 -- 0.6a
+
+- Remove inline redefinition cruft that was causing problems building on
+  win32 (Thanks to Fabrice Capiez for help debugging)
+- Add pygame bubbles demo to show off the pygame blit renderer
+- Fix some bugs in the blit renderer
+- Add a surface cache to the blit renderer to improve performance when
+  rotation and scaling are enabled.
+
 2008-08-16 -- 0.5a
 
 - (Hopefully) Fix "initializer element is not constant" error compiling 
