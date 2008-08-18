@@ -18,6 +18,11 @@ The following are required to build and install Lepton:
 * OpenGL
 * A C compiler (GCC recommended)
 
+To build on Linux (and possibly other unix-like OSes) You will need to have
+the Python and libxext headers installed. On systems using the apt packaging
+system, this means you need to have the python-dev-all and libxext-dev
+packages installed.
+
 Binary releases will also be available in time. If you'd like to help
 out by contributing a binary distribution for you platform, you're more
 than welcome to!
