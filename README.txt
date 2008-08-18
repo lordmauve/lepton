@@ -9,7 +9,8 @@ Requirements
 ------------
 
 Lepton is platform-independent and should run on any operating system
-supporting Python and OpenGL.
+supporting Python and OpenGL. Let us know if you successfully build
+and run Lepton on an unusual platform.
 
 The following are required to build and install Lepton:
 
@@ -17,10 +18,13 @@ The following are required to build and install Lepton:
 * OpenGL
 * A C compiler (GCC recommended)
 
-Binary releases will also be available in time.
+Binary releases will also be available in time. If you'd like to help
+out by contributing a binary distribution for you platform, you're more
+than welcome to!
 
-Many of the examples provided with Lepton require pyglet
-(http://www.pyglet.com), but it is not required to use the library.
+The examples provided with Lepton require either pyglet
+(http://www.pyglet.com), or pygame (http://www.pygame.org),
+but neither are required to use the library.
 
 Alpha Software
 --------------
@@ -52,5 +56,6 @@ Support
 -------
 
 If you find a bug, use the issue tracker above. If you'd like to discuss
-feature enhancements or shower the developer with compliments, you
-can email him at casey dot duncan at gmail dot com.
+usage, new features or contribute to Lepton, join our google group at:
+
+http://groups.google.com/group/py-lepton-users

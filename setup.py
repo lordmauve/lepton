@@ -57,7 +57,7 @@ libraries and simply requires the application to setup an OpenGL context in
 order to render particles.
 ''',
 	author='Casey Duncan, Harry Tormey & Contributors',
-	author_email='casey.duncan@gmail.com',
+	author_email='py-lepton-users@googlegroups.com',
 	url='http://code.google.com/p/py-lepton/',
 	license='MIT',
     classifiers = [
