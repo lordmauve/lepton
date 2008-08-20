@@ -30,9 +30,9 @@ class Kaboom:
 	lifetime = 5
 
 	def __init__(self):
-		color=(uniform(0,3), uniform(0,3), uniform(0,3))
-		while sum(color) < 5.0:
-			color=(uniform(0,3), uniform(0,3), uniform(0,3))
+		color=(uniform(1,3), uniform(1,3), uniform(1,3))
+		while sum(color) < 6.0:
+			color=(uniform(1,3), uniform(1,3), uniform(1,3))
 
 		spark_emitter = StaticEmitter(
 			template=Particle(
