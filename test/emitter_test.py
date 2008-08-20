@@ -18,10 +18,9 @@ import sys
 import math
 
 
-class EmitterTest(unittest.TestCase):
+class EmitterTestBase:
 
 	def assertVector(self, (vx,vy,vz), (x,y,z), tolerance=0.00001):
-		
 		self.failUnless(abs(vx - x) <= tolerance, ((vx,vy,vz), (x,y,z)))
 		self.failUnless(abs(vy - y) <= tolerance, ((vx,vy,vz), (x,y,z)))
 		self.failUnless(abs(vz - z) <= tolerance, ((vx,vy,vz), (x,y,z)))
@@ -47,9 +46,12 @@ class EmitterTest(unittest.TestCase):
 		self.failUnless(lo_a <= color.a <= hi_a, 
 			(color, (lo_r,lo_g,lo_b,lo_a), (hi_r,hi_g,hi_b,hi_a)))
 
+
+class StaticEmitterTest(EmitterTestBase, unittest.TestCase):
+
 	def test_StaticEmitter_template(self):
-		from lepton.emitter import StaticEmitter
 		from lepton import Particle, ParticleGroup
+		from lepton.emitter import StaticEmitter
 
 		emitter = StaticEmitter(rate=1, template=Particle(
 			position=(1.0, 1.0, 1.0), velocity=(0, 5, 2), color=(0.5, 0.5, 0.5, 1.0)))
@@ -61,12 +63,17 @@ class EmitterTest(unittest.TestCase):
 		particle = list(group)[0]
 		self.assertVector(particle.position, (1,1,1))
 		self.assertVector(particle.velocity, (0,5,2))
-		self.assertVector(particle.position, (1,1,1))
 		self.assertColor(particle.color, (0.5, 0.5, 0.5, 1.0))
+
+	def test_StaticEmitter_invalid_rate(self):
+		from lepton import Particle, ParticleGroup
+		from lepton.emitter import StaticEmitter
+
+		self.assertRaises(ValueError, StaticEmitter, rate=-1)
 	
 	def test_StaticEmitter_deviation(self):
-		from lepton.emitter import StaticEmitter
 		from lepton import Particle, ParticleGroup
+		from lepton.emitter import StaticEmitter
 
 		template=Particle(
 			position=(1.0, 1.0, 1.0), 
@@ -127,8 +134,8 @@ class EmitterTest(unittest.TestCase):
 		self.assertColor(color_var, deviation.color, tolerance=0.2)
 
 	def test_StaticEmitter_time_to_live(self):
-		from lepton.emitter import StaticEmitter
 		from lepton import Particle, ParticleGroup
+		from lepton.emitter import StaticEmitter
 
 		emitter = StaticEmitter(rate=1, time_to_live=3.0)
 		group = ParticleGroup(controllers=[emitter])
@@ -144,8 +151,8 @@ class EmitterTest(unittest.TestCase):
 		self.failUnless(emitter not in group.controllers)
 	
 	def test_StaticEmitter_partial(self):
-		from lepton.emitter import StaticEmitter
 		from lepton import Particle, ParticleGroup
+		from lepton.emitter import StaticEmitter
 
 		emitter = StaticEmitter(rate=1)
 		group = ParticleGroup()
@@ -167,10 +174,16 @@ class EmitterTest(unittest.TestCase):
 		emitter.emit(10, group)
 		group.update(0)
 		self.assertEqual(len(group), 10)
+
+		# Negative emit value is equivilant to zero
+		emitter.emit(-10, group)
+		group.update(0)
+		self.assertEqual(len(group), 10)
+
 	
 	def test_StaticEmitter_discrete(self):
-		from lepton.emitter import StaticEmitter
 		from lepton import Particle, ParticleGroup
+		from lepton.emitter import StaticEmitter
 		
 		masses = (0.5, 2.0, 8.0)
 		positions = ((1.0,1.0,1.0), (10.0,20.0,30.0), (-100.0,0.0,0.0))
@@ -190,8 +203,8 @@ class EmitterTest(unittest.TestCase):
 			self.assertVector(particle.velocity, (1,1,0))
 	
 	def test_StaticEmitter_domain(self):
-		from lepton.emitter import StaticEmitter
 		from lepton import Particle, ParticleGroup
+		from lepton.emitter import StaticEmitter
 
 		expected = (-42, 0, 9)
 		
@@ -213,6 +226,125 @@ class EmitterTest(unittest.TestCase):
 		for particle in group:
 			self.assertVector(particle.position, expected)
 
+
+class PerParticleEmitterTest(EmitterTestBase, unittest.TestCase):
+
+	def test_PerParticleEmitter_source_group(self):
+		from lepton.emitter import PerParticleEmitter
+		from lepton import ParticleGroup
+		source_group = ParticleGroup()
+		emitter = PerParticleEmitter(source_group)
+		self.failUnless(emitter.source_group is source_group)
+
+	def test_PerParticleEmitter_invalid_rate(self):
+		from lepton import Particle, ParticleGroup
+		from lepton.emitter import PerParticleEmitter
+
+		self.assertRaises(ValueError, PerParticleEmitter, ParticleGroup(), rate=-1)
+
+	def test_PerParticleEmitter_template(self):
+		from lepton import Particle, ParticleGroup
+		from lepton.emitter import PerParticleEmitter
+
+		source_group = ParticleGroup()
+		source_group.new(Particle(position=(1,1,1)))
+		source_group.new(Particle(position=(2,2,2)))
+		source_group.update(0)
+
+		emitter = PerParticleEmitter(source_group, rate=1, template=Particle(
+			position=(1.0, 1.0, 1.0), velocity=(0, 5, 2), color=(0.5, 0.5, 0.5, 1.0)))
+		group = ParticleGroup()
+		count = emitter(1, group)
+		group.update(0)
+		self.assertEqual(count, len(source_group))
+		self.assertEqual(len(group), len(source_group))
+		particle = list(group)[0]
+		self.assertVector(particle.position, (1,1,1))
+		self.assertVector(particle.velocity, (0,5,2))
+		self.assertColor(particle.color, (0.5, 0.5, 0.5, 1.0))
+		particle = list(group)[1]
+		self.assertVector(particle.position, (2,2,2))
+		self.assertVector(particle.velocity, (0,5,2))
+		self.assertColor(particle.color, (0.5, 0.5, 0.5, 1.0))
+
+	def test_PerParticleEmitter_emit(self):
+		from lepton import ParticleGroup
+		from lepton.emitter import PerParticleEmitter
+
+		source_group = ParticleGroup()
+		source_group.new(object())
+		source_group.new(object())
+		source_group.new(object())
+		source_group.update(0)
+
+		emitter = PerParticleEmitter(source_group)
+		group = ParticleGroup()
+		self.assertEqual(len(group), 0)
+		emitter.emit(10, group)
+		group.update(0)
+		expected = 10 * len(source_group)
+		self.assertEqual(len(group), expected)
+
+		# Negative emit value is equivilant to zero
+		emitter.emit(-10, group)
+		group.update(0)
+		self.assertEqual(len(group), expected)
+
+
+	def test_PerParticleEmitter_emit_empty_source(self):
+		from lepton import ParticleGroup
+		from lepton.emitter import PerParticleEmitter
+
+		emitter = PerParticleEmitter(ParticleGroup())
+		group = ParticleGroup()
+		self.assertEqual(len(group), 0)
+		emitter.emit(10, group)
+		group.update(0)
+		self.assertEqual(len(group), 0)
+
+	def test_PerParticleEmitter_time_to_live(self):
+		from lepton import Particle, ParticleGroup
+		from lepton.emitter import PerParticleEmitter
+
+		source_group = ParticleGroup()
+		source_group.new(object())
+		source_group.new(object())
+		source_group.new(object())
+		source_group.new(object())
+		source_group.update(0)
+
+		emitter = PerParticleEmitter(source_group, rate=1, time_to_live=3.0)
+		group = ParticleGroup(controllers=[emitter])
+		count = emitter(2, group)
+		self.assertEqual(count, 2 * len(source_group))
+		self.assertEqual(emitter.time_to_live, 1)
+		self.failUnless(emitter in group.controllers)
+		count = emitter(2, group)
+		# Since only one second remained before expiring
+		# only one particle per should be emitted
+		self.assertEqual(count, len(source_group))
+		self.assertEqual(emitter.time_to_live, 0)
+		self.failUnless(emitter not in group.controllers)
+	
+	def test_PerParticleEmitter_partial(self):
+		from lepton import Particle, ParticleGroup
+		from lepton.emitter import PerParticleEmitter
+
+		source_group = ParticleGroup()
+		source_group.new(object())
+		source_group.new(object())
+		source_group.new(object())
+		source_group.update(0)
+
+		emitter = PerParticleEmitter(source_group, rate=1)
+		group = ParticleGroup()
+		# It should take four quarter second updates to emit any
+		self.assertEqual(emitter(0.25, group), 0)
+		self.assertEqual(emitter(0.25, group), 0)
+		self.assertEqual(emitter(0.25, group), 0)
+		self.assertEqual(emitter(0.25, group), len(source_group))
+		group.update(0)
+		self.assertEqual(len(group), len(source_group))
 
 if __name__ == '__main__':
 	unittest.main()
