@@ -30,16 +30,16 @@ class Kaboom:
 	lifetime = 5
 
 	def __init__(self):
-		color=(uniform(1,3), uniform(1,3), uniform(1,3))
-		while sum(color) < 6.0:
-			color=(uniform(1,3), uniform(1,3), uniform(1,3))
+		color=(uniform(0,1), uniform(0,1), uniform(0,1), 1)
+		while sum(color) < 2.5:
+			color=(uniform(0,1), uniform(0,1), uniform(0,1), 1)
 
 		spark_emitter = StaticEmitter(
 			template=Particle(
 				position=(uniform(-50, 50), uniform(-30, 30), uniform(-30, 30)), 
 				velocity=(0, gauss(40, 20), 0),
 				color=color, 
-				size=(2,2,0)),
+				size=(2.5,2.5,0)),
 			deviation=Particle(
 				velocity=(gauss(35,10)+2,gauss(35,10)+2,gauss(35,10)+2), 
 				age=1.5))
@@ -54,21 +54,22 @@ class Kaboom:
 
 		spark_emitter.emit(int(gauss(50, 40)) + 50, self.sparks)
 
-		spread = uniform(0.5, 4)
+		spread = uniform(0.2, 4)
 		self.trail_emitter = PerParticleEmitter(self.sparks, rate=uniform(5,20),
 			template=Particle(
-				color=tuple(c * 1.05 for c in color),
-				size=(0.75,0.75,0)),
+				color=color,
+				size=(1,1,0)),
 			deviation=Particle(
 				velocity=(spread, spread, spread),
 				size=(0.05,0.05,0),
-				age=2))
+				age=self.lifetime * 0.75))
 
 		self.trails = ParticleGroup(
 			controllers=[
-				Lifetime(self.lifetime),
+				Lifetime(self.lifetime * 1.5),
 				Movement(damping=0.83),
-				Fader(fade_out_start=0, fade_out_end=self.lifetime),
+				ColorBlender([(0, (1,1,1,1)), (1, color), (self.lifetime, color)]),
+				Fader(fade_out_start=0, fade_out_end=gauss(self.lifetime, self.lifetime*0.3)),
 				self.trail_emitter
 			],
 			renderer=BillboardRenderer())
