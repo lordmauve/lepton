@@ -153,4 +153,8 @@ get_Float(float *f, PyObject *template, const char *attrname);
 inline ParticleRefObject *
 ParticleRefObject_New(GroupObject *pgroup, Particle *p);
 
+/* Create a new vector object for the group and vector struct specified */
+VectorObject *
+Vector_new(GroupObject *pgroup, Vec3 *vec, int length);
+
 #endif
