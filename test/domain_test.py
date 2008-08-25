@@ -30,6 +30,8 @@ class DomainTest(unittest.TestCase):
 	def test_Line(self):
 		from lepton.domain import Line
 		line = Line((0, 1.0, 2.0), (1.0, 2.0, 3.0))
+		self.assertEqual(tuple(line.start_point), (0, 1.0, 2.0))
+		self.assertEqual(tuple(line.end_point), (1.0, 2.0, 3.0))
 		for i in range(10):
 			x,y,z = line.generate()
 			self.failUnless(0 <= x <= 1.0 and 1.0 <= y <= 2.0 and 2.0 <= z <= 3.0, (x, y, z))
@@ -76,12 +78,18 @@ class DomainTest(unittest.TestCase):
 		from lepton.particle_struct import Vec3
 		normal = Vec3(3,4,5).normalize()
 		plane = Plane((0,0,0), normal)
+		self.assertEqual(tuple(plane.point), (0, 0, 0))
+		self.assertEqual(tuple(plane.normal), tuple(normal))
 		p, N = plane.intersect((0,1,0), (0,-1,0))
 		self.assertVector(p, (0,0,0))
 		self.assertVector(N, normal)
 		p, N = plane.intersect((0,-1,0), (0,1,0))
 		self.assertVector(p, (0,0,0))
 		self.assertVector(N, -normal)
+	
+	def test_plane_zero_length_normal(self):
+		from lepton.domain import Plane
+		self.assertRaises(ValueError, Plane, (0,0,0), (0,0,0))
 	
 	def test_Box_generate_contains(self):
 		from lepton.domain import Box

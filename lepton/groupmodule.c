@@ -519,7 +519,7 @@ Vector_dealloc(VectorObject *self)
 }
 
 /* Create a new vector object for the group and vector struct specified */
-static VectorObject *
+VectorObject *
 Vector_new(GroupObject *pgroup, Vec3 *vec, int length)
 {
 	VectorObject *newvec;

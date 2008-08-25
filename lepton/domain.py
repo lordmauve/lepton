@@ -22,6 +22,7 @@ __version__ = '$Id$'
 from random import random, uniform
 from math import sqrt
 from particle_struct import Vec3
+from _domain import Line, Plane
 
 
 class Domain(object):
@@ -53,7 +54,7 @@ class Domain(object):
 		raise NotImplementedError
 
 
-class Line(Domain):
+class OldLine(Domain):
 	"""1-Dimensional line segment domain"""
 
 	def __init__(self, start_point, end_point):
@@ -81,7 +82,7 @@ class Line(Domain):
 		return (None, None)
 
 
-class Plane(Domain):
+class OldPlane(Domain):
 	"""Infinite 2D plane domain"""
 
 	def __init__(self, point, normal):
