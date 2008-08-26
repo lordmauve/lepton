@@ -162,14 +162,14 @@ norm_outlier(long hz, long iz)
 		/* handle the base strip */
 		if (iz == 0) {
 			do { 
-				x = -log(rand_uni()) * ONE_OVER_RIGHT_TAIL; 
-				y = -log(rand_uni());
+				x = -logf(rand_uni()) * ONE_OVER_RIGHT_TAIL; 
+				y = -logf(rand_uni());
 			} while (y + y < x * x);
 			return (hz > 0) ? RIGHT_TAIL + x : -RIGHT_TAIL - x;
 		}
 
 		/* handle the wedges of other strips */
-		if (fn[iz] + rand_uni()*(fn[iz-1] - fn[iz]) < exp(-.5 * x*x)) 
+		if (fn[iz] + rand_uni()*(fn[iz-1] - fn[iz]) < expf(-0.5f * x*x)) 
 			return x;
 
 		/* Try again from the top and see if we can exit */
@@ -209,10 +209,10 @@ expo_outlier(unsigned long hz, unsigned long iz)
 	for(;;)
 	{
 		if (iz == 0) 
-			return 7.69711 - log(rand_uni());
+			return 7.69711f - logf(rand_uni());
 
 		 x = jz * we[iz]; 
-		 if (fe[iz] + rand_uni()*(fe[iz-1] - fe[iz]) < exp(-x)) 
+		 if (fe[iz] + rand_uni()*(fe[iz-1] - fe[iz]) < expf(-x)) 
 		 	return x;
 
 		/* Try again from the top and see if we can exit */
