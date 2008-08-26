@@ -313,11 +313,11 @@ BillboardRenderer_draw(RendererObject *self)
 				Vec3_scalar_mul(&vup, &vup_unit, rotcos);
 				Vec3_scalar_mul(&vrot, &vright_unit, rotsin);
 				Vec3_subi(&vup, &vrot);
-				Vec3_scalar_muli(&vright, p->size.x * 0.5);
-				Vec3_scalar_muli(&vup, p->size.y * 0.5);
+				Vec3_scalar_muli(&vright, p->size.x * 0.5f);
+				Vec3_scalar_muli(&vup, p->size.y * 0.5f);
 			} else {
-				Vec3_scalar_mul(&vright, &vright_unit, p->size.x * 0.5);
-				Vec3_scalar_mul(&vup, &vup_unit, p->size.y * 0.5);
+				Vec3_scalar_mul(&vright, &vright_unit, p->size.x * 0.5f);
+				Vec3_scalar_mul(&vup, &vup_unit, p->size.y * 0.5f);
 			}
 
 			Vec3_sub(&data[POINT0].vert, &p->position, &vright);
