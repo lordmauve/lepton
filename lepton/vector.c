@@ -17,12 +17,17 @@
 
 #include "vector.h"
 
+typedef union {
+	int i;
+	float f;
+} floatint;
+
 /* The illustrious fast inverse sqrt of Quake 3 fame */
 inline float InvSqrt (float x) {
     float xhalf = 0.5f*x;
-    int i = *(int*)&x;
+	int i = ((floatint)x).i;
     i = 0x5f3759df - (i>>1);
-    x = *(float*)&i;
+	x = ((floatint)i).f;
     x = x*(1.5f - xhalf*x*x);
     return x;
 }
