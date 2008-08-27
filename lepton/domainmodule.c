@@ -499,7 +499,7 @@ BoxDomain_intersect(BoxDomainObject *self, PyObject *args)
 
 	int start_in = pt_in_box(self, start.x, start.y, start.z);
 	int end_in = pt_in_box(self, end.x, end.y, end.z);
-	if (!(start_in || end_in)) {
+	if (!(start_in | end_in)) {
 		/* both points outside, check for grazing intersection */
 		Vec3 center;
 		center.x = self->min.x + (self->max.x - self->min.x) * 0.5f;
@@ -515,7 +515,7 @@ BoxDomain_intersect(BoxDomainObject *self, PyObject *args)
 	}
 
 	/* top face */
-	if (start.y > self->max.y || end.y > self->max.y) {
+	if ((start.y > self->max.y) | (end.y > self->max.y)) {
 		t = (self->max.y - start.y) / (end.y - start.y);
 		ix = (end.x - start.x) * t + start.x;
 		iy = self->max.y;
@@ -526,7 +526,7 @@ BoxDomain_intersect(BoxDomainObject *self, PyObject *args)
 				ix, iy, iz, 0.0, (start.y > self->max.y) ? 1.0 : -1.0, 0.0);
 	}
 	/* right face */
-	if (start.x > self->max.x || end.x > self->max.x) {
+	if ((start.x > self->max.x) | (end.x > self->max.x)) {
 		t = (self->max.x - start.x) / (end.x - start.x);
 		ix = self->max.x;
 		iy = (end.y - start.y) * t + start.y;
@@ -537,7 +537,7 @@ BoxDomain_intersect(BoxDomainObject *self, PyObject *args)
 				ix, iy, iz, (start.x > self->max.x) ? 1.0 : -1.0, 0.0, 0.0);
 	}
 	/* bottom face */
-	if (start.y < self->min.y || end.y < self->min.y) {
+	if ((start.y < self->min.y) | (end.y < self->min.y)) {
 		t = (self->min.y - start.y) / (end.y - start.y);
 		ix = (end.x - start.x) * t + start.x;
 		iy = self->min.y;
@@ -548,7 +548,7 @@ BoxDomain_intersect(BoxDomainObject *self, PyObject *args)
 				ix, iy, iz, 0.0, (start.y < self->min.y) ? -1.0 : 1.0, 0.0);
 	}
 	/* left face */
-	if (start.x < self->min.x || end.x < self->min.x) {
+	if ((start.x < self->min.x) | (end.x < self->min.x)) {
 		t = (self->min.x - start.x) / (end.x - start.x);
 		ix = self->min.x;
 		iy = (end.y - start.y) * t + start.y;
@@ -559,7 +559,7 @@ BoxDomain_intersect(BoxDomainObject *self, PyObject *args)
 				ix, iy, iz, (start.x < self->min.x) ? -1.0 : 1.0, 0.0, 0.0);
 	}
 	/* far face */
-	if (start.z < self->min.z || end.z < self->min.z) {
+	if ((start.z < self->min.z) | (end.z < self->min.z)) {
 		t = (self->min.z - start.z) / (end.z - start.z);
 		ix = (end.x - start.x) * t + start.x;
 		iy = (end.y - start.y) * t + start.y;
@@ -570,7 +570,7 @@ BoxDomain_intersect(BoxDomainObject *self, PyObject *args)
 				ix, iy, iz, 0.0, 0.0, (start.z < self->min.z) ? -1.0 : 1.0);
 	}
 	/* near face */
-	if (start.z > self->max.z || end.z > self->max.z) {
+	if ((start.z > self->max.z) | (end.z > self->max.z)) {
 		t = (self->max.z - start.z) / (end.z - start.z);
 		ix = (end.x - start.x) * t + start.x;
 		iy = (end.y - start.y) * t + start.y;
