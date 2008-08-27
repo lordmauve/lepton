@@ -22,7 +22,7 @@ __version__ = '$Id$'
 from random import random, uniform
 from math import sqrt
 from particle_struct import Vec3
-from _domain import Line, Plane
+from _domain import Line, Plane, Box
 
 
 class Domain(object):
@@ -139,7 +139,7 @@ class OldPlane(Domain):
 		return None, None
 				
 
-class Box(Domain):
+class OldBox(Domain):
 	"""Axis aligned rectangular prism"""
 
 	def __init__(self, point1, point2):
