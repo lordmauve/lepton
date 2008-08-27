@@ -106,6 +106,8 @@ inline int Vec3_FromSequence(Vec3 *dest, PyObject *sequence);
 
 inline void Vec3_copy(Vec3 * __restrict__ dest, Vec3 * __restrict__ src); 
 
+inline void Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt, Vec3 * __restrict__ lstart, Vec3 * __restrict__ lend);
+
 inline void Color_copy(Color * __restrict__ dest, Color * __restrict__ src); 
 
 /* Populate a color from a Python sequence of 3 or 4 numbers */

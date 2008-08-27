@@ -140,11 +140,29 @@ class DomainTest(unittest.TestCase):
 			self.assertVector(p, point)
 			self.assertVector(N, -Vec3(*normal))
 	
+	def test_Box_grazing_intersect(self):
+		from lepton.domain import Box
+		box = Box((-3, -1, 0), (-2, 1, 3))
+		p, N = box.intersect((-4, 0, 1), (0, 0, 1))
+		self.assertEqual(p, (-3, 0, 1))
+		self.assertEqual(N, (-1, 0, 0))
+		p, N = box.intersect((0, 0, 1), (-4, 0, 1))
+		self.assertEqual(p, (-2, 0, 1))
+		self.assertEqual(N, (1, 0, 0))
+
+	def test_Box_no_intersect(self):
+		from lepton.domain import Box
+		box = Box((-3, -1, 0), (-2, 1, 3))
+	
 		# No intersection
 		self.assertEqual(
 			box.intersect((-4, 2, 1), (-2, 2, 1)), (None, None))
 		self.assertEqual(
 			box.intersect((-2, 0, 1), (-2.8, 0.5, 1)), (None, None))
+
+	def test_Box_line_in_sides(self):
+		from lepton.domain import Box
+		box = Box((-3, -1, 0), (-2, 1, 3))
 
 		# Lines completely in sides
 		lines = [
@@ -158,6 +176,7 @@ class DomainTest(unittest.TestCase):
 		for start, end in lines:
 			self.assertEqual(
 				box.intersect(start, end), (None, None))
+
 	
 	def test_Sphere_generate_contains(self):
 		from lepton.domain import Sphere

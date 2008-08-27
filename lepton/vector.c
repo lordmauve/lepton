@@ -85,6 +85,28 @@ inline void Vec3_copy(Vec3 * __restrict__ dest, Vec3 * __restrict__ src)
 	dest->z = src->z;
 }
 
+#define EPSILON 0.00001f
+
+/* Return the closest point along a line segment to the given point */
+inline void Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt, 
+	Vec3 * __restrict__ lstart, Vec3 * __restrict__ lend)
+{
+	Vec3 tp, lv;
+
+	Vec3_sub(&lv, lend, lstart);
+	Vec3_sub(&tp, pt, lstart);
+	const float mag2 = Vec3_len_sq(&lv);
+	if (mag2 > EPSILON) {
+		float t = Vec3_dot(&tp, &lv) / mag2;
+		t = (t < 0.0f) ? 0.0f : (t > 1.0f) ? 1.0f : t;
+		Vec3_scalar_muli(&lv, t);
+		Vec3_add(dest, lstart, &lv);
+	} else {
+		/* zero-length line */
+		Vec3_copy(dest, lstart);
+	}
+}
+
 /*
 static inline void vmathV3Slerp( VmathVector3 *result, float t, const VmathVector3 *unitVec0, const VmathVector3 *unitVec1 )
 {
