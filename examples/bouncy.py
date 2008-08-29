@@ -25,7 +25,7 @@ from lepton import Particle, ParticleGroup, default_system
 from lepton.renderer import PointRenderer
 from lepton.emitter import StaticEmitter
 from lepton.controller import Movement, Bounce, Gravity
-from lepton.domain import Box, Sphere
+from lepton.domain import AABox, Sphere
 
 if __name__ == '__main__':
 	win = pyglet.window.Window(resizable=True, visible=False)
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 	bumper_count = 8
 
 	# Screen domain is a box the size of the screen
-	screen_domain = Box((ball_size/2.0, ball_size/2.0, 0), 
+	screen_domain = AABox((ball_size/2.0, ball_size/2.0, 0), 
 		(win.width-ball_size/2.0,win.height-ball_size/2.0,0))
 
 
