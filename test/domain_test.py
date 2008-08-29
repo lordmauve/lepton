@@ -91,9 +91,9 @@ class DomainTest(unittest.TestCase):
 		from lepton.domain import Plane
 		self.assertRaises(ValueError, Plane, (0,0,0), (0,0,0))
 	
-	def test_Box_generate_contains(self):
-		from lepton.domain import Box
-		box = Box((-3, -1, 0), (-2, 1, 3))
+	def test_AABox_generate_contains(self):
+		from lepton.domain import AABox
+		box = AABox((-3, -1, 0), (-2, 1, 3))
 		for i in range(20):
 			x, y, z = box.generate()
 			self.failUnless(-3 <= x <= -2, x)
@@ -108,10 +108,10 @@ class DomainTest(unittest.TestCase):
 		self.failIf((-3,-3,-3) in box)
 		self.failIf((-3,2,3) in box)
 	
-	def test_Box_intersect(self):
-		from lepton.domain import Box
+	def test_AABox_intersect(self):
+		from lepton.domain import AABox
 		from lepton.particle_struct import Vec3
-		box = Box((-3, -1, 0), (-2, 1, 3))
+		box = AABox((-3, -1, 0), (-2, 1, 3))
 		lines = [
 			((-4, 0, 1), (-2, 0, 1)),
 			((-2.5, -2, 2), (-2.5, -0.5, 2)),
@@ -140,9 +140,9 @@ class DomainTest(unittest.TestCase):
 			self.assertVector(p, point)
 			self.assertVector(N, -Vec3(*normal))
 	
-	def test_Box_grazing_intersect(self):
-		from lepton.domain import Box
-		box = Box((-3, -1, 0), (-2, 1, 3))
+	def test_AABox_grazing_intersect(self):
+		from lepton.domain import AABox
+		box = AABox((-3, -1, 0), (-2, 1, 3))
 		p, N = box.intersect((-4, 0, 1), (0, 0, 1))
 		self.assertEqual(p, (-3, 0, 1))
 		self.assertEqual(N, (-1, 0, 0))
@@ -150,9 +150,9 @@ class DomainTest(unittest.TestCase):
 		self.assertEqual(p, (-2, 0, 1))
 		self.assertEqual(N, (1, 0, 0))
 
-	def test_Box_no_intersect(self):
-		from lepton.domain import Box
-		box = Box((-3, -1, 0), (-2, 1, 3))
+	def test_AABox_no_intersect(self):
+		from lepton.domain import AABox
+		box = AABox((-3, -1, 0), (-2, 1, 3))
 	
 		# No intersection
 		self.assertEqual(
@@ -160,9 +160,9 @@ class DomainTest(unittest.TestCase):
 		self.assertEqual(
 			box.intersect((-2, 0, 1), (-2.8, 0.5, 1)), (None, None))
 
-	def test_Box_line_in_sides(self):
-		from lepton.domain import Box
-		box = Box((-3, -1, 0), (-2, 1, 3))
+	def test_AABox_line_in_sides(self):
+		from lepton.domain import AABox
+		box = AABox((-3, -1, 0), (-2, 1, 3))
 
 		# Lines completely in sides
 		lines = [

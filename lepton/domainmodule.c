@@ -411,13 +411,13 @@ static PyTypeObject PlaneDomain_Type = {
 
 /* --------------------------------------------------------------------- */
 
-static PyTypeObject BoxDomain_Type;
+static PyTypeObject AABoxDomain_Type;
 
 typedef struct {
 	PyObject_HEAD
 	Vec3 min;
 	Vec3 max;
-} BoxDomainObject;
+} AABoxDomainObject;
 
 static PyObject * max_point_str;
 static PyObject * min_point_str;
@@ -426,7 +426,7 @@ static PyObject * min_point_str;
 #define max(a, b) ((a) >= (b) ? (a) : (b))
 
 static int
-BoxDomain_init(BoxDomainObject *self, PyObject *args)
+AABoxDomain_init(AABoxDomainObject *self, PyObject *args)
 {
 	float x1, y1, z1, x2, y2, z2;
 
@@ -444,7 +444,7 @@ BoxDomain_init(BoxDomainObject *self, PyObject *args)
 }
 
 static PyObject *
-BoxDomain_generate(BoxDomainObject *self) 
+AABoxDomain_generate(AABoxDomainObject *self) 
 {
 	PyObject *x, *y, *z;
 	Vec3 size;
@@ -470,7 +470,7 @@ BoxDomain_generate(BoxDomainObject *self)
 	 & ((pz) >= (box)->min.z) & ((pz) <= (box)->max.z))
 
 static int
-BoxDomain_contains(BoxDomainObject *self, PyObject *pt)
+AABoxDomain_contains(AABoxDomainObject *self, PyObject *pt)
 {
 	float x, y, z;
 
@@ -487,7 +487,7 @@ BoxDomain_contains(BoxDomainObject *self, PyObject *pt)
 }
 	
 static PyObject *
-BoxDomain_intersect(BoxDomainObject *self, PyObject *args) 
+AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args) 
 {
 	Vec3 start, end;
 	float t, ix, iy, iz;
@@ -583,7 +583,7 @@ BoxDomain_intersect(BoxDomainObject *self, PyObject *args)
 
 	/* We should never get here */
 	char buf[256];
-	snprintf(buf, 256, "Box.intersect BUG: Intersect face not identified "
+	snprintf(buf, 256, "AABox.intersect BUG: Intersect face not identified "
 		"min=(%f, %f, %f) max=(%f, %f, %f) start=(%f, %f, %f) end=(%f, %f, %f)",
 		self->min.x, self->min.y, self->min.z, self->max.x, self->max.y, self->max.z,
 		start.x, start.y, start.z, end.x, end.y, end.z);
@@ -591,11 +591,11 @@ BoxDomain_intersect(BoxDomainObject *self, PyObject *args)
 	return NULL;
 }
 
-static PyMethodDef BoxDomain_methods[] = {
-	{"generate", (PyCFunction)BoxDomain_generate, METH_NOARGS,
+static PyMethodDef AABoxDomain_methods[] = {
+	{"generate", (PyCFunction)AABoxDomain_generate, METH_NOARGS,
 		PyDoc_STR("generate() -> Vector\n"
 			"Return a random point inside the box")},
-	{"intersect", (PyCFunction)BoxDomain_intersect, METH_VARARGS,
+	{"intersect", (PyCFunction)AABoxDomain_intersect, METH_VARARGS,
 		PyDoc_STR("intersect() -> point, normal\n"
 			"Intersect the line segment with the box return the first\n"
 			"intersection point and normal vector pointing into space from\n"
@@ -606,20 +606,20 @@ static PyMethodDef BoxDomain_methods[] = {
 };
 
 static PyObject *
-BoxDomain_getattr(BoxDomainObject *self, PyObject *name_str)
+AABoxDomain_getattr(AABoxDomainObject *self, PyObject *name_str)
 {
 	if (name_str == min_point_str) {
 		return (PyObject *)Vector_new(NULL, &self->min, 3);	
 	} else if (name_str == max_point_str) {
 		return (PyObject *)Vector_new(NULL, &self->max, 3);	
 	} else {
-		return Py_FindMethod(BoxDomain_methods, 
+		return Py_FindMethod(AABoxDomain_methods, 
 			(PyObject *)self, PyString_AS_STRING(name_str));
 	}
 }
 
 static int
-BoxDomain_setattr(BoxDomainObject *self, PyObject *nameob, PyObject *v)
+AABoxDomain_setattr(AABoxDomainObject *self, PyObject *nameob, PyObject *v)
 {
 	Vec3 *point;
 	int result;
@@ -641,7 +641,7 @@ BoxDomain_setattr(BoxDomainObject *self, PyObject *nameob, PyObject *v)
 	return result;
 }
 
-static PySequenceMethods BoxDomain_as_sequence = {
+static PySequenceMethods AABoxDomain_as_sequence = {
 	0,		/* sq_length */
 	0,		/* sq_concat */
 	0,		/* sq_repeat */
@@ -649,21 +649,21 @@ static PySequenceMethods BoxDomain_as_sequence = {
 	0,		/* sq_slice */
 	0,		/* sq_ass_item */
 	0,	    /* sq_ass_slice */
-	(objobjproc)BoxDomain_contains,	/* sq_contains */
+	(objobjproc)AABoxDomain_contains,	/* sq_contains */
 };
 
-PyDoc_STRVAR(BoxDomain__doc__, 
+PyDoc_STRVAR(AABoxDomain__doc__, 
 	"Axis aligned rectangular prism\n\n"
-	"Box(point1, point2)\n\n"
+	"AABox(point1, point2)\n\n"
 	"point1 and point2 define any two opposite corners of the box");
 
-static PyTypeObject BoxDomain_Type = {
+static PyTypeObject AABoxDomain_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
 	PyObject_HEAD_INIT(NULL)
 	0,			/*ob_size*/
-	"domain.Box",		/*tp_name*/
-	sizeof(BoxDomainObject),	/*tp_basicsize*/
+	"domain.AABox",		/*tp_name*/
+	sizeof(AABoxDomainObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
 	/* methods */
 	(destructor)Domain_dealloc, /*tp_dealloc*/
@@ -673,23 +673,23 @@ static PyTypeObject BoxDomain_Type = {
 	0,			/*tp_compare*/
 	0,			/*tp_repr*/
 	0,			/*tp_as_number*/
-	&BoxDomain_as_sequence, /*tp_as_sequence*/
+	&AABoxDomain_as_sequence, /*tp_as_sequence*/
 	0,			/*tp_as_mapping*/
 	0,			/*tp_hash*/
 	0,                      /*tp_call*/
 	0,                      /*tp_str*/
-	(getattrofunc)BoxDomain_getattr, /*tp_getattro*/
-	(setattrofunc)BoxDomain_setattr, /*tp_setattro*/
+	(getattrofunc)AABoxDomain_getattr, /*tp_getattro*/
+	(setattrofunc)AABoxDomain_setattr, /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
 	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
-	BoxDomain__doc__,   /*tp_doc*/
+	AABoxDomain__doc__,   /*tp_doc*/
 	0,                      /*tp_traverse*/
 	0,                      /*tp_clear*/
 	0,                      /*tp_richcompare*/
 	0,                      /*tp_weaklistoffset*/
 	0,                      /*tp_iter*/
 	0,                      /*tp_iternext*/
-	BoxDomain_methods,  /*tp_methods*/
+	AABoxDomain_methods,  /*tp_methods*/
 	0,                      /*tp_members*/
 	0,                      /*tp_getset*/
 	0,                      /*tp_base*/
@@ -697,7 +697,7 @@ static PyTypeObject BoxDomain_Type = {
 	0,                      /*tp_descr_get*/
 	0,                      /*tp_descr_set*/
 	0,                      /*tp_dictoffset*/
-	(initproc)BoxDomain_init, /*tp_init*/
+	(initproc)AABoxDomain_init, /*tp_init*/
 	0,                      /*tp_alloc*/
 	0,                      /*tp_new*/
 	0,                      /*tp_free*/
@@ -725,9 +725,9 @@ init_domain(void)
 	if (m == NULL)
 		return;
 
-	BoxDomain_Type.tp_alloc = PyType_GenericAlloc;
-	BoxDomain_Type.tp_new = PyType_GenericNew;
-	if (PyType_Ready(&BoxDomain_Type) < 0)
+	AABoxDomain_Type.tp_alloc = PyType_GenericAlloc;
+	AABoxDomain_Type.tp_new = PyType_GenericNew;
+	if (PyType_Ready(&AABoxDomain_Type) < 0)
 		return;
 
 	/* initialize singleton marker for no intersection */
@@ -748,8 +748,8 @@ init_domain(void)
 	PyModule_AddObject(m, "Line", (PyObject *)&LineDomain_Type);
 	Py_INCREF(&PlaneDomain_Type);
 	PyModule_AddObject(m, "Plane", (PyObject *)&PlaneDomain_Type);
-	Py_INCREF(&BoxDomain_Type);
-	PyModule_AddObject(m, "Box", (PyObject *)&BoxDomain_Type);
+	Py_INCREF(&AABoxDomain_Type);
+	PyModule_AddObject(m, "AABox", (PyObject *)&AABoxDomain_Type);
 
 	rand_seed(time(NULL));
 }
