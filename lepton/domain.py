@@ -22,7 +22,7 @@ __version__ = '$Id$'
 from random import random, uniform
 from math import sqrt
 from particle_struct import Vec3
-from _domain import Line, Plane, AABox
+from _domain import Line, Plane, AABox, Sphere
 
 
 class Domain(object):
@@ -237,7 +237,7 @@ class OldBox(Domain):
 		return None, None
 
 
-class Sphere(Domain):
+class OldSphere(Domain):
 	"""Spherical domain"""
 
 	def __init__(self, center_point, radius):
@@ -314,6 +314,7 @@ class Sphere(Domain):
 				else:
 					# both in segment, choose point closest to start
 					t = min(t1, t2)
+			print a, b, c, bb4ac, t
 			px = sx + (ex - sx) * t
 			py = sy + (ey - sy) * t
 			pz = sz + (ez - sz) * t
