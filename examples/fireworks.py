@@ -20,7 +20,7 @@ from random import expovariate, uniform, gauss
 from pyglet import image
 from pyglet.gl import *
 
-from lepton import Particle, ParticleGroup, default_system
+from lepton import Particle, ParticleGroup, default_system, domain
 from lepton.renderer import BillboardRenderer
 from lepton.emitter import StaticEmitter, PerParticleEmitter
 from lepton.controller import Gravity, Lifetime, Movement, Fader, ColorBlender
@@ -37,22 +37,23 @@ class Kaboom:
 		spark_emitter = StaticEmitter(
 			template=Particle(
 				position=(uniform(-50, 50), uniform(-30, 30), uniform(-30, 30)), 
-				velocity=(0, gauss(40, 20), 0),
+				# velocity=(0, gauss(40, 20), 0),
 				color=color, 
 				size=(2.5,2.5,0)),
 			deviation=Particle(
-				velocity=(gauss(35,10)+2,gauss(35,10)+2,gauss(35,10)+2), 
-				age=1.5))
+				velocity=(gauss(0, 5), gauss(0, 5), gauss(0, 5)),
+				age=1.5),
+			velocity=domain.Sphere((0, gauss(40, 20), 0), 60, 60))
 
 		self.sparks = ParticleGroup(
 			controllers=[
 				Lifetime(self.lifetime * 0.75),
-				Movement(max_velocity=90, damping=0.93),
+				Movement(damping=0.93),
 				Fader(fade_out_start=1.0, fade_out_end=self.lifetime * 0.5),
 			],
 			renderer=BillboardRenderer())
 
-		spark_emitter.emit(int(gauss(50, 40)) + 50, self.sparks)
+		spark_emitter.emit(int(gauss(60, 40)) + 50, self.sparks)
 
 		spread = uniform(0.2, 4)
 		self.trail_emitter = PerParticleEmitter(self.sparks, rate=uniform(5,20),

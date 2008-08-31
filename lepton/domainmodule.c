@@ -61,6 +61,9 @@ typedef struct {
 	Vec3 end_point;
 } LineDomainObject;
 
+static PyObject * start_point_str;
+static PyObject * end_point_str;
+
 static int
 LineDomain_init(LineDomainObject *self, PyObject *args)
 {
@@ -104,28 +107,27 @@ static PyMethodDef LineDomain_methods[] = {
 };
 
 static PyObject *
-LineDomain_getattr(LineDomainObject *self, PyObject *o)
+LineDomain_getattr(LineDomainObject *self, PyObject *name_str)
 {
-	char *name = PyString_AS_STRING(o);
-	if (!strcmp(name, "start_point")) {
+	if (name_str == start_point_str) {
 		return (PyObject *)Vector_new(NULL, &self->start_point, 3);	
-	} else if (!strcmp(name, "end_point")) {
+	} else if (name_str == end_point_str) {
 		return (PyObject *)Vector_new(NULL, &self->end_point, 3);	
 	} else {
-		return Py_FindMethod(LineDomain_methods, (PyObject *)self, name);
+		return Py_FindMethod(LineDomain_methods, 
+			(PyObject *)self, PyString_AS_STRING(name_str));
 	}
 }
 
 static int
-LineDomain_setattr(LineDomainObject *self, PyObject *nameob, PyObject *v)
+LineDomain_setattr(LineDomainObject *self, PyObject *name_str, PyObject *v)
 {
 	Vec3 *point;
 	int result;
-	char *name = PyString_AS_STRING(nameob);
 
-	if (!strcmp(name, "start_point")) {
+	if (name_str == start_point_str) {
 		point = &self->start_point;
-	} else if (!strcmp(name, "end_point")) {
+	} else if (name_str == end_point_str) {
 		point = &self->end_point;
 	} else {
 		return -1;
@@ -213,6 +215,9 @@ typedef struct {
 	Vec3 normal;
 	float d;
 } PlaneDomainObject;
+
+static PyObject * point_str;
+static PyObject * normal_str;
 
 static int
 PlaneDomain_init(PlaneDomainObject *self, PyObject *args)
@@ -309,28 +314,27 @@ static PyMethodDef PlaneDomain_methods[] = {
 };
 
 static PyObject *
-PlaneDomain_getattr(PlaneDomainObject *self, PyObject *o)
+PlaneDomain_getattr(PlaneDomainObject *self, PyObject *name_str)
 {
-	char *name = PyString_AS_STRING(o);
-	if (!strcmp(name, "point")) {
+	if (name_str == point_str) {
 		return (PyObject *)Vector_new(NULL, &self->point, 3);	
-	} else if (!strcmp(name, "normal")) {
+	} else if (name_str == normal_str) {
 		return (PyObject *)Vector_new(NULL, &self->normal, 3);	
 	} else {
-		return Py_FindMethod(PlaneDomain_methods, (PyObject *)self, name);
+		return Py_FindMethod(PlaneDomain_methods, 
+			(PyObject *)self, PyString_AS_STRING(name_str));
 	}
 }
 
 static int
-PlaneDomain_setattr(PlaneDomainObject *self, PyObject *nameob, PyObject *v)
+PlaneDomain_setattr(PlaneDomainObject *self, PyObject *name_str, PyObject *v)
 {
 	Vec3 *point;
 	int result;
-	char *name = PyString_AS_STRING(nameob);
 
-	if (!strcmp(name, "point")) {
+	if (name_str == point_str) {
 		point = &self->point;
-	} else if (!strcmp(name, "normal")) {
+	} else if (name_str == normal_str) {
 		point = &self->normal;
 	} else {
 		return -1;
@@ -619,15 +623,14 @@ AABoxDomain_getattr(AABoxDomainObject *self, PyObject *name_str)
 }
 
 static int
-AABoxDomain_setattr(AABoxDomainObject *self, PyObject *nameob, PyObject *v)
+AABoxDomain_setattr(AABoxDomainObject *self, PyObject *name_str, PyObject *v)
 {
 	Vec3 *point;
 	int result;
-	char *name = PyString_AS_STRING(nameob);
 
-	if (!strcmp(name, "min_point")) {
+	if (name_str == min_point_str) {
 		point = &self->min;
-	} else if (!strcmp(name, "max_point")) {
+	} else if (name_str == max_point_str) {
 		point = &self->max;
 	} else {
 		return -1;
@@ -704,6 +707,306 @@ static PyTypeObject AABoxDomain_Type = {
 	0,                      /*tp_is_gc*/
 };
 
+/* --------------------------------------------------------------------- */
+
+static PyTypeObject SphereDomain_Type;
+
+typedef struct {
+	PyObject_HEAD
+	Vec3 center;
+	float outer_radius;
+	float inner_radius;
+} SphereDomainObject;
+
+static PyObject * center_str;
+static PyObject * radius_str;
+static PyObject * outer_radius_str;
+static PyObject * inner_radius_str;
+
+static int
+SphereDomain_init(SphereDomainObject *self, PyObject *args)
+{
+	self->inner_radius = 0;
+	if (!PyArg_ParseTuple(args, "(fff)f|f:__init__",
+		&self->center.x, &self->center.y, &self->center.z,
+		&self->outer_radius, &self->inner_radius))
+		return -1;
+	
+	if (self->outer_radius < self->inner_radius) {
+		PyErr_SetString(PyExc_ValueError, 
+			"Sphere: Expected outer_radius >= inner_radius");
+		return -1;
+	}
+
+	return 0;
+}
+
+#define EPSILON 0.0001f
+
+static PyObject *
+SphereDomain_generate(SphereDomainObject *self) 
+{
+	PyObject *x, *y, *z;
+	float dist, mag2, mag;
+	Vec3 point;
+
+	/* Generate a random unit vector */
+	do {
+		point.x = rand_norm(0.0f, 1.0f);
+		point.y = rand_norm(0.0f, 1.0f);
+		point.z = rand_norm(0.0f, 1.0f);
+		mag2 = Vec3_len_sq(&point);
+	} while (mag2 < EPSILON);
+	/* Vec3_normalize is too inaccurate for us */
+	mag = sqrtf(mag2);
+	Vec3_scalar_div(&point, &point, mag);
+	
+	dist = self->inner_radius + rand_uni() * (
+		self->outer_radius - self->inner_radius);
+	Vec3_scalar_muli(&point, dist);
+	// printf("%f %f (%f, %f, %f)\n", dist, Vec3_len(&point), point.x, point.y, point.z);
+
+	x = PyFloat_FromDouble(point.x + self->center.x);
+	if (x == NULL)
+		return NULL;
+	y = PyFloat_FromDouble(point.y + self->center.y);
+	if (y == NULL)
+		return NULL;
+	z = PyFloat_FromDouble(point.z + self->center.z);
+	if (z == NULL)
+		return NULL;
+	
+	return PyTuple_Pack(3, x, y, z);
+}
+
+static int
+SphereDomain_contains(SphereDomainObject *self, PyObject *pt)
+{
+	Vec3 point, from_center;
+	float dist2;
+
+	pt = PySequence_Tuple(pt);
+	if (pt == NULL)
+		return -1;
+	if (!PyArg_ParseTuple(pt, "fff:__contains__", 
+		&point.x, &point.y, &point.z)) {
+		Py_DECREF(pt);
+		return -1;
+	}
+	Py_DECREF(pt);
+
+	Vec3_sub(&from_center, &point, &self->center);
+	dist2 = Vec3_len_sq(&from_center);
+	return ((dist2 <= self->outer_radius*self->outer_radius) 
+		& (dist2 >= self->inner_radius*self->inner_radius));
+}
+	
+static PyObject *
+SphereDomain_intersect(SphereDomainObject *self, PyObject *args) 
+{
+	Vec3 start, end, seg, vec, norm;
+	float start_dist2, end_dist2, cmag2, r2, a, b, c, bb4ac, t1, t2, t, mag;
+	float inner_r2 = self->inner_radius*self->inner_radius;
+	float outer_r2 = self->outer_radius*self->outer_radius;
+
+	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
+		&start.x, &start.y, &start.z,
+		&end.x, &end.y, &end.z))
+		return NULL;
+	
+	Vec3_sub(&vec, &start, &self->center);
+	start_dist2 = Vec3_len_sq(&vec);
+	Vec3_sub(&vec, &end, &self->center);
+	end_dist2 = Vec3_len_sq(&vec);
+
+	r2 = ((start_dist2 > outer_r2) 
+	      | ((start_dist2 > inner_r2) & (end_dist2 > inner_r2)) 
+		  | (!inner_r2)) 
+		? outer_r2 : inner_r2;
+	if ((start_dist2 > r2) & (end_dist2 > r2)) {
+		Vec3_closest_pt_to_line(&end, &self->center, &start, &end);
+		// printf("closest = (%f, %f, %f)\n", end.x, end.y, end.z);
+		Vec3_sub(&vec, &end, &self->center);
+		end_dist2 = Vec3_len_sq(&vec);
+		r2 = ((start_dist2 > outer_r2) 
+			  | ((start_dist2 > inner_r2) & (end_dist2 > inner_r2)) 
+			  | (!inner_r2)) 
+			? outer_r2 : inner_r2;
+	}
+
+	if (((start_dist2 > outer_r2) & (end_dist2 > outer_r2))
+		| ((start_dist2 <= inner_r2) & (end_dist2 <= inner_r2))) {
+		Py_INCREF(NO_INTERSECTION);
+		return NO_INTERSECTION;
+	}
+
+	cmag2 = Vec3_len_sq(&self->center);
+	Vec3_sub(&seg, &end, &start);
+	a = Vec3_len_sq(&seg);
+	b = 2.0f * ((end.x - start.x)*(start.x - self->center.x) 
+		+ (end.y - start.y)*(start.y - self->center.y)
+		+ (end.z - start.z)*(start.z - self->center.z));
+	c = cmag2 + Vec3_len_sq(&start) - 2.0f * (
+		self->center.x * start.x + self->center.y * start.y + self->center.z * start.z) - r2;
+	bb4ac = b*b - 4.0f * a * c;
+	// printf("r2 = %f\n", r2);
+	// printf("a = %f, b = %f, c = %f, bb4ac = %f\n", bb4ac);
+	if (fabs(bb4ac) <= EPSILON) {
+		/* intersects at single point */
+		t = -b / (2.0f * a);
+	} else if (bb4ac >= -EPSILON) {
+		/* 2-point intersection */
+		bb4ac = sqrtf(bb4ac);
+		t1 = (-b - bb4ac) / (2.0f * a);
+		t2 = (-b + bb4ac) / (2.0f * a);
+		t = ((t2 < 0.0f) | (t2 > 1.0f)) ? t1 : 
+			((t1 < 0.0f) | (t1 > 1.0f)) ? t2 :
+			min(t1, t2);
+		// printf("t1 = %f, t2 = %f\n", t1, t2);
+	} else {
+		Py_INCREF(NO_INTERSECTION);
+		return NO_INTERSECTION;
+	}
+	// printf("t = %f\n", t);
+	Vec3_scalar_muli(&seg, t);
+	Vec3_add(&end, &start, &seg);
+	/* decide if normal points inward or outward */
+	t = (start_dist2 <= r2) ? 1.0f : -1.0f;
+	Vec3_sub(&vec, &self->center, &end);
+	Vec3_scalar_muli(&vec, t);
+	mag = sqrtf(Vec3_len_sq(&vec));
+	Vec3_scalar_div(&norm, &vec, mag);
+	/* Vec3_normalize(&norm, &vec); is too inaccurate */
+	return pack_vectors(&end, &norm);
+}
+
+static PyMethodDef SphereDomain_methods[] = {
+	{"generate", (PyCFunction)SphereDomain_generate, METH_NOARGS,
+		PyDoc_STR("generate() -> Vector\n"
+			"Return a random point inside the sphere or spherical shell")},
+	{"intersect", (PyCFunction)SphereDomain_intersect, METH_VARARGS,
+		PyDoc_STR("intersect() -> point, normal\n"
+			"Intersect the line segment with the sphere and return the first\n"
+			"intersection point and normal vector pointing into space from\n"
+			"the sphere intersection point. If the sphere has an inner radius,\n"
+			"the intersection can occur on the inner or outer shell surface.\n\n"
+			"If the line does not intersect, return (None, None)")},
+	{NULL,		NULL}		/* sentinel */
+};
+
+static PyObject *
+SphereDomain_getattr(SphereDomainObject *self, PyObject *name_str)
+{
+	if (name_str == center_str) {
+		return (PyObject *)Vector_new(NULL, &self->center, 3);	
+	} else if (name_str == outer_radius_str || name_str == radius_str) {
+		return (PyObject *)PyFloat_FromDouble(self->outer_radius);
+	} else if (name_str == inner_radius_str) {
+		return (PyObject *)PyFloat_FromDouble(self->inner_radius);
+	} else {
+		return Py_FindMethod(SphereDomain_methods, 
+			(PyObject *)self, PyString_AS_STRING(name_str));
+	}
+}
+
+static int
+SphereDomain_setattr(SphereDomainObject *self, PyObject *name_str, PyObject *v)
+{
+	int result;
+
+	if (name_str == center_str) {
+		v = PySequence_Tuple(v);
+		if (v == NULL)
+			return -1;
+		result = PyArg_ParseTuple(v, "fff;3 floats expected",
+			&self->center.x, &self->center.y, &self->center.z) - 1;
+		Py_DECREF(v);
+		return result;
+	} else if (name_str == outer_radius_str || name_str == radius_str) {
+		v = PyNumber_Float(v);
+		if (v == NULL)
+			return -1;
+		self->outer_radius = PyFloat_AS_DOUBLE(v);
+		Py_DECREF(v);
+		return 0;
+	} else if (name_str == inner_radius_str) {
+		v = PyNumber_Float(v);
+		if (v == NULL)
+			return -1;
+		self->inner_radius = PyFloat_AS_DOUBLE(v);
+		Py_DECREF(v);
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+static PySequenceMethods SphereDomain_as_sequence = {
+	0,		/* sq_length */
+	0,		/* sq_concat */
+	0,		/* sq_repeat */
+	0,	    /* sq_item */
+	0,		/* sq_slice */
+	0,		/* sq_ass_item */
+	0,	    /* sq_ass_slice */
+	(objobjproc)SphereDomain_contains,	/* sq_contains */
+};
+
+PyDoc_STRVAR(SphereDomain__doc__, 
+	"Sphere or spherical shell domain\n\n"
+	"Sphere(center, outer_radius, inner_radius=0)\n\n"
+	"center -- Center point of sphere (3-number sequence)\n\n"
+	"outer_radius -- Radius of outermost surface of sphere\n\n"
+	"inner_radius -- If greater than zero, the radius of the innermost\n"
+	"suface of the spherical shell. must be <= outer_radius");
+
+static PyTypeObject SphereDomain_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"domain.Sphere",		/*tp_name*/
+	sizeof(SphereDomainObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)Domain_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	&SphereDomain_as_sequence, /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	0,                      /*tp_call*/
+	0,                      /*tp_str*/
+	(getattrofunc)SphereDomain_getattr, /*tp_getattro*/
+	(setattrofunc)SphereDomain_setattr, /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	SphereDomain__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	SphereDomain_methods,  /*tp_methods*/
+	0,                      /*tp_members*/
+	0,                      /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)SphereDomain_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
+
 PyMODINIT_FUNC
 init_domain(void)
 {
@@ -720,14 +1023,19 @@ init_domain(void)
 	if (PyType_Ready(&PlaneDomain_Type) < 0)
 		return;
 
-	/* Create the module and add the types */
-	m = Py_InitModule3("_domain", NULL, "Spacial domains");
-	if (m == NULL)
-		return;
-
 	AABoxDomain_Type.tp_alloc = PyType_GenericAlloc;
 	AABoxDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&AABoxDomain_Type) < 0)
+		return;
+
+	SphereDomain_Type.tp_alloc = PyType_GenericAlloc;
+	SphereDomain_Type.tp_new = PyType_GenericNew;
+	if (PyType_Ready(&SphereDomain_Type) < 0)
+		return;
+
+	/* Create the module and add the types */
+	m = Py_InitModule3("_domain", NULL, "Spacial domains");
+	if (m == NULL)
 		return;
 
 	/* initialize singleton marker for no intersection */
@@ -737,12 +1045,38 @@ init_domain(void)
 	if (NO_INTERSECTION == NULL)
 		return;
 	
+	/* Intern attribute name strings for fast access */
+	point_str = PyString_InternFromString("point");
+	if (point_str == NULL)
+		return;
+	normal_str = PyString_InternFromString("normal");
+	if (normal_str == NULL)
+		return;
+	start_point_str = PyString_InternFromString("start_point");
+	if (start_point_str == NULL)
+		return;
+	end_point_str = PyString_InternFromString("end_point");
+	if (end_point_str == NULL)
+		return;
 	min_point_str = PyString_InternFromString("min_point");
 	if (min_point_str == NULL)
 		return;
 	max_point_str = PyString_InternFromString("max_point");
 	if (max_point_str == NULL)
 		return;
+	inner_radius_str = PyString_InternFromString("inner_radius");
+	if (inner_radius_str == NULL)
+		return;
+	outer_radius_str = PyString_InternFromString("outer_radius");
+	if (outer_radius_str == NULL)
+		return;
+	radius_str = PyString_InternFromString("radius");
+	if (radius_str == NULL)
+		return;
+	center_str = PyString_InternFromString("center");
+	if (center_str == NULL)
+		return;
+
 
 	Py_INCREF(&LineDomain_Type);
 	PyModule_AddObject(m, "Line", (PyObject *)&LineDomain_Type);
@@ -750,6 +1084,8 @@ init_domain(void)
 	PyModule_AddObject(m, "Plane", (PyObject *)&PlaneDomain_Type);
 	Py_INCREF(&AABoxDomain_Type);
 	PyModule_AddObject(m, "AABox", (PyObject *)&AABoxDomain_Type);
+	Py_INCREF(&SphereDomain_Type);
+	PyModule_AddObject(m, "Sphere", (PyObject *)&SphereDomain_Type);
 
 	rand_seed(time(NULL));
 }

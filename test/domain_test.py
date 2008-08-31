@@ -20,8 +20,7 @@ import math
 
 class DomainTest(unittest.TestCase):
 
-	def assertVector(self, (x1, y1, z1), (x2,y2,z2)):
-		tolerance = 0.00001
+	def assertVector(self, (x1, y1, z1), (x2,y2,z2), tolerance=0.00001):
 		self.failUnless(abs(x1 - x2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
 		self.failUnless(abs(y1 - y2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
 		self.failUnless(abs(z2 - z2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
@@ -177,14 +176,13 @@ class DomainTest(unittest.TestCase):
 			self.assertEqual(
 				box.intersect(start, end), (None, None))
 
-	
-	def test_Sphere_generate_contains(self):
+	def test_solid_Sphere_generate_contains(self):
 		from lepton.domain import Sphere
 		sphere = Sphere((0, 1, 2), 2)
 		for i in range(20):
 			x, y, z = sphere.generate()
 			mag = x**2 + (y - 1)**2 + (z - 2)**2
-			self.failUnless(mag <= 4, mag)
+			self.failUnless(mag <= 4, ((x, y, z), mag))
 			self.failUnless((x, y, z) in sphere, (x, y ,z))
 
 		self.failUnless((0, 1, 2) in sphere)
@@ -193,8 +191,23 @@ class DomainTest(unittest.TestCase):
 		self.failUnless((-2, 1, 2) in sphere)
 		self.failIf((2.1, 1, 2) in sphere)
 		self.failIf((-2.1, 1, 2) in sphere)
+
+	def test_shell_Sphere_generate_contains(self):
+		from lepton.domain import Sphere
+		sphere = Sphere((1, -2, 4), 3, 2)
+		for i in range(20):
+			x, y, z = sphere.generate()
+			mag = (x - 1)**2 + (y + 2)**2 + (z - 4)**2
+			self.failUnless(4 <= mag <= 9, ((x, y, z), mag))
+			self.failUnless((x, y, z) in sphere, (x, y ,z))
+
+		self.failUnless((3, -2, 4) in sphere)
+		self.failUnless((1, 1, 4) in sphere)
+		self.failUnless((1, -2, 1.5) in sphere)
+		self.failIf((1, -2, 4) in sphere)
+		self.failIf((5, 1, 7) in sphere)
 		
-	def test_Sphere_intersect(self):
+	def test_solid_Sphere_intersect(self):
 		from lepton.domain import Sphere
 		from lepton.particle_struct import Vec3
 		sphere = Sphere((0, 1, 2), 2)
@@ -219,6 +232,61 @@ class DomainTest(unittest.TestCase):
 			p, N = sphere.intersect(end, start)
 			self.assertVector(p, point)
 			self.assertVector(N, -Vec3(*normal))
+	
+	def test_solid_Sphere_grazing_intersect(self):
+		from lepton.domain import Sphere
+		sphere = Sphere((0, 0, 0), 4)
+		p, N = sphere.intersect((-5, 0, 0), (5, 0, 0))
+		self.assertVector(p, (-4, 0, 0))
+		self.assertVector(N, (-1, 0, 0))
+		p, N = sphere.intersect((5, 0, 0), (-5, 0, 0))
+		self.assertVector(p, (4, 0, 0))
+		self.assertVector(N, (1, 0, 0))
+	
+	def test_shell_Sphere_intersect(self):
+		from lepton.domain import Sphere
+		from lepton.particle_struct import Vec3
+		sphere = Sphere((2, 1, -1), 3, 1)
+		lines = [
+			((2, 1, -1), (2, 1, 1)),
+			((2.5, 1, -1), (4, 1, -1)),
+			((5, 4, -1), (3.5, 2.5, -1)),
+			((2, 2.5, -1), (2, 1, -1)),
+		]
+		expected = [
+			((2, 1, 0), (0, 0, -1)),
+			((3, 1, -1), (-1, 0, 0)),
+			((math.sin(math.pi/4)*3+2, math.sin(math.pi/4)*3+1, math.sin(math.pi/4)*3-1), 
+				Vec3(1, 1, 0).normalize()),
+			((2, 2, -1), (0, 1, 0)),
+		]
+
+		for (start, end), (point, normal) in zip(lines, expected):
+			p, N = sphere.intersect(start, end)
+			self.assertVector(p, point)
+			self.assertVector(N, normal)
+
+			# Reverse direction should yield same point and inverse normal
+			p, N = sphere.intersect(end, start)
+			self.assertVector(p, point)
+			self.assertVector(N, -Vec3(*normal))
+		
+	def test_shell_Sphere_grazing_intersect(self):
+		from lepton.domain import Sphere
+		sphere = Sphere((0, 0, 0), 4, 3)
+		p, N = sphere.intersect((-5, 0, 0), (5, 0, 0))
+		self.assertVector(p, (-4, 0, 0))
+		self.assertVector(N, (-1, 0, 0))
+		p, N = sphere.intersect((5, 0, 0), (-5, 0, 0))
+		self.assertVector(p, (4, 0, 0))
+		self.assertVector(N, (1, 0, 0))
+		p, N = sphere.intersect((-5, 0, 0), (0, 0, 0))
+		self.assertVector(p, (-4, 0, 0))
+		self.assertVector(N, (-1, 0, 0))
+		p, N = sphere.intersect((0, 0, 0), (-5, 0, 0))
+		self.assertVector(p, (-3, 0, 0))
+		self.assertVector(N, (1, 0, 0))
+
 
 if __name__=='__main__':
 	unittest.main()
