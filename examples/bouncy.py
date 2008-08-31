@@ -58,7 +58,7 @@ if __name__ == '__main__':
 	for i in range(bumper_count):
 		sphere = Sphere(
 			(win.width/(bumper_count-1) * i, win.height*2.0/3.0 - (i % 2) * win.height/3, 0), 
-			radius=win.height / 15)
+			win.height / 15)
 		bumper = Bounce(sphere, friction=-0.5, callback=set_bumper_color)
 		bumper.color = (1,0,0)
 		bumpers.append(bumper)
@@ -95,13 +95,13 @@ if __name__ == '__main__':
 		glColor3f(1.0, 1.0, 0)
 		glBegin(GL_POINTS)
 		for bumper in bumpers:
-			cx, cy, cz = bumper.domain.center_point
+			cx, cy, cz = bumper.domain.center
 			glVertex3f(cx, cy, cz)
 		glEnd()
 		glPointSize(bumpers[0].domain.radius * 2 - ball_size/2.0)
 		glBegin(GL_POINTS)
 		for bumper in bumpers:
-			cx, cy, cz = bumper.domain.center_point
+			cx, cy, cz = bumper.domain.center
 			glColor3f(*bumper.color)
 			glVertex3f(cx, cy, cz)
 		glEnd()
