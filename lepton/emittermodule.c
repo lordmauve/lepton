@@ -342,7 +342,7 @@ Color_deviate(Color *dest, Color *deviation)
 /* Populate the values for a particle based on the emitter's domain,
  * discrete and template particle values
  */
-static inline int
+static int
 Emitter_make_particle(StaticEmitterObject *self, Particle *p)
 {
 	int success = (

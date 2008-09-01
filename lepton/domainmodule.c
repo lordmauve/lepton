@@ -741,8 +741,6 @@ SphereDomain_init(SphereDomainObject *self, PyObject *args)
 	return 0;
 }
 
-#define EPSILON 0.0001f
-
 static PyObject *
 SphereDomain_generate(SphereDomainObject *self) 
 {
