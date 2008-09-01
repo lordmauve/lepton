@@ -21,9 +21,6 @@
 #include "group.h"
 #include "vector.h"
 
-#define clamp(n, min, max) \
-	((n) < (min) ? (min) : ((n) > (max) ? (max) : (n)))
-
 static PyTypeObject GravityController_Type;
 
 typedef struct {
