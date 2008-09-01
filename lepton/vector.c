@@ -32,6 +32,9 @@ inline float InvSqrt (float x) {
     return x;
 }
 
+#define clamp(v, min, max) \
+	((v) < (min)) ? min : ((v) > (max)) ? max : v
+
 inline float Vec3_len(Vec3 *v) {
 	float len;
 	len = Vec3_len_sq(v);
@@ -98,7 +101,7 @@ inline void Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict_
 	const float mag2 = Vec3_len_sq(&lv);
 	if (mag2 > EPSILON) {
 		float t = Vec3_dot(&tp, &lv) / mag2;
-		t = (t < 0.0f) ? 0.0f : (t > 1.0f) ? 1.0f : t;
+		t = clamp(t, 0.0f, 1.0f);
 		Vec3_scalar_muli(&lv, t);
 		Vec3_add(dest, lstart, &lv);
 	} else {
