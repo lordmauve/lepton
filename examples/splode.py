@@ -16,6 +16,7 @@ __version__ = '$Id$'
 
 import os
 import math
+import time
 from pyglet import image
 from pyglet.gl import *
 
@@ -102,6 +103,7 @@ if __name__ == '__main__':
 
 
 	win.set_visible(True)
+	time.sleep(0.5)
 	pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
 	pyglet.clock.set_fps_limit(None)
 
