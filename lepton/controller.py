@@ -79,18 +79,24 @@ class Bounce(object):
 	that affect the position and velocity of particles.
 	"""
 
-	def __init__(self, domain, friction=0, callback=None):
+	def __init__(self, domain, bounce=1.0, friction=0, callback=None):
 		"""
 		domain -- Particles that collide with the surface of this domain are
 		redirected as if they bounced or reflected off the surface. This
 		alters the position and velocity of the particle. The domain must have
 		a non-zero area.
 
-		friction -- The fraction of velocity lost after the bounce. If
-		friction is negative, the particle will gain velocity. If friction is
-		1, the particle will stop at the point of collision. If friction is
-		greater than 1, the particle will appear to refract off of the surface
-		rather than reflect.
+		bounce -- The coefficient of restitution multiplied by the normal
+		component of the collision velocity. This determines the deflection
+		velocity of the particle. If 1.0 (default) the particle is deflected
+		with the same energy it struck the domain with, if zero, the particle
+		will stick to the domain's surface and not bounce off.
+
+		friction -- The resistance presented by the domain surface to sliding
+		particle movement
+		tangental to te domain. 1 - friction is multiplied by the tangental 
+		component of the particles velocity. A value of 0 means no friction
+		friction is negative, the particle will gain velocity.
 
 		callback -- An optional function called when a particle collides
 		with the domain. Must have the signature:
@@ -100,19 +106,29 @@ class Bounce(object):
 		point of collision.
 		"""
 		self.domain = domain
+		self.bounce = float(bounce)
 		self.friction = float(friction)
 		self.callback = callback
 	
 	def __call__(self, td, group):
 		domain = self.domain
-		bounce = 1.0 - self.friction
+		norm_scale = self.bounce
+		tang_scale = 1.0 - self.friction
 		callback = self.callback
 		for p in group:
 			collide_point, normal = domain.intersect(p.last_position, p.position)
 			if collide_point is not None:
-				reflect_vec = (Vec3(*p.position) - collide_point).reflect(normal) * bounce
-				p.velocity = Vec3(*p.velocity).reflect(normal) * bounce
-				p.position = reflect_vec + collide_point
+				normal = Vec3(*normal)
+				penetration = Vec3(*p.position) - collide_point
+				d = penetration.dot(normal)
+				bounce = normal * d
+				slide = penetration - bounce
+				p.position =  (penetration - bounce)*norm_scale + slide*tang_scale + collide_point
+				vel = Vec3(*p.velocity)
+				d = vel.dot(normal)
+				bounce = normal * d
+				slide = vel - bounce
+				p.velocity = (slide * tang_scale) - (bounce * norm_scale)
 				if callback is not None:
 					callback(p, group, self, collide_point, normal)
 
