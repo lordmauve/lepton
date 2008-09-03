@@ -60,19 +60,21 @@ Group_kill_p(GroupObject *group, Particle *p) {
 	p->position.z = FLT_MAX;
 }
 
+static PyTypeObject *GroupObject_Type = NULL;
+
 /* Return true if o is a bon-a-fide GroupObject */
 int
 GroupObject_Check(GroupObject *o)
 {
 	PyObject *m;
-	PyTypeObject *GroupType;
-	m = PyImport_ImportModule("lepton.group");
-	if (m == NULL)
-		return 0;
-	GroupType = (PyTypeObject *)PyObject_GetAttrString(m, "ParticleGroup");
-	Py_DECREF(m);
-	Py_XDECREF(GroupType);
-	if (o->ob_type != GroupType) {
+	if (GroupObject_Type == NULL) {
+		m = PyImport_ImportModule("lepton.group");
+		if (m == NULL)
+			return 0;
+		GroupObject_Type = (PyTypeObject *)PyObject_GetAttrString(m, "ParticleGroup");
+		Py_DECREF(m);
+	}
+	if (o->ob_type != GroupObject_Type) {
 		PyErr_SetString(PyExc_TypeError, "Expected ParticleGroup object");
 		return 0;
 	}
