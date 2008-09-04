@@ -96,7 +96,7 @@ typedef struct {
  */
 typedef struct {
 	PyObject_HEAD
-	GroupObject		*pgroup;
+	PyObject		*parent; /* parent object (such as a group or domain) */
 	unsigned long	iteration; /* update iteration reference is valid for */ 
 	Particle		*p; /* pointer to particle in group */
 } ParticleRefObject;
@@ -151,7 +151,7 @@ get_Float(float *f, PyObject *template, const char *attrname);
  * no range checking is done
  */
 inline ParticleRefObject *
-ParticleRefObject_New(GroupObject *pgroup, Particle *p);
+ParticleRefObject_New(PyObject *parent, Particle *p);
 
 /* Create a new vector object for the parent object and vector struct specified 
  * The parent object may be NULL if there is none
