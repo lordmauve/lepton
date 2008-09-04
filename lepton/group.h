@@ -108,7 +108,7 @@ typedef struct {
  */
 typedef struct {
 	PyObject_HEAD
-	GroupObject		*pgroup;
+	PyObject		*parent; /* parent object (such as a group or domain) */
 	unsigned long	iteration; /* update iteration vector is valid for */ 
 	int				length; /* 3 or 4 */
 	union {
@@ -153,8 +153,10 @@ get_Float(float *f, PyObject *template, const char *attrname);
 inline ParticleRefObject *
 ParticleRefObject_New(GroupObject *pgroup, Particle *p);
 
-/* Create a new vector object for the group and vector struct specified */
+/* Create a new vector object for the parent object and vector struct specified 
+ * The parent object may be NULL if there is none
+ */
 VectorObject *
-Vector_new(GroupObject *pgroup, Vec3 *vec, int length);
+Vector_new(PyObject *parent, Vec3 *vec, int length);
 
 #endif
