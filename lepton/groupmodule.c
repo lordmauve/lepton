@@ -510,17 +510,33 @@ static PyTypeObject ParticleGroup_Type = {
 
 static PyTypeObject Vector_Type;
 
+static VectorObject *vector_pool = NULL;
+static int vector_pool_count = 0;
+#define MAX_VECTOR_POOL 50
+
+#define Vector_REFINVALID(v) \
+	((v)->parent != NULL && GroupObject_CHECK((v)->parent) \
+	 && self->iteration != ((GroupObject *)((v)->parent))->iteration)
+
 static void
 Vector_dealloc(VectorObject *self)
 {
-	if (self->pgroup != NULL)
-		Py_CLEAR(self->pgroup);
-	PyObject_Del(self);
+	if (self->parent != NULL)
+		Py_CLEAR(self->parent);
+	if (vector_pool_count < MAX_VECTOR_POOL) {
+		self->parent = (PyObject *)vector_pool;
+		vector_pool = self;
+		vector_pool_count++;
+	} else {
+		PyObject_Del(self);
+	}
 }
 
-/* Create a new vector object for the group and vector struct specified */
+/* Create a new vector object for the parent object and vector struct specified 
+ * The parent object may be NULL if there is none
+ */
 VectorObject *
-Vector_new(GroupObject *pgroup, Vec3 *vec, int length)
+Vector_new(PyObject *parent, Vec3 *vec, int length)
 {
 	VectorObject *newvec;
 
@@ -528,16 +544,26 @@ Vector_new(GroupObject *pgroup, Vec3 *vec, int length)
 		PyErr_SetString(PyExc_ValueError, "expected length 3 or 4");
 		return NULL;
 	}
-
-	newvec = PyObject_New(VectorObject, &Vector_Type);
-	if (newvec == NULL) {
-		PyErr_NoMemory();
-		return NULL;
+	if (vector_pool_count) {
+		newvec = vector_pool;
+		Py_INCREF(newvec);
+		vector_pool = (VectorObject *)vector_pool->parent;
+		vector_pool_count--;
+	} else {
+		newvec = PyObject_New(VectorObject, &Vector_Type);
+		if (newvec == NULL) {
+			PyErr_NoMemory();
+			return NULL;
+		}
 	}
-	newvec->pgroup = pgroup;
-	if (pgroup != NULL) {
-		Py_INCREF(pgroup);
-		newvec->iteration = pgroup->iteration;
+	newvec->parent = parent;
+	if (parent != NULL) {
+		Py_INCREF(parent);
+		if (GroupObject_CHECK(parent)) {
+			newvec->iteration = ((GroupObject *)parent)->iteration;
+		} else {
+			newvec->iteration = 0;
+		}
 	} else {
 		newvec->iteration = 0;
 	}
@@ -550,16 +576,14 @@ static int
 Vector_setattr(VectorObject *self, char *name, PyObject *v)
 {
 	int result;
-	if (self->pgroup != NULL && self->iteration != self->pgroup->iteration) {
+	if (Vector_REFINVALID(self)) {
 		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
 		return -1;
 	}
-	
 	if (strlen(name) != 1) {
 		PyErr_SetString(PyExc_AttributeError, name);
 		return -1;
 	}
-
 	v = PyNumber_Float(v);
 	if (v == NULL)
 		return -1;
@@ -592,7 +616,7 @@ Vector_repr(VectorObject *self)
 {
 	const int bufsize = 255;
 	char buf[bufsize];
-	if (self->pgroup == NULL || self->iteration == self->pgroup->iteration) {
+	if (Vector_REFINVALID(self)) {
 		buf[0] = 0; /* paranoid */
 		if (self->length == 3) 
 			snprintf(buf, bufsize, "Vector(%.1f, %.1f, %.1f)",
@@ -603,7 +627,7 @@ Vector_repr(VectorObject *self)
 		return PyString_FromString(buf);
 	} else {
 		return PyString_FromFormat(
-			"<INVALID vector of group %p>", self->pgroup);
+			"<INVALID vector of group %p>", self->parent);
 	}
 }
 
@@ -616,7 +640,7 @@ Vector_length(VectorObject *self)
 static PyObject *
 Vector_getitem(VectorObject *self, Py_ssize_t index)
 {
-	if (self->pgroup != NULL && self->iteration != self->pgroup->iteration) {
+	if (Vector_REFINVALID(self)) {
 		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
 		return NULL;
 	}
@@ -634,6 +658,11 @@ Vector_getitem(VectorObject *self, Py_ssize_t index)
 static int
 Vector_assitem(VectorObject *self, Py_ssize_t index, PyObject *v)
 {
+	if (Vector_REFINVALID(self)) {
+		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
+		return -1;
+	}
+
 	switch (index) {
 		case 0: return Vector_setattr(self, "x", v);
 		case 1: return Vector_setattr(self, "y", v);
@@ -648,6 +677,11 @@ static PyObject *
 Vector_clamp(VectorObject *self, PyObject *args)
 {
 	float min, max;
+
+	if (Vector_REFINVALID(self)) {
+		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
+		return NULL;
+	}
 
 	if (!PyArg_ParseTuple(args, "ff:clamp",  &min, &max))
 		return NULL;
@@ -701,7 +735,7 @@ Vector_getattr(VectorObject *self, PyObject *o)
 {
 	char *name = PyString_AS_STRING(o);
 
-	if (self->pgroup != NULL && self->iteration != self->pgroup->iteration) {
+	if (Vector_REFINVALID(self)) {
 		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
 		return NULL;
 	}
@@ -820,6 +854,7 @@ static const char *ParticleProxy_attrname[] = {
 static PyObject *
 ParticleProxy_getattr(ParticleRefObject *self, char *name)
 {
+	PyObject *parent;
 	int attr_no;
 
 	if (!ParticleRefObject_IsValid(self))
@@ -833,15 +868,17 @@ ParticleProxy_getattr(ParticleRefObject *self, char *name)
 		PyErr_SetString(PyExc_AttributeError, name);
 		return NULL;
 	}
+
+	parent = (PyObject *)(self->pgroup);
 	switch (attr_no) {
-		case 0: return (PyObject *)Vector_new(self->pgroup, &self->p->position, 3);
-		case 1: return (PyObject *)Vector_new(self->pgroup, &self->p->velocity, 3);
-		case 2: return (PyObject *)Vector_new(self->pgroup, &self->p->size, 3);
-		case 3: return (PyObject *)Vector_new(self->pgroup, &self->p->up, 3);
-		case 4: return (PyObject *)Vector_new(self->pgroup, &self->p->rotation, 3);
-		case 5: return (PyObject *)Vector_new(self->pgroup, &self->p->last_position, 3);
-		case 6: return (PyObject *)Vector_new(self->pgroup, &self->p->last_velocity, 3);
-		case 7: return (PyObject *)Vector_new(self->pgroup, (Vec3 *)&self->p->color, 4);
+		case 0: return (PyObject *)Vector_new(parent, &self->p->position, 3);
+		case 1: return (PyObject *)Vector_new(parent, &self->p->velocity, 3);
+		case 2: return (PyObject *)Vector_new(parent, &self->p->size, 3);
+		case 3: return (PyObject *)Vector_new(parent, &self->p->up, 3);
+		case 4: return (PyObject *)Vector_new(parent, &self->p->rotation, 3);
+		case 5: return (PyObject *)Vector_new(parent, &self->p->last_position, 3);
+		case 6: return (PyObject *)Vector_new(parent, &self->p->last_velocity, 3);
+		case 7: return (PyObject *)Vector_new(parent, (Vec3 *)&self->p->color, 4);
 		case 8: return Py_BuildValue("f", self->p->mass);
 		case 9: return Py_BuildValue("f", self->p->age);
 	};
