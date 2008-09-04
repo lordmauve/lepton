@@ -110,9 +110,9 @@ static PyObject *
 LineDomain_getattr(LineDomainObject *self, PyObject *name_str)
 {
 	if (name_str == start_point_str) {
-		return (PyObject *)Vector_new(NULL, &self->start_point, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->start_point, 3);	
 	} else if (name_str == end_point_str) {
-		return (PyObject *)Vector_new(NULL, &self->end_point, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->end_point, 3);	
 	} else {
 		return Py_FindMethod(LineDomain_methods, 
 			(PyObject *)self, PyString_AS_STRING(name_str));
@@ -317,9 +317,9 @@ static PyObject *
 PlaneDomain_getattr(PlaneDomainObject *self, PyObject *name_str)
 {
 	if (name_str == point_str) {
-		return (PyObject *)Vector_new(NULL, &self->point, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->point, 3);	
 	} else if (name_str == normal_str) {
-		return (PyObject *)Vector_new(NULL, &self->normal, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->normal, 3);	
 	} else {
 		return Py_FindMethod(PlaneDomain_methods, 
 			(PyObject *)self, PyString_AS_STRING(name_str));
@@ -613,9 +613,9 @@ static PyObject *
 AABoxDomain_getattr(AABoxDomainObject *self, PyObject *name_str)
 {
 	if (name_str == min_point_str) {
-		return (PyObject *)Vector_new(NULL, &self->min, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->min, 3);	
 	} else if (name_str == max_point_str) {
-		return (PyObject *)Vector_new(NULL, &self->max, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->max, 3);	
 	} else {
 		return Py_FindMethod(AABoxDomain_methods, 
 			(PyObject *)self, PyString_AS_STRING(name_str));
@@ -896,7 +896,7 @@ static PyObject *
 SphereDomain_getattr(SphereDomainObject *self, PyObject *name_str)
 {
 	if (name_str == center_str) {
-		return (PyObject *)Vector_new(NULL, &self->center, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->center, 3);	
 	} else if (name_str == outer_radius_str || name_str == radius_str) {
 		return (PyObject *)PyFloat_FromDouble(self->outer_radius);
 	} else if (name_str == inner_radius_str) {
