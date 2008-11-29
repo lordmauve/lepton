@@ -53,7 +53,7 @@ class Collector(object):
 		self.collected_count = 0
 		self.collect_inside = collect_inside
 		self.domain = domain
-		self.callback = None
+		self.callback = callback
 	
 	def __call__(self, td, group):
 		domain = self.domain
@@ -67,9 +67,9 @@ class Collector(object):
 			callback = self.callback
 			for p in group:
 				if (p.position in domain) == collect_inside:
+					callback(p, group, self)
 					group.kill(p)
 					self.collected_count += 1
-					callback(p, group, self)
 
 
 class Bounce(object):
@@ -183,3 +183,4 @@ class Clumper(object):
 				p.velocity.x += (dx / dmag) * mag
 				p.velocity.y += (dy / dmag) * mag
 				p.velocity.z += (dz / dmag) * mag
+            
