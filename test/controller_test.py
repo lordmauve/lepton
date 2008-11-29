@@ -17,6 +17,16 @@ import unittest
 import sys
 import math
 
+class DummyDomain(object):
+	
+	def __init__(self, size=0):
+		self.size = 0
+	
+	def __contains__(self, point):
+		x, y, z = point
+		return x <= self.size and y <= self.size and z <= self.size
+
+
 class ControllerTest(unittest.TestCase):
 
 	def assertVector(self, vec3, (x,y,z)):
@@ -164,6 +174,49 @@ class ControllerTest(unittest.TestCase):
 		self.assertMag(p[0].velocity, 0)
 		self.assertMag(p[1].velocity, 2.0)
 		self.assertMag(p[2].velocity, math.sqrt(12))
+	
+	def test_Collector_controller_collect_inside(self):
+		from lepton import controller
+		group = self._make_group()
+
+		collector = controller.Collector(DummyDomain(size=0.5))
+		self.assertEqual(len(group), 3)
+		collector(0, group)
+		self.assertEqual(len(group), 1)
+		self.assertEqual(collector.collected_count, 2)
+		p = list(group)
+		self.assertVector(p[0].position, (1, 1, 1))
+
+	def test_Collector_controller_collect_outside(self):
+		from lepton import controller
+		group = self._make_group()
+
+		collector = controller.Collector(DummyDomain(size=0.5), collect_inside=False)
+		self.assertEqual(len(group), 3)
+		collector(0, group)
+		self.assertEqual(len(group), 2)
+		self.assertEqual(collector.collected_count, 1)
+		p = list(group)
+		self.assertVector(p[0].position, (0, 0, 0))
+		self.assertVector(p[1].position, (0, 0, 0))
+
+	def test_Collector_controller_callback(self):
+		from lepton import controller
+		group = self._make_group()
+		collector = None
+			
+		killed_pos = []
+		def callback(particle, pgroup, controller):
+			self.assertEqual(controller, collector)
+			self.assertEqual(pgroup, group)
+			killed_pos.append(tuple(particle.position))
+
+		collector = controller.Collector(DummyDomain(size=0.5), callback=callback)
+		collector(0, group)
+		self.assertEqual(len(group), 1)
+		p = list(group)
+		self.assertVector(p[0].position, (1, 1, 1))
+		self.assertEqual(killed_pos, [(0,0,0), (0,0,0)])
 
 if __name__=='__main__':
 	unittest.main()
