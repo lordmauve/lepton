@@ -616,7 +616,7 @@ Vector_repr(VectorObject *self)
 {
 	const int bufsize = 255;
 	char buf[bufsize];
-	if (ParticleRef_INVALID(self)) {
+	if (!ParticleRef_INVALID(self)) {
 		buf[0] = 0; /* paranoid */
 		if (self->length == 3) 
 			snprintf(buf, bufsize, "Vector(%.1f, %.1f, %.1f)",
