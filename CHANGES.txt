@@ -1,3 +1,18 @@
+2008-12-28 -- 0.7a
+
+- Fader controller ported to C
+- Added per-particle emitter and fireworks example
+- Port Line and Plane domains to C
+- Port Box domain to C, rename to AABox. deprecate domain.Box for reuse later
+- Port Sphere domain to C, add support for inner and outer radius for
+  spherical shells
+- Bounce controller gets separate bounce and friction parameters
+- Improve lame pygame fill example to use new bounce features and be less lame
+  (2.5D, suhweet!)
+- Implement particle proxy and vector object pools to reduce or eliminate
+  object allocation when iterating and traversing particles from python
+- Optimize particle group C typecheck function
+
 2008-08-17 -- 0.6a
 
 - Remove inline redefinition cruft that was causing problems building on
