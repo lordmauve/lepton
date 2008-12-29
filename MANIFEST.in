@@ -4,6 +4,7 @@ include MANIFEST.in MANIFEST
 recursive-include lepton *
 recursive-include test *
 recursive-include examples *
+prune examples/games
 
 prune **/.svn
 global-exclude *.pyc 
