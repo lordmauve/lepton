@@ -17,7 +17,8 @@ import unittest
 import sys
 import math
 
-class DummyDomain(object):
+
+class DummyCubeDomain(object):
 	
 	def __init__(self, size=0):
 		self.size = 0
@@ -27,7 +28,26 @@ class DummyDomain(object):
 		return x <= self.size and y <= self.size and z <= self.size
 
 
-class ControllerTest(unittest.TestCase):
+class DummyPlaneDomain(object):
+
+	def intersect(self, start_pt, end_pt):
+		sx, sy, sz = start_pt
+		ex, ey, ez = end_pt
+		if ey >= 0 > sy or ey <= 0 < sy:
+			r = ey / (ey - sy)
+			ix = (ex - sx) * r
+			iy = 0
+			iz = (ez - sz) * r
+			if sy > ey:
+				N = (0, 1, 0)
+			else:
+				N = (0, -1, 0)
+			return (ix, iy, iz), N
+		else:
+			return None, None
+		
+
+class ControllerTestBase(unittest.TestCase):
 
 	def assertVector(self, vec3, (x,y,z)):
 		tolerance = 0.00001
@@ -42,6 +62,9 @@ class ControllerTest(unittest.TestCase):
 	def assertMag(self, vec, mag):
 		tolerance = 0.00001
 		self.failUnless(vec.x**2 + vec.y**2 + vec.z**2 <= mag**2 + tolerance, (vec, mag))
+
+
+class ControllerTest(ControllerTestBase):
 	
 	def _make_group(self):
 		from lepton import Particle, ParticleGroup
@@ -179,7 +202,7 @@ class ControllerTest(unittest.TestCase):
 		from lepton import controller
 		group = self._make_group()
 
-		collector = controller.Collector(DummyDomain(size=0.5))
+		collector = controller.Collector(DummyCubeDomain(size=0.5))
 		self.assertEqual(len(group), 3)
 		collector(0, group)
 		self.assertEqual(len(group), 1)
@@ -191,7 +214,7 @@ class ControllerTest(unittest.TestCase):
 		from lepton import controller
 		group = self._make_group()
 
-		collector = controller.Collector(DummyDomain(size=0.5), collect_inside=False)
+		collector = controller.Collector(DummyCubeDomain(size=0.5), collect_inside=False)
 		self.assertEqual(len(group), 3)
 		collector(0, group)
 		self.assertEqual(len(group), 2)
@@ -204,19 +227,123 @@ class ControllerTest(unittest.TestCase):
 		from lepton import controller
 		group = self._make_group()
 		collector = None
-			
 		killed_pos = []
+
 		def callback(particle, pgroup, controller):
 			self.assertEqual(controller, collector)
 			self.assertEqual(pgroup, group)
 			killed_pos.append(tuple(particle.position))
 
-		collector = controller.Collector(DummyDomain(size=0.5), callback=callback)
+		collector = controller.Collector(DummyCubeDomain(size=0.5), callback=callback)
 		collector(0, group)
 		self.assertEqual(len(group), 1)
 		p = list(group)
 		self.assertVector(p[0].position, (1, 1, 1))
 		self.assertEqual(killed_pos, [(0,0,0), (0,0,0)])
+	
+
+class BounceControllerTest(ControllerTestBase):
+
+	def _make_group(self):
+		from lepton import Particle, ParticleGroup
+		g = ParticleGroup()
+		g.new(Particle(position=(0, 1, 0), velocity=(0, -1, 0))),
+		g.new(Particle(position=(0, 1, 0), velocity=(0, -1.5, 0))),
+		g.new(Particle(position=(-1, -1, 1), velocity=(2, 2, 0))),
+		g.new(Particle(position=(1, 1, 1), velocity=(0, 1, 0)))
+		g.update(0)
+		p = list(g)
+		p[0].position = (0, 0, 0)
+		p[1].position = (0, -0.5, 0)
+		p[2].position = (1, 1, 1)
+		p[3].position = (1, 2, 1)
+		return g
+		
+	def test_Bounce_controller_defaults(self):
+		from lepton import controller
+		group = self._make_group()
+
+		bounce = controller.Bounce(DummyPlaneDomain())
+		bounce(0, group)
+		p = list(group)
+		self.assertVector(p[0].position, (0, 0, 0))
+		self.assertVector(p[0].velocity, (0, 1, 0))
+		self.assertVector(p[1].position, (0, 0.5, 0))
+		self.assertVector(p[1].velocity, (0, 1.5, 0))
+		self.assertVector(p[2].position, (1, -1, 1))
+		self.assertVector(p[2].velocity, (2, -2, 0))
+		self.assertVector(p[3].position, (1, 2, 1))
+		self.assertVector(p[3].velocity, (0, 1, 0))
+
+	def test_Bounce_controller_low_bounce(self):
+		from lepton import controller
+		group = self._make_group()
+
+		bounce = controller.Bounce(DummyPlaneDomain(), bounce=0.5)
+		bounce(0, group)
+		p = list(group)
+		self.assertVector(p[0].position, (0, 0, 0))
+		self.assertVector(p[0].velocity, (0, 0.5, 0))
+		self.assertVector(p[1].position, (0, 0.25, 0))
+		self.assertVector(p[1].velocity, (0, 0.75, 0))
+		self.assertVector(p[2].position, (1, -0.5, 1))
+		self.assertVector(p[2].velocity, (2, -1, 0))
+		self.assertVector(p[3].position, (1, 2, 1))
+		self.assertVector(p[3].velocity, (0, 1, 0))
+
+	def test_Bounce_controller_high_friction(self):
+		from lepton import controller
+		group = self._make_group()
+
+		bounce = controller.Bounce(DummyPlaneDomain(), friction=0.5)
+		bounce(0, group)
+		p = list(group)
+		self.assertVector(p[0].position, (0, 0, 0))
+		self.assertVector(p[0].velocity, (0, 1, 0))
+		self.assertVector(p[1].position, (0, 0.5, 0))
+		self.assertVector(p[1].velocity, (0, 1.5, 0))
+		self.assertVector(p[2].position, (1, -1, 0.5))
+		self.assertVector(p[2].velocity, (1, -2, 0))
+		self.assertVector(p[3].position, (1, 2, 1))
+		self.assertVector(p[3].velocity, (0, 1, 0))
+
+	def test_Bounce_controller_neg_friction(self):
+		from lepton import controller
+		group = self._make_group()
+
+		bounce = controller.Bounce(DummyPlaneDomain(), friction=-0.5)
+		bounce(0, group)
+		p = list(group)
+		self.assertVector(p[0].position, (0, 0, 0))
+		self.assertVector(p[0].velocity, (0, 1, 0))
+		self.assertVector(p[1].position, (0, 0.5, 0))
+		self.assertVector(p[1].velocity, (0, 1.5, 0))
+		self.assertVector(p[2].position, (1, -1, 1.5))
+		self.assertVector(p[2].velocity, (3, -2, 0))
+		self.assertVector(p[3].position, (1, 2, 1))
+		self.assertVector(p[3].velocity, (0, 1, 0))
+
+	def test_Bounce_controller_callback(self):
+		from lepton import controller
+		group = self._make_group()
+
+		callback_args = []
+		def dummy_callback(*args):
+			self.assertEqual(len(args), 5)
+			callback_args.append(args)
+
+		bounce = controller.Bounce(DummyPlaneDomain(), callback=dummy_callback)
+		bounce(0, group)
+		p = list(group)
+		self.assertEqual(len(callback_args), len(group) - 1)
+		for particle, (cbparticle, cbgroup, cbcontroller, cbpoint, cbnormal) in zip(
+			p, callback_args):
+			# TODO Add particle-particle and vector-vector comparison ops
+			self.assertVector(cbparticle.position, particle.position)
+			self.failUnless(cbgroup is group, cbgroup)
+			self.failUnless(cbcontroller is bounce, cbcontroller)
+			self.assertEqual(cbpoint[1], 0)
+
 
 if __name__=='__main__':
 	unittest.main()
