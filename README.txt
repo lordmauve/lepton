@@ -9,7 +9,7 @@ Requirements
 ------------
 
 Lepton is platform-independent and should run on any operating system
-supporting Python and OpenGL. Let us know if you successfully build
+supporting Python and OpenGL. Let us know if you try to build
 and run Lepton on an unusual platform.
 
 The following are required to build and install Lepton:
