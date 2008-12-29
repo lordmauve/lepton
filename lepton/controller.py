@@ -95,8 +95,8 @@ class Bounce(object):
 		friction -- The resistance presented by the domain surface to sliding
 		particle movement
 		tangental to te domain. 1 - friction is multiplied by the tangental 
-		component of the particles velocity. A value of 0 means no friction
-		friction is negative, the particle will gain velocity.
+		component of the particles velocity. A value of 0 means no friction.
+		if friction is negative, the particle will gain velocity.
 
 		callback -- An optional function called when a particle collides
 		with the domain. Must have the signature:
@@ -119,11 +119,12 @@ class Bounce(object):
 			collide_point, normal = domain.intersect(p.last_position, p.position)
 			if collide_point is not None:
 				normal = Vec3(*normal)
+				collide_point = Vec3(*collide_point)
 				penetration = Vec3(*p.position) - collide_point
 				d = penetration.dot(normal)
 				bounce = normal * d
 				slide = penetration - bounce
-				p.position =  (penetration - bounce)*norm_scale + slide*tang_scale + collide_point
+				p.position =  collide_point - bounce*norm_scale + slide*tang_scale
 				vel = Vec3(*p.velocity)
 				d = vel.dot(normal)
 				bounce = normal * d

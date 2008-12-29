@@ -72,7 +72,6 @@ if __name__ == '__main__':
 	group = ParticleGroup(renderer=PointRenderer(point_size=ball_size))
 
 	ball_emitter = StaticEmitter(
-		# The rate and expire time are setup for a burst all at once
 		position=screen_domain,
 		deviation=Particle(velocity=(60,60,0), color=(0.3,0.3,0.3,0)),
 		color=[(1,0,0,1), (0,1,0,1), (0,0,1,1), (1,1,0,1), (0,1,1,1), (1,1,1,1)],
@@ -108,7 +107,6 @@ if __name__ == '__main__':
 
 	@win.event
 	def on_draw():
-		global i
 		win.clear()
 		glLoadIdentity()
 		draw_bumpers()
