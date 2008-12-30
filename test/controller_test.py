@@ -46,6 +46,9 @@ class DummyPlaneDomain(object):
 		else:
 			return None, None
 		
+	def __contains__(self, p):
+		return False
+
 
 class ControllerTestBase(unittest.TestCase):
 
