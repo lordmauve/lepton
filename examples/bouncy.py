@@ -66,8 +66,12 @@ if __name__ == '__main__':
 	default_system.add_global_controller(
 		Gravity((0,-50,0)),
 		Movement(max_velocity=250), 
-		Bounce(screen_domain, friction=0.01),
 		*bumpers
+	)
+	# Make the bounce controller for the screen boundary run last 
+	# to ensure no particles can "escape"
+	default_system.add_global_controller(
+		Bounce(screen_domain, friction=0.01)
 	)
 	group = ParticleGroup(renderer=PointRenderer(point_size=ball_size))
 
