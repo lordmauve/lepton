@@ -98,10 +98,10 @@ class Bounce(object):
 		will stick to the domain's surface and not bounce off.
 
 		friction -- The resistance presented by the domain surface to sliding
-		particle movement
-		tangental to te domain. 1 - friction is multiplied by the tangental 
-		component of the particles velocity. A value of 0 means no friction.
-		if friction is negative, the particle will gain velocity.
+		particle movement tangental to the domain. 1 - friction is multiplied
+		by the tangental component of the particles velocity. A value of 0
+		means no friction.  if friction is negative, the particle will gain
+		velocity.
 
 		callback -- An optional function called when a particle collides
 		with the domain. Must have the signature:

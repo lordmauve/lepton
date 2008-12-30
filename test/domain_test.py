@@ -233,6 +233,18 @@ class DomainTest(unittest.TestCase):
 			self.assertVector(p, point)
 			self.assertVector(N, -Vec3(*normal))
 	
+	def test_Sphere_stationary_particles(self):
+		from lepton.domain import Sphere
+		from lepton.particle_struct import Vec3
+		sphere = Sphere((0, 1, 2), 2)
+		positions = [
+			((0, 1.1, 2.2), (0, 1.1, 2.2)),
+			((3.1, 4, 2), (3.1, 4, 2)),
+			((-0.9, -1, 0), (-0.9, -1, 0)),
+		]
+		for start, end in positions:
+			self.assertEqual(sphere.intersect(start, end), (None, None))
+	
 	def test_solid_Sphere_grazing_intersect(self):
 		from lepton.domain import Sphere
 		sphere = Sphere((0, 0, 0), 4)

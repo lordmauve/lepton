@@ -833,7 +833,8 @@ SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 	}
 
 	if (((start_dist2 > outer_r2) & (end_dist2 > outer_r2))
-		| ((start_dist2 <= inner_r2) & (end_dist2 <= inner_r2))) {
+		| ((start_dist2 <= inner_r2) & (end_dist2 <= inner_r2))
+		| ((start.x == end.x) & (start.y == end.y) & (start.z == end.z))) {
 		Py_INCREF(NO_INTERSECTION);
 		return NO_INTERSECTION;
 	}
@@ -848,7 +849,7 @@ SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 		self->center.x * start.x + self->center.y * start.y + self->center.z * start.z) - r2;
 	bb4ac = b*b - 4.0f * a * c;
 	// printf("r2 = %f\n", r2);
-	// printf("a = %f, b = %f, c = %f, bb4ac = %f\n", bb4ac);
+	// printf("a = %f, b = %f, c = %f, bb4ac = %f\n", a, b, c, bb4ac);
 	if (fabs(bb4ac) <= EPSILON) {
 		/* intersects at single point */
 		t = -b / (2.0f * a);
