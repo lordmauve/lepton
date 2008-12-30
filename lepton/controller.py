@@ -79,6 +79,11 @@ class Bounce(object):
 	that affect the position and velocity of particles.
 	"""
 
+	# Maximum number of bounces allowed per particle per frame
+	# This may mean that fast moving particles inside a small domain
+	# will sometimes "escape", but prevents an infinite loop
+	MAX_BOUNCES = 4
+
 	def __init__(self, domain, bounce=1.0, friction=0, callback=None):
 		"""
 		domain -- Particles that collide with the surface of this domain are
@@ -111,27 +116,41 @@ class Bounce(object):
 		self.callback = callback
 	
 	def __call__(self, td, group):
-		domain = self.domain
+		intersect = self.domain.intersect
 		norm_scale = self.bounce
 		tang_scale = 1.0 - self.friction
 		callback = self.callback
+		max_bounces = self.MAX_BOUNCES
 		for p in group:
-			collide_point, normal = domain.intersect(p.last_position, p.position)
-			if collide_point is not None:
-				normal = Vec3(*normal)
-				collide_point = Vec3(*collide_point)
-				penetration = Vec3(*p.position) - collide_point
-				d = penetration.dot(normal)
-				bounce = normal * d
-				slide = penetration - bounce
-				p.position =  collide_point - bounce*norm_scale + slide*tang_scale
-				vel = Vec3(*p.velocity)
-				d = vel.dot(normal)
-				bounce = normal * d
-				slide = vel - bounce
-				p.velocity = (slide * tang_scale) - (bounce * norm_scale)
-				if callback is not None:
-					callback(p, group, self, collide_point, normal)
+			last_pos = p.last_position
+			bounces = 0
+			started_inside = p.last_position in self.domain
+			while bounces < max_bounces:
+				collide_point, normal = intersect(last_pos, p.position)
+				if collide_point is not None:
+					bounces += 1
+					normal = Vec3(*normal)
+					collide_point = Vec3(*collide_point)
+					penetration = Vec3(*p.position) - collide_point
+					d = penetration.dot(normal)
+					bounce = normal * d
+					slide = penetration - bounce
+					last_pos = collide_point
+					p.position =  collide_point - bounce*norm_scale + slide*tang_scale
+					vel = Vec3(*p.velocity)
+					d = vel.dot(normal)
+					bounce = normal * d
+					slide = vel - bounce
+					p.velocity = (slide * tang_scale) - (bounce * norm_scale)
+					if callback is not None:
+						callback(p, group, self, collide_point, normal)
+					if started_inside == (p.position in self.domain):
+						# We started inside or outside and ended the same, we're done
+						# This is the common case
+						break
+				else:
+					# No collision
+					break
 
 
 class Clumper(object):

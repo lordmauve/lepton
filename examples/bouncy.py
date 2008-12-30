@@ -59,13 +59,13 @@ if __name__ == '__main__':
 		sphere = Sphere(
 			(win.width/(bumper_count-1) * i, win.height*2.0/3.0 - (i % 2) * win.height/3, 0), 
 			win.height / 15)
-		bumper = Bounce(sphere, bounce=1.25, friction=-0.25, callback=set_bumper_color)
+		bumper = Bounce(sphere, bounce=1.5, friction=-0.25, callback=set_bumper_color)
 		bumper.color = (1,0,0)
 		bumpers.append(bumper)
 
 	default_system.add_global_controller(
 		Gravity((0,-50,0)),
-		Movement(max_velocity=200), 
+		Movement(max_velocity=250), 
 		Bounce(screen_domain, friction=0.01),
 		*bumpers
 	)
