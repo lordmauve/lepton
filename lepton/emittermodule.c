@@ -463,9 +463,9 @@ Emitter_emit(StaticEmitterObject *self, PyObject *args)
 }
 
 static struct PyMemberDef StaticEmitter_members[] = {
-    {"rate", T_FLOAT, offsetof(StaticEmitterObject, rate), RESTRICTED,
+    {"rate", T_FLOAT, offsetof(StaticEmitterObject, rate), 0,
         "Rate of particle emission per unit time"},
-    {"time_to_live", T_FLOAT, offsetof(StaticEmitterObject, time_to_live), RESTRICTED,
+    {"time_to_live", T_FLOAT, offsetof(StaticEmitterObject, time_to_live), 0,
         "Time remaining before emitter is removed from the group (-1 to disable)"},
 	{NULL}
 };
@@ -755,11 +755,11 @@ PerParticleEmitter_emit(PerParticleEmitterObject *self, PyObject *args)
 }
 
 static struct PyMemberDef PerParticleEmitter_members[] = {
-    {"rate", T_FLOAT, offsetof(PerParticleEmitterObject, rate), RESTRICTED,
+    {"rate", T_FLOAT, offsetof(PerParticleEmitterObject, rate), 0,
         "Number of particles per particle in the source group emitted per unit time"},
-    {"time_to_live", T_FLOAT, offsetof(PerParticleEmitterObject, time_to_live), RESTRICTED,
+    {"time_to_live", T_FLOAT, offsetof(PerParticleEmitterObject, time_to_live), 0,
         "Time remaining before emitter is removed from the group (-1 to disable)"},
-    {"source_group", T_OBJECT, offsetof(PerParticleEmitterObject, source_group), RESTRICTED,
+    {"source_group", T_OBJECT, offsetof(PerParticleEmitterObject, source_group), 0,
         "Source particle group containing template particles"},
 	{NULL}
 };
