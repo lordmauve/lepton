@@ -25,51 +25,11 @@ __version__ = '$Id$'
 
 from math import sqrt
 from particle_struct import Color, Vec3
-from _controller import Gravity, Fader, Movement, Lifetime, ColorBlender, Growth
+from _controller import Gravity, Fader, Movement, Lifetime, ColorBlender, Growth, Collector
 
 
 def NoopController(time_delta, group):
 	"""Do nothing controller"""
-
-
-class Collector(object):
-	"""Controller that "collects" particles that enter or exit its domain
-
-	Collected particles are killed and counted by the collector
-	"""
-
-	def __init__(self, domain, collect_inside=True, callback=None):
-		"""
-		domain -- particles inside this domain are killed. The domain must
-		have a non-zero volume.
-
-		collect_inside -- True to collect particles inside the domain, false
-		to collect particles outside the domain.
-
-		callback -- an optional function called after each particle is
-		collected. Must have the signature: 
-			callback(particle, group, collector)
-		"""
-		self.collected_count = 0
-		self.collect_inside = collect_inside
-		self.domain = domain
-		self.callback = callback
-	
-	def __call__(self, td, group):
-		domain = self.domain
-		collect_inside = self.collect_inside
-		if self.callback is None:
-			for p in group:
-				if (p.position in domain) == collect_inside:
-					group.kill(p)
-					self.collected_count += 1
-		else:
-			callback = self.callback
-			for p in group:
-				if (p.position in domain) == collect_inside:
-					callback(p, group, self)
-					group.kill(p)
-					self.collected_count += 1
 
 
 class Bounce(object):
