@@ -986,6 +986,173 @@ static PyTypeObject GrowthController_Type = {
 	0,                      /*tp_is_gc*/
 };
 
+/* --------------------------------------------------------------------- */
+
+static PyTypeObject CollectorController_Type;
+
+typedef struct {
+	PyObject_HEAD
+	PyObject *domain;
+	int collect_inside;
+	int collected_count;
+	PyObject *callback;
+} CollectorControllerObject;
+
+static void
+CollectorController_dealloc(CollectorControllerObject *self) {
+	if (self->domain !=NULL)
+		Py_CLEAR(self->domain);
+	if (self->callback !=NULL)
+		Py_CLEAR(self->callback);
+	PyObject_Del(self);
+}
+
+static int
+CollectorController_init(CollectorControllerObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"domain", "collect_inside", "callback", NULL};
+
+	self->callback = NULL;
+	self->collect_inside = 1;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iO:__init__", kwlist,
+		&self->domain, &self->collect_inside, &self->callback))
+		return -1;
+	Py_INCREF(self->domain);
+	if (self->callback != NULL)
+		Py_INCREF(self->callback);
+	self->collected_count = 0;
+	return 0;
+}
+
+static PyObject *
+CollectorController_call(CollectorControllerObject *self, PyObject *args)
+{
+	float td;
+	GroupObject *pgroup;
+	VectorObject *vector = NULL;
+	ParticleRefObject *particleref = NULL;
+	PyObject *result;
+	int in_domain, collect_inside;
+	register Particle *p;
+	register unsigned long count;
+
+	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
+		return NULL;
+	
+	if (!GroupObject_Check(pgroup))
+		return NULL;
+
+	collect_inside = self->collect_inside ? 1 : 0;
+	p = pgroup->plist->p;
+	count = GroupObject_ActiveCount(pgroup);
+	vector = Vector_new(NULL, &p->position, 3);
+	particleref = ParticleRefObject_New((PyObject *)pgroup, p);
+	if (vector == NULL || particleref == NULL)
+		goto error;
+	while (count--) {
+		vector->vec = &p->position;
+		in_domain = PySequence_Contains(self->domain, (PyObject *)vector);
+		if (in_domain == -1)
+			goto error;
+		if (Particle_IsAlive(*p) && (in_domain == collect_inside)) {
+			if (self->callback != NULL && self->callback != Py_None) {
+				particleref->p = p;
+				result = PyObject_CallFunctionObjArgs(
+					self->callback, (PyObject *)particleref, (PyObject *)pgroup, 
+					(PyObject *)self, NULL);
+				if (result == NULL) {
+					goto error;
+				}
+				Py_DECREF(result);
+			}
+			Group_kill_p(pgroup, p);
+			self->collected_count++;
+		}
+		p++;
+	}
+	Py_DECREF(particleref);
+	Py_DECREF(vector);
+	
+	Py_INCREF(Py_None);
+	return Py_None;
+
+error:
+	Py_XDECREF(particleref);
+	Py_XDECREF(vector);
+	return NULL;
+}
+
+static struct PyMemberDef CollectorController_members[] = {
+    {"collect_inside", T_INT, offsetof(CollectorControllerObject, collect_inside), 0,
+        "True to collect particles inside the domain, False "
+		"to collect particles outside the domain."},
+    {"domain", T_OBJECT, offsetof(CollectorControllerObject, domain), 0,
+        "Particles inside or outside this domain are killed depending "
+		"on the value of collect_inside"},
+    {"callback", T_OBJECT, offsetof(CollectorControllerObject, callback), 0,
+        "A function called called for each collected particle, or None\n"
+		"Must have the signature:\n"
+		"    callback(particle, group, collector)"},
+    {"collected_count", T_INT, offsetof(CollectorControllerObject, collected_count), 0,
+        "Total number of particles collected"},
+	{NULL}
+};
+
+PyDoc_STRVAR(CollectorController__doc__, 
+	"domain -- particles inside or outside this domain are killed.\n"
+	"The domain must have a non-zero volume.\n\n"
+	"collect_inside -- True to collect particles inside the domain, False\n"
+	"to collect particles outside the domain.\n\n"
+	"callback -- an optional function called for each collected particle\n"
+	"Must have the signature:\n"
+	"    callback(particle, group, collector)");
+
+static PyTypeObject CollectorController_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"controller.Collector",		/*tp_name*/
+	sizeof(CollectorControllerObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)CollectorController_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	0,	        /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	(ternaryfunc)CollectorController_call, /*tp_call*/
+	0,                      /*tp_str*/
+	0,                      /*tp_getattro*/
+	0,                      /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	CollectorController__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	0,  /*tp_methods*/
+	CollectorController_members,  /*tp_members*/
+	0,                      /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)CollectorController_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
 
 PyMODINIT_FUNC
 init_controller(void)
@@ -1029,6 +1196,12 @@ init_controller(void)
 	if (PyType_Ready(&GrowthController_Type) < 0)
 		return;
 
+	CollectorController_Type.tp_alloc = PyType_GenericAlloc;
+	CollectorController_Type.tp_new = PyType_GenericNew;
+	CollectorController_Type.tp_getattro = PyObject_GenericGetAttr;
+	if (PyType_Ready(&CollectorController_Type) < 0)
+		return;
+
 	/* Create the module and add the types */
 	m = Py_InitModule3("_controller", NULL, "Particle Controllers");
 	if (m == NULL)
@@ -1046,4 +1219,6 @@ init_controller(void)
 	PyModule_AddObject(m, "ColorBlender", (PyObject *)&ColorBlenderController_Type);
 	Py_INCREF(&GrowthController_Type);
 	PyModule_AddObject(m, "Growth", (PyObject *)&GrowthController_Type);
+	Py_INCREF(&CollectorController_Type);
+	PyModule_AddObject(m, "Collector", (PyObject *)&CollectorController_Type);
 }
