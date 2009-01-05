@@ -27,6 +27,19 @@ from lepton.emitter import StaticEmitter
 from lepton.controller import Movement, Bounce, Gravity
 from lepton.domain import AABox, Sphere
 
+class Bumper:
+	color = (1, 0, 0)
+
+	def __init__(self, position, radius):
+		self.domain = Sphere(position, radius)
+		self.controller = Bounce(
+			self.domain, bounce=1.5, friction=-0.25, callback=self.set_bumper_color)
+
+	def set_bumper_color(self, particle, group, bumper, collision_point, collision_normal):
+		"""Set bumper color to the color of the particle that collided with it"""
+		self.color = tuple(particle.color)[:3]
+
+
 if __name__ == '__main__':
 	win = pyglet.window.Window(resizable=True, visible=False)
 	win.clear()
@@ -49,24 +62,17 @@ if __name__ == '__main__':
 	screen_domain = AABox((ball_size/2.0, ball_size/2.0, 0), 
 		(win.width-ball_size/2.0,win.height-ball_size/2.0,0))
 
-
-	def set_bumper_color(particle, group, bumper, collision_point, collision_normal):
-		"""Set bumper color to the color of the particle that collided with it"""
-		bumper.color = tuple(particle.color)[:3]
-
 	bumpers = []
 	for i in range(bumper_count):
-		sphere = Sphere(
+		bumper = Bumper(
 			(win.width/(bumper_count-1) * i, win.height*2.0/3.0 - (i % 2) * win.height/3, 0), 
 			win.height / 15)
-		bumper = Bounce(sphere, bounce=1.5, friction=-0.25, callback=set_bumper_color)
-		bumper.color = (1,0,0)
 		bumpers.append(bumper)
 
 	default_system.add_global_controller(
 		Gravity((0,-50,0)),
 		Movement(max_velocity=250), 
-		*bumpers
+		*[bumper.controller for bumper in bumpers]
 	)
 	# Make the bounce controller for the screen boundary run last 
 	# to ensure no particles can "escape"
