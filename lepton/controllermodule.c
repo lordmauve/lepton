@@ -1154,6 +1154,272 @@ static PyTypeObject CollectorController_Type = {
 	0,                      /*tp_is_gc*/
 };
 
+/* --------------------------------------------------------------------- */
+
+static PyTypeObject BounceController_Type;
+
+typedef struct {
+	PyObject_HEAD
+	PyObject *domain;
+	float bounce;
+	float friction;
+	int bounce_limit;
+	PyObject *callback;
+} BounceControllerObject;
+
+static void
+BounceController_dealloc(BounceControllerObject *self) {
+	if (self->domain !=NULL)
+		Py_CLEAR(self->domain);
+	if (self->callback !=NULL)
+		Py_CLEAR(self->callback);
+	PyObject_Del(self);
+}
+
+static int
+BounceController_init(BounceControllerObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"domain", "bounce", "friction", "bounce_limit", "callback", NULL};
+
+	self->callback = NULL;
+	self->bounce = 1.0f;
+	self->friction = 0.0f;
+	self->bounce_limit = 5;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|ffiO:__init__", kwlist,
+		&self->domain, &self->bounce, &self->friction, &self->bounce_limit, &self->callback))
+		return -1;
+	Py_INCREF(self->domain);
+	if (self->callback != NULL)
+		Py_INCREF(self->callback);
+	return 0;
+}
+
+static PyObject *
+BounceController_call(BounceControllerObject *self, PyObject *args)
+{
+	float td;
+	GroupObject *pgroup;
+	VectorObject *start_pos = NULL, *end_pos = NULL;
+	PyObject *collide_vec = NULL, *normal_vec = NULL;
+	ParticleRefObject *particleref = NULL;
+	PyObject *result = NULL, *t = NULL, *intersect_str = NULL;
+	float tangent_scale, d;
+	Vec3 collide_point, normal, penetration, deflect, slide;
+	int bounces, started_inside, inside;
+	register Particle *p;
+	register unsigned long count;
+
+	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
+		return NULL;
+	
+	if (!GroupObject_Check(pgroup))
+		return NULL;
+	
+	intersect_str = PyString_InternFromString("intersect");
+	if (intersect_str == NULL)
+		goto error;
+
+	p = pgroup->plist->p;
+	tangent_scale = 1.0f - self->friction;
+	count = GroupObject_ActiveCount(pgroup);
+	start_pos = Vector_new(NULL, &p->last_position, 3);
+	end_pos = Vector_new(NULL, &p->position, 3);
+	if (start_pos == NULL || end_pos == NULL)
+		goto error;
+	while (count--) {
+		if (Particle_IsAlive(*p)) {
+			start_pos->vec = &p->last_position;
+			end_pos->vec = &p->position;
+			started_inside = PySequence_Contains((PyObject *)self->domain, (PyObject *)start_pos);
+			if (started_inside == -1)
+				goto error;
+			bounces = self->bounce_limit;
+			while (bounces--) {
+				end_pos->vec = &p->position;
+				result = PyObject_CallMethodObjArgs(self->domain, intersect_str,
+					(PyObject *)start_pos, (PyObject *)end_pos, NULL);
+				if (result == NULL)
+					goto error;
+				t = PySequence_Tuple(result);
+				if (t == NULL)
+					goto error;
+				Py_CLEAR(result);
+				if (PySequence_Fast_GET_SIZE(t) && PySequence_Fast_GET_ITEM(t, 0) != Py_None) {
+					if (!PyArg_ParseTuple(t, "(fff)(fff);domain.intersect() returned invalid value",
+						&collide_point.x, &collide_point.y, &collide_point.z,
+						&normal.x, &normal.y, &normal.z))
+						goto error;
+					Vec3_sub(&penetration, &p->position, &collide_point);
+					d = Vec3_dot(&penetration, &normal);
+					Vec3_scalar_mul(&deflect, &normal, d);
+					Vec3_sub(&slide, &penetration, &deflect);
+					Vec3_scalar_muli(&deflect, self->bounce);
+					Vec3_scalar_muli(&slide, tangent_scale);
+					Vec3_sub(&p->position, &collide_point, &deflect);
+					Vec3_addi(&p->position, &slide);
+					d = Vec3_dot(&p->velocity, &normal);
+					Vec3_scalar_mul(&deflect, &normal, d);
+					Vec3_sub(&slide, &p->velocity, &deflect);
+					Vec3_scalar_muli(&deflect, self->bounce);
+					Vec3_scalar_muli(&slide, tangent_scale);
+					Vec3_sub(&p->velocity, &slide, &deflect);
+					start_pos->vec = &collide_point;
+					if (self->callback != NULL && self->callback != Py_None) {
+						particleref = ParticleRefObject_New((PyObject *)pgroup, p);
+						collide_vec = Py_BuildValue(
+							"(fff)", collide_point.x, collide_point.y, collide_point.z);
+						normal_vec = Py_BuildValue("(fff)", normal.x, normal.y, normal.z);
+						if (particleref == NULL || collide_vec == NULL || normal_vec == NULL)
+							goto error;
+						result = PyObject_CallFunctionObjArgs(
+							self->callback, (PyObject *)particleref, (PyObject *)pgroup, 
+							(PyObject *)self, collide_vec, normal_vec, NULL);
+						if (result == NULL) {
+							goto error;
+						}
+						Py_CLEAR(result);
+						Py_CLEAR(particleref);
+						Py_CLEAR(collide_vec);
+						Py_CLEAR(normal_vec);
+					}
+					inside = PySequence_Contains((PyObject *)self->domain, (PyObject *)end_pos);
+					if (inside == -1)
+						goto error;
+					if ((started_inside == inside) | (self->bounce <= 0)) {
+						/* We started inside or outside and ended the same, we're done
+						   This is the common case
+						   XXX This is not perfect and may return a false
+						   positive for hollow domains with sharp angles */
+						break;
+					}
+				} else {
+					/* No collision */
+					break;
+				}
+			}
+			Py_CLEAR(t);
+		}
+		p++;
+	}
+	Py_DECREF(intersect_str);
+	Py_DECREF(start_pos);
+	Py_DECREF(end_pos);
+	
+	Py_INCREF(Py_None);
+	return Py_None;
+
+error:
+	Py_XDECREF(result);
+	Py_XDECREF(t);
+	Py_XDECREF(intersect_str);
+	Py_XDECREF(particleref);
+	Py_XDECREF(start_pos);
+	Py_XDECREF(end_pos);
+	Py_XDECREF(collide_vec);
+	Py_XDECREF(normal_vec);
+	return NULL;
+}
+
+static struct PyMemberDef BounceController_members[] = {
+    {"domain", T_OBJECT, offsetof(BounceControllerObject, domain), 0,
+        "Particles are deflected when they collide with the domain boundary"},
+    {"bounce", T_FLOAT, offsetof(BounceControllerObject, bounce), 0,
+        "Multiplied by the normal component of the collision velocity,\n"
+		"this determines the amount of deflection from the domain's boundary.\n"
+		"If positive, the particle will bounce off of the domain. If zero\n"
+		"the particle will \"stick\" to the boundary. If negative, the particle\n"
+		"will be refracted across the boundary"},
+	{"friction", T_FLOAT, offsetof(BounceControllerObject, friction), 0,
+		"Multiplied by the tangental component of the collision velocity,\n"
+		"this determines the resistance to sliding tangentially across the\n"
+		"domain boundary. 1 - friction is multiplied by the tangental component\n"
+		"of the particle's velocity."},
+	{"bounce_limit", T_INT, offsetof(BounceControllerObject, bounce_limit), 0,
+		"The maximum number of bounces deflections calculated per particle\n"
+		"per iteration. Important for fast moving particles contained inside\n"
+		"small domains, or domains with corners. Small values may reduce CPU\n"
+		"cost, but also may allow particles to escape containment."},
+    {"callback", T_OBJECT, offsetof(BounceControllerObject, callback), 0,
+        "A function called called when a particle collides with the domain, or None\n"
+		"Must have the signature:\n"
+		"    callback(particle, group, controller, collision_point, collision_normal)"},
+	{NULL}
+};
+
+PyDoc_STRVAR(BounceController__doc__, 
+	"Bounce(domain, bounce=1.0, friction=0, bounce_limit=5, callback=None)\n\n"
+	"domain -- Particles that collide with the surface of this domain are\n"
+	"redirected as if they bounced or reflected off the surface. This\n"
+	"alters the position and velocity of the particle. The domain must have\n"
+	"a non-zero area.\n\n"
+	"bounce -- The coefficient of restitution multiplied by the normal\n"
+	"component of the collision velocity. This determines the deflection\n"
+	"velocity of the particle. If 1.0 (default) the particle is deflected\n"
+	"with the same energy it struck the domain with, if zero, the particle\n"
+	"will stick to the domain's surface and not bounce off.\n\n"
+	"friction -- The resistance presented by the domain surface to sliding\n"
+	"particle movement tangental to the domain. 1 - friction is multiplied\n"
+	"by the tangental component of the particles velocity. A value of 0\n"
+	"means no friction.  if friction is negative, the particle will gain\n"
+	"velocity.\n\n"
+	"bounce_limit -- The maximum number of bounces deflections calculated per\n"
+	"particle per iteration. Higher values can result in more accuracy\n"
+	"at potentially higher CPU cost. A value of -1 is effectively infinite.\n\n"
+	"callback -- An optional function called when a particle collides\n"
+	"with the domain. Must have the signature:\n"
+	"	callback(particle, group, controller, collision_point, collision_normal)\n"
+	"collision_point is point on the domain where the collision occurred.\n"
+	"collision_normal is the normal vector on the domain's surface at the\n"
+	"point of collision."
+);
+
+static PyTypeObject BounceController_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"controller.Bounce",		/*tp_name*/
+	sizeof(BounceControllerObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)BounceController_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	0,	        /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	(ternaryfunc)BounceController_call, /*tp_call*/
+	0,                      /*tp_str*/
+	0,                      /*tp_getattro*/
+	0,                      /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	BounceController__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	0,  /*tp_methods*/
+	BounceController_members,  /*tp_members*/
+	0,                      /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)BounceController_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
+
 PyMODINIT_FUNC
 init_controller(void)
 {
@@ -1202,6 +1468,12 @@ init_controller(void)
 	if (PyType_Ready(&CollectorController_Type) < 0)
 		return;
 
+	BounceController_Type.tp_alloc = PyType_GenericAlloc;
+	BounceController_Type.tp_new = PyType_GenericNew;
+	BounceController_Type.tp_getattro = PyObject_GenericGetAttr;
+	if (PyType_Ready(&BounceController_Type) < 0)
+		return;
+
 	/* Create the module and add the types */
 	m = Py_InitModule3("_controller", NULL, "Particle Controllers");
 	if (m == NULL)
@@ -1221,4 +1493,6 @@ init_controller(void)
 	PyModule_AddObject(m, "Growth", (PyObject *)&GrowthController_Type);
 	Py_INCREF(&CollectorController_Type);
 	PyModule_AddObject(m, "Collector", (PyObject *)&CollectorController_Type);
+	Py_INCREF(&BounceController_Type);
+	PyModule_AddObject(m, "Bounce", (PyObject *)&BounceController_Type);
 }

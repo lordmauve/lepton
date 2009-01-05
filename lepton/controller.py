@@ -25,14 +25,14 @@ __version__ = '$Id$'
 
 from math import sqrt
 from particle_struct import Color, Vec3
-from _controller import Gravity, Fader, Movement, Lifetime, ColorBlender, Growth, Collector
+from _controller import Gravity, Fader, Movement, Lifetime, ColorBlender, Growth, Collector, Bounce
 
 
 def NoopController(time_delta, group):
 	"""Do nothing controller"""
 
 
-class Bounce(object):
+class OldBounce(object):
 	"""Controller that bounces particles off the surface of a domain
 	
 	For best results this controller should be bound after other controllers
