@@ -258,6 +258,16 @@ MovementController_call(MovementControllerObject *self, PyObject *args)
 	return Py_None;
 }
 
+static struct PyMemberDef MovementControllerController_members[] = {
+    {"min_velocity", T_FLOAT, offsetof(MovementControllerObject, min_velocity), 0,
+        "Minimum particle velocity magnitude. All moving particles\n"
+		"with velocities less than this minimum are sped up to min_velocity."},
+    {"max_velocity", T_FLOAT, offsetof(MovementControllerObject, max_velocity), 0,
+        "Maximum velocity magnitude, particle velocities magnitudes\n"
+		"are clamped to this value."},
+	{NULL}
+};
+
 PyDoc_STRVAR(MovementController__doc__, 
 	"Updates particle position and velocity\n\n"
 	"Movement(damping=None, min_velocity=None, max_velocity=None)\n\n"
@@ -304,7 +314,7 @@ static PyTypeObject MovementController_Type = {
 	0,                      /*tp_iter*/
 	0,                      /*tp_iternext*/
 	0,  /*tp_methods*/
-	0,  /*tp_members*/
+	MovementControllerController_members,  /*tp_members*/
 	0,                      /*tp_getset*/
 	0,                      /*tp_base*/
 	0,                      /*tp_dict*/
@@ -359,6 +369,24 @@ FaderController_init(FaderControllerObject *self, PyObject *args, PyObject *kwar
 	return 0;
 }
 
+static struct PyMemberDef FaderControllerController_members[] = {
+    {"start_alpha", T_FLOAT, offsetof(FaderControllerObject, start_alpha), 0,
+        "Initial particle alpha value."},
+    {"fade_in_start", T_FLOAT, offsetof(FaderControllerObject, fade_in_start), 0,
+        "Time to start fading in to max_alpha."},
+    {"fade_in_end", T_FLOAT, offsetof(FaderControllerObject, fade_in_end), 0,
+        "Time when alpha reaches max_alpha."},
+    {"max_alpha", T_FLOAT, offsetof(FaderControllerObject, fade_in_end), 0,
+        "Max particle alpha value."},
+    {"fade_out_start", T_FLOAT, offsetof(FaderControllerObject, fade_out_start), 0,
+        "Time to start fading out to end_alpha."},
+    {"fade_out_end", T_FLOAT, offsetof(FaderControllerObject, fade_out_end), 0,
+        "Time when alpha reaches end_alpha"},
+    {"end_alpha", T_FLOAT, offsetof(FaderControllerObject, end_alpha), 0,
+        "Ending particle alpha level."},
+	{NULL}
+};
+
 PyDoc_STRVAR(FaderController__doc__, 
 	"Alters the alpha of particles to fade them in and out over time\n\n"
 	"start_alpha -- Initial alpha value.\n"
@@ -367,8 +395,8 @@ PyDoc_STRVAR(FaderController__doc__,
 	"max_alpha -- Maximum alpha level\n"
 	"fade_out_start -- Time to start fading out to end_alpha. If None\n"
 	"no fade out is performed.\n"
-	"fade_out_end -- Time when alpha reaches end\n"
-	"end_alpha -- Ending alpha leve\n");
+	"fade_out_end -- Time when alpha reaches end.\n"
+	"end_alpha -- Ending alpha level.\n");
 
 static PyObject *
 FaderController_call(FaderControllerObject *self, PyObject *args)
@@ -448,7 +476,7 @@ static PyTypeObject FaderController_Type = {
 	0,                      /*tp_iter*/
 	0,                      /*tp_iternext*/
 	0,  /*tp_methods*/
-	0,  /*tp_members*/
+	FaderControllerController_members,  /*tp_members*/
 	0,                      /*tp_getset*/
 	0,                      /*tp_base*/
 	0,                      /*tp_dict*/
@@ -759,6 +787,12 @@ ColorBlenderController_call(ColorBlenderControllerObject *self, PyObject *args)
 	return Py_None;
 }
 
+static struct PyMemberDef ColorBlenderController_members[] = {
+    {"resolution", T_ULONG, offsetof(ColorBlenderControllerObject, resolution), READONLY,
+        "The number of colors per unit time in the cached gradient."},
+	{NULL}
+};
+
 PyDoc_STRVAR(ColorBlenderController__doc__, 
 	"Changes particle color over time\n\n"
 	"ColorBlender(color_times, resolution=30)\n\n"
@@ -810,7 +844,7 @@ static PyTypeObject ColorBlenderController_Type = {
 	0,                      /*tp_iter*/
 	0,                      /*tp_iternext*/
 	0,  /*tp_methods*/
-	0,  /*tp_members*/
+	ColorBlenderController_members,  /*tp_members*/
 	0,                      /*tp_getset*/
 	0,                      /*tp_base*/
 	0,                      /*tp_dict*/
