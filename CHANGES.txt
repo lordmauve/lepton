@@ -1,3 +1,17 @@
+2009-1-7 -- 0.8a
+
+- Fixed accuracy of bounce controller so that particles are much less likely
+  to escape from a container domain. (Thanks to dugres for reporting the bug)
+- Fixed bug in Sphere.intersect() where it would return bogus vectors such
+  as (nan,nan,nan) for stationary particles in some instances. This allowed
+  an improvement to the bouncy example to further prevent errant particles.
+- Collector controller ported to C
+- Bounce controller ported to C
+- Add 2D splode example to demonstrate how to use lepton with the default
+  pyglet OpenGL projection.
+- Allow basic attribute access for the C controllers from Python
+  (More work is needed here for more complex attributes, like vectors)
+
 2008-12-28 -- 0.7a
 
 - Fader controller ported to C
