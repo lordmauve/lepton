@@ -587,7 +587,7 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 
 	/* We should never get here */
 	char buf[256];
-	snprintf(buf, 256, "AABox.intersect BUG: Intersect face not identified "
+	PyOS_snprintf(buf, 256, "AABox.intersect BUG: Intersect face not identified "
 		"min=(%f, %f, %f) max=(%f, %f, %f) start=(%f, %f, %f) end=(%f, %f, %f)",
 		self->min.x, self->min.y, self->min.z, self->max.x, self->max.y, self->max.z,
 		start.x, start.y, start.z, end.x, end.y, end.z);

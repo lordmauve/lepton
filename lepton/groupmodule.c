@@ -619,10 +619,10 @@ Vector_repr(VectorObject *self)
 	if (!ParticleRef_INVALID(self)) {
 		buf[0] = 0; /* paranoid */
 		if (self->length == 3) 
-			snprintf(buf, bufsize, "Vector(%.1f, %.1f, %.1f)",
+			PyOS_snprintf(buf, bufsize, "Vector(%.1f, %.1f, %.1f)",
 				self->vec->x, self->vec->y, self->vec->z);
 		else
-			snprintf(buf, bufsize, "Color(%.1f, %.1f, %.1f, %.1f)",
+			PyOS_snprintf(buf, bufsize, "Color(%.1f, %.1f, %.1f, %.1f)",
 				self->color->r, self->color->g, self->color->b, self->color->a);
 		return PyString_FromString(buf);
 	} else {
@@ -994,7 +994,7 @@ ParticleProxy_repr(ParticleRefObject *self)
 
 	if (ParticleRefObject_IsValid(self)) {
 		buf[0] = 0; /* paranoid */
-		snprintf(buf, bufsize, "<Particle %lu of group 0x%lx: "
+		PyOS_snprintf(buf, bufsize, "<Particle %lu of group 0x%lx: "
 			"position=(%.1f, %.1f, %.1f) velocity=(%.1f, %.1f, %.1f) "
 			"color=(%.1f, %.1f, %.1f, %.1f) size=(%.1f, %.1f, %.1f) "
 			"up=(%.1f, %.1f, %.1f) rotation=(%.1f, %.1f, %.1f) "
