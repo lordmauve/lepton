@@ -16,16 +16,16 @@ The following are required to build and install Lepton:
 
 * Python2.5 or 2.6
 * OpenGL
-* A C compiler (GCC recommended)
+* A C compiler (GCC or Visual C++)
 
 To build on Linux (and possibly other unix-like OSes) You will need to have
 the Python and libxext headers installed. On systems using the apt packaging
 system, this means you need to have the python-dev-all and libxext-dev
 packages installed.
 
-Binary releases will also be available in time. If you'd like to help
-out by contributing a binary distribution for you platform, you're more
-than welcome to!
+Binary releases for Windows are available for download from the google code
+site above.  If you'd like to help out by contributing a binary distribution
+for your platform, you're more than welcome to!
 
 The examples provided with Lepton require either pyglet
 (http://www.pyglet.com), or pygame (http://www.pygame.org),

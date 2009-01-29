@@ -37,7 +37,7 @@ compile_args = [] # disable compile args for now
 
 setup(
 	name='lepton',
-    version='0.8a', # *** REMEMBER TO UPDATE __init__.py ***
+    version='0.8.1a', # *** REMEMBER TO UPDATE __init__.py ***
 	description='Lepton: A high-performance, pluggable particle engine and API for Python',
 	long_description='''\
 Lepton is designed to make complex and beautiful particle effects possible,
@@ -55,6 +55,8 @@ The code includes several examples of how you can use the engine (using
 pyglet, and pygame). Note the engine itself does not depend on any other 3rd-party
 libraries and simply requires the application to setup an OpenGL context in
 order to render particles.
+
+You can download binary releases or browse the source code at our Google code site.
 ''',
 	author='Casey Duncan, Harry Tormey & Contributors',
 	author_email='py-lepton-users@googlegroups.com',
