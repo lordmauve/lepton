@@ -15,6 +15,11 @@
 #ifndef _FASTRNG_H_
 #define _FASTRNG_H_
 
+#ifdef _MSC_VER
+#define inline
+#define __restrict__
+#endif
+
 /* Seed the random number generators and initialize tables for rand_norm */
 void
 rand_seed(unsigned long s);

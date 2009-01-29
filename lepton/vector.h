@@ -9,6 +9,11 @@
 #ifndef _VECTOR_H_
 #define _VECTOR_H_
 
+#ifdef _MSC_VER
+#define inline
+#define __restrict__
+#endif
+
 /* 3D vector */
 typedef struct {
 	float x; float y; float z;
@@ -24,19 +29,14 @@ typedef struct {
 
 #define EPSILON 0.00001f
 
-typedef union {
-	int i;
-	float f;
-} floatint;
-
 /* The illustrious fast inverse sqrt of Quake 3 fame 
  * This algorithm is very fast, but at the cost of accuracy
  */
 static inline float InvSqrt (float x) {
     float xhalf = 0.5f*x;
-	int i = ((floatint)x).i;
+    int i = *(int*)&x;
     i = 0x5f3759df - (i>>1);
-	x = ((floatint)i).f;
+    x = *(float*)&i;
     x = x*(1.5f - xhalf*x*x);
     return x;
 }
@@ -179,10 +179,11 @@ static inline void Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __re
 	Vec3 * __restrict__ lstart, Vec3 * __restrict__ lend)
 {
 	Vec3 tp, lv;
+	float mag2;
 
 	Vec3_sub(&lv, lend, lstart);
 	Vec3_sub(&tp, pt, lstart);
-	const float mag2 = Vec3_len_sq(&lv);
+	mag2 = Vec3_len_sq(&lv);
 	if (mag2 > EPSILON) {
 		float t = Vec3_dot(&tp, &lv) / mag2;
 		t = clamp(t, 0.0f, 1.0f);
