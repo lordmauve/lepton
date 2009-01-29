@@ -495,14 +495,16 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 {
 	Vec3 start, end;
 	float t, ix, iy, iz;
+	int start_in, end_in;
+	char* buf;
 
 	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
 		&start.x, &start.y, &start.z,
 		&end.x, &end.y, &end.z))
 		return NULL;
 
-	int start_in = pt_in_box(self, start.x, start.y, start.z);
-	int end_in = pt_in_box(self, end.x, end.y, end.z);
+	start_in = pt_in_box(self, start.x, start.y, start.z);
+	end_in = pt_in_box(self, end.x, end.y, end.z);
 	if (!(start_in | end_in)) {
 		/* both points outside, check for grazing intersection */
 		Vec3 center;
@@ -586,12 +588,13 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 	}
 
 	/* We should never get here */
-	char buf[256];
+	buf = PyMem_Malloc(256 * sizeof(char));
 	PyOS_snprintf(buf, 256, "AABox.intersect BUG: Intersect face not identified "
 		"min=(%f, %f, %f) max=(%f, %f, %f) start=(%f, %f, %f) end=(%f, %f, %f)",
 		self->min.x, self->min.y, self->min.z, self->max.x, self->max.y, self->max.z,
 		start.x, start.y, start.z, end.x, end.y, end.z);
 	PyErr_SetString(PyExc_RuntimeError, buf);
+	PyMem_Free(buf);
 	return NULL;
 }
 

@@ -614,15 +614,14 @@ Vector_setattr(VectorObject *self, char *name, PyObject *v)
 static PyObject *
 Vector_repr(VectorObject *self)
 {
-	const int bufsize = 255;
-	char buf[bufsize];
+	char buf[255];
 	if (!ParticleRef_INVALID(self)) {
 		buf[0] = 0; /* paranoid */
 		if (self->length == 3) 
-			PyOS_snprintf(buf, bufsize, "Vector(%.1f, %.1f, %.1f)",
+			PyOS_snprintf(buf, 255, "Vector(%.1f, %.1f, %.1f)",
 				self->vec->x, self->vec->y, self->vec->z);
 		else
-			PyOS_snprintf(buf, bufsize, "Color(%.1f, %.1f, %.1f, %.1f)",
+			PyOS_snprintf(buf, 255, "Color(%.1f, %.1f, %.1f, %.1f)",
 				self->color->r, self->color->g, self->color->b, self->color->a);
 		return PyString_FromString(buf);
 	} else {
@@ -989,12 +988,11 @@ ParticleProxy_setattr(ParticleRefObject *self, char *name, PyObject *v)
 static PyObject *
 ParticleProxy_repr(ParticleRefObject *self)
 {
-	const int bufsize = 1024;
-	char buf[bufsize];
+	char buf[1024];
 
 	if (ParticleRefObject_IsValid(self)) {
 		buf[0] = 0; /* paranoid */
-		PyOS_snprintf(buf, bufsize, "<Particle %lu of group 0x%lx: "
+		PyOS_snprintf(buf, 1024, "<Particle %lu of group 0x%lx: "
 			"position=(%.1f, %.1f, %.1f) velocity=(%.1f, %.1f, %.1f) "
 			"color=(%.1f, %.1f, %.1f, %.1f) size=(%.1f, %.1f, %.1f) "
 			"up=(%.1f, %.1f, %.1f) rotation=(%.1f, %.1f, %.1f) "
