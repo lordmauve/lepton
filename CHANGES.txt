@@ -1,3 +1,9 @@
+2008-1-28 -- 0.8.1a
+
+- Adjusted code so it compiles with Visual C++ 2008.
+  Big thanks to Jussi Lepistö (Knarkles) for doing this work!
+- Use PyOS_snprintf instead of snprintf for better portability.
+
 2009-1-7 -- 0.8a
 
 - Fixed accuracy of bounce controller so that particles are much less likely
