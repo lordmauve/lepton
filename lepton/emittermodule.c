@@ -436,7 +436,7 @@ Emitter_emit(StaticEmitterObject *self, PyObject *args)
 	GroupObject *pgroup;
 	long pindex;
 
-	if (!PyArg_ParseTuple(args, "iO:__init__", &count, &pgroup))
+	if (!PyArg_ParseTuple(args, "iO:emit", &count, &pgroup))
 		return NULL;
 	
 	if (!GroupObject_Check(pgroup))
