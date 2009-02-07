@@ -74,13 +74,9 @@ class Disc(object):
 		assert outer_radius >= inner_radius
 		self.center = Vec3(*center)
 		self.normal = normal
-		self.d = self.center.dot(self.normal)
 		self.outer_radius = outer_radius
 		self.inner_radius = inner_radius
 		self.shell = abs(self.outer_radius - self.inner_radius) < EPSILON
-		# create a rotation matrix based on the normal
-		# The normal is used as the axis of rotation
-		# And the angle is hardcoded at pi/2.0
 	
 	def _set_normal(self, normal):
 		out = Vec3(*normal).normalize()
@@ -110,6 +106,7 @@ class Disc(object):
 			out.z,
 		]
 		self._normal = out
+		self.d = self.center.dot(out)
 	
 	def _get_normal(self):
 		return self._normal
