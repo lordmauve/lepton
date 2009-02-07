@@ -249,8 +249,11 @@ Vec3_fill(Vec3 * __restrict__ vec, PyObject *domain, PyObject *discrete_seq,
 		v = PyObject_CallMethod(domain, "generate", NULL);
 		if (v == NULL)
 			return 0;
-		if (!Vec3_FromSequence(vec, v))
+		if (!Vec3_FromSequence(vec, v)) {
+			Py_DECREF(v);
 			return 0;
+		}
+		Py_DECREF(v);
 	} else if (discrete_seq != NULL) {
 		v = PySequence_Fast_GET_ITEM(discrete_seq,
 				(Py_ssize_t)(PySequence_Fast_GET_SIZE(discrete_seq) * rand_uni()));
@@ -275,8 +278,11 @@ Color_fill(Color * __restrict__ color, PyObject *domain, PyObject *discrete_seq,
 		v = PyObject_CallMethod(domain, "generate", NULL);
 		if (v == NULL)
 			return 0;
-		if (!Color_FromSequence(color, v))
+		if (!Color_FromSequence(color, v)) {
+			Py_DECREF(v);
 			return 0;
+		}
+		Py_DECREF(v);
 	} else if (discrete_seq != NULL) {
 		v = PySequence_Fast_GET_ITEM(discrete_seq,
 				(Py_ssize_t)(PySequence_Fast_GET_SIZE(discrete_seq) * rand_uni()));
