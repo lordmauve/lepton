@@ -64,11 +64,11 @@ class Vec3(ctypes.Array):
 	def dot((sx, sy, sz), (ox, oy, oz)):
 		return sx*ox + sy*oy + sz*oz
 	
-	'''
-	def __mul__(self, (ox, oy, oz)):
+	def cross(self, (ox, oy, oz)):
 		sx, sy, sz = self
-		return self.__class__(sx*ox, sy*oy, sz*oz)
+		return self.__class__(sy*oz - sz*oy, sz*ox - sx*oz, sx*oy - sy*ox)
 	
+	'''
 	def __div__(self, (ox, oy, oz)):
 		sx, sy, sz = self
 		return self.__class__(sx/ox, sy/oy, sz/oz)

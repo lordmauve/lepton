@@ -224,7 +224,7 @@ PlaneDomain_init(PlaneDomainObject *self, PyObject *args)
 {
 	double len;
 
-	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
+	if (!PyArg_ParseTuple(args, "(fff)(fff)|i:__init__",
 		&self->point.x, &self->point.y, &self->point.z,
 		&self->normal.x, &self->normal.y, &self->normal.z))
 		return -1;
@@ -348,6 +348,25 @@ PlaneDomain_setattr(PlaneDomainObject *self, PyObject *name_str, PyObject *v)
 	return result;
 }
 
+static int
+PlaneDomain_contains(PlaneDomainObject *self, PyObject *pt)
+{
+	Vec3 point, from_plane;
+
+	pt = PySequence_Tuple(pt);
+	if (pt == NULL)
+		return -1;
+	if (!PyArg_ParseTuple(pt, "fff:__contains__", &point.x, &point.y, &point.z)) {
+		Py_DECREF(pt);
+		return -1;
+	}
+	Py_DECREF(pt);
+
+	Vec3_sub(&from_plane, &point, &self->point);
+	return Vec3_dot(&from_plane, &self->normal) < EPSILON;
+}
+
+
 static PySequenceMethods PlaneDomain_as_sequence = {
 	0,		/* sq_length */
 	0,		/* sq_concat */
@@ -356,15 +375,16 @@ static PySequenceMethods PlaneDomain_as_sequence = {
 	0,		/* sq_slice */
 	0,		/* sq_ass_item */
 	0,	    /* sq_ass_slice */
-	(objobjproc)Domain_never_contains,	/* sq_contains */
+	(objobjproc)PlaneDomain_contains,	/* sq_contains */
 };
 
 PyDoc_STRVAR(PlaneDomain__doc__, 
-	"Infinite 2D plane domain\n\n"
-	"Plane(point, normal)\n\n"
+	"Infinite planar domain\n\n"
+	"Plane(point, normal, half_space=False)\n\n"
 	"point -- Any point in the plane (3-number sequence)\n"
 	"normal -- Normal vector perpendicular to the plane. This need not\n"
-	"be a unit vector.");
+	"be a unit vector. The half-space contained by the plane is opposite\n"
+	"the direction of the normal.");
 
 static PyTypeObject PlaneDomain_Type = {
 	/* The ob_type field must be initialized in the module init function
