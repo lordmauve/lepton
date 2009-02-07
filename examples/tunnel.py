@@ -45,7 +45,7 @@ if __name__ == '__main__':
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);
 	glDisable(GL_DEPTH_TEST)
 
-	disc = domain.Disc((0,0,-50), (0, 0, 1), 1.0, 1.0)
+	disc = domain.Disc((0,0,-50), (0, 0, 1), 1.5, 1.5)
 	viewer_plane = domain.Plane((0,0,0), (0,0,-1))
 
 	jet = StaticEmitter(
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 		Movement(max_velocity=10),
 		Collector(viewer_plane),
 		Gravity((0,0,15)),
-		Growth(0.11),
+		Growth(0.17),
 		Fader(fade_in_end=0, max_alpha=0.3, fade_out_start=0, fade_out_end=8.0),
 	)
 
@@ -80,11 +80,20 @@ if __name__ == '__main__':
 
 	pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
 	pyglet.clock.set_fps_limit(None)
+	time = 0
 
 	def ring(dt):
 		"""Emit a ring of particles periodically"""
 		jet.emit(1000, group)
 	pyglet.clock.schedule_interval(ring, 5)
+
+	def vary_radius(dt):
+		"""Vary the disc radius over time"""
+		global time
+		time += dt
+		disc.inner_radius = disc.outer_radius = 2.5 + math.sin(time / 2.0) * 1.5
+	pyglet.clock.schedule_interval(vary_radius, 1.0/10.0)
+	vary_radius(0)
 
 	@win.event
 	def on_draw():
