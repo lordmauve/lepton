@@ -46,7 +46,9 @@ class DomainTest(unittest.TestCase):
 			# Simple horizontal plane
 			plane = Plane((0,0,0), (0,Ny,0))
 			self.assertEqual(plane.generate(), (0,0,0))
-			self.failIf((0,0,0) in plane)
+			self.failUnless((0,0,0) in plane)
+			self.failIf((0, Ny, 0) in plane)
+			self.failUnless((0, -Ny, 0) in plane)
 			
 			# Perpendicular intersection
 			p, N = plane.intersect((1, 1, 4), (1, -1, 4))
@@ -79,6 +81,9 @@ class DomainTest(unittest.TestCase):
 		plane = Plane((0,0,0), normal)
 		self.assertEqual(tuple(plane.point), (0, 0, 0))
 		self.assertEqual(tuple(plane.normal), tuple(normal))
+		self.failIf(normal in plane)
+		self.failUnless(plane.point in plane)
+		self.failUnless(-normal in plane)
 		p, N = plane.intersect((0,1,0), (0,-1,0))
 		self.assertVector(p, (0,0,0))
 		self.assertVector(N, normal)
@@ -298,7 +303,127 @@ class DomainTest(unittest.TestCase):
 		p, N = sphere.intersect((0, 0, 0), (-5, 0, 0))
 		self.assertVector(p, (-3, 0, 0))
 		self.assertVector(N, (1, 0, 0))
+	
+	def test_solid_disc_generate_contains(self):
+		from lepton.domain import Disc
+		disc = Disc((0, 1, 2), (0, 0, 1), 2)
+		for i in range(20):
+			x, y, z = disc.generate()
+			mag = x**2 + (y - 1)**2 + (z - 2)**2
+			self.failUnless(mag <= 4, ((x, y, z), mag))
+			self.failUnless((x, y, z) in disc, (x, y ,z))
 
+		self.failUnless((0, 1, 2) in disc)
+		self.failUnless((1, 2, 2) in disc)
+		self.failUnless((2, 1, 2) in disc)
+		self.failUnless((-2, 1, 2) in disc)
+		self.failIf((2.1, 1, 2) in disc)
+		self.failIf((-2.1, 1, 2) in disc)
+		self.failIf((0, 1, 2.1) in disc)
+
+	def test_hollow_disc_generate_contains(self):
+		from lepton.domain import Disc
+		disc = Disc((0, 1, 2), (0, 1, 0), 2, 1)
+		for i in range(20):
+			x, y, z = disc.generate()
+			mag = x**2 + (y - 1)**2 + (z - 2)**2
+			self.failUnless(1 <= mag <= 4, ((x, y, z), mag))
+			self.failUnless((x, y, z) in disc, (x, y ,z))
+
+		self.failIf((0, 1, 2) in disc)
+		self.failIf((0, 0, 2) in disc)
+		self.failUnless((1, 1, 3) in disc)
+		self.failUnless((2, 1, 2) in disc)
+		self.failUnless((-2, 1, 2) in disc)
+		self.failIf((2.1, 1, 2) in disc)
+		self.failIf((-2.1, 1, 2) in disc)
+		self.failIf((0, 1.2, 2) in disc)
+	
+	def test_shell_disc_generate_contains(self):
+		from lepton.domain import Disc
+		disc = Disc((-2, 0, 1), (1, 1, 0), 2, 2)
+		for i in range(20):
+			x, y, z = disc.generate()
+			mag = (x + 2)**2 + y**2 + (z - 1)**2
+			self.assertAlmostEqual(mag, 4.0, 4)
+			self.failUnless((x, y, z) in disc, (x, y ,z))
+	
+	def test_solid_disc_intersect(self):
+		from lepton.domain import Disc
+		from lepton.particle_struct import Vec3
+		normal = Vec3(1, 1, 0).normalize()
+		disc = Disc((-2, 0, 1), normal, 1)
+		lines = [
+			((-5, 0, 0), (5, 0, 0)),
+			((-2, 1, 1), (-2, -1, 1)),
+			((3, normal.y, 1), (-3, normal.y, 1)),
+		]
+		expected = [
+			((-2, 0, 1), -normal),
+			((-2, 0, 1), normal),
+			((-2 - normal.x, normal.y, 1), normal),
+		]
+
+		for (start, end), (point, normal) in zip(lines, expected):
+			p, N = disc.intersect(start, end)
+			self.assertVector(p, point)
+			self.assertVector(N, normal)
+
+			# Reverse direction should yield same point and inverse normal
+			p, N = disc.intersect(end, start)
+			self.assertVector(p, point)
+			self.assertVector(N, -Vec3(*normal))
+
+	def test_solid_disc_no_intersect(self):
+		from lepton.domain import Disc
+		disc = Disc((0, 0, 0), (1, 0, 0), 1)
+		for start, end in [
+			((1, 0, 0), (2, 0, 0)),
+			((0, 0, 0), (0, 1, 0)),
+			((-2, 10, 20), (-5, 15, 19))]:
+			self.assertEqual(
+				disc.intersect(start, end), (None, None))
+			self.assertEqual(
+				disc.intersect(end, start), (None, None))
+
+	def test_hollow_disc_intersect(self):
+		from lepton.domain import Disc
+		from lepton.particle_struct import Vec3
+		disc = Disc((2,2,2), (0,1,0), 3, 1)
+		lines = [
+			((-1, 3, 2), (-1, 0, 2)),
+			((1, 3, 0), (1, 0, 0)),
+			((2, 5, 4), (2, -5, 4)),
+			((3, 1, 2), (5, 3, 2)),
+		]
+		expected = [
+			((-1, 2, 2), (0,1,0)),
+			((1, 2, 0), (0,1,0)),
+			((2, 2, 4), (0,1,0)),
+			((4, 2, 2), (0,-1,0)),
+		]
+
+		for (start, end), (point, normal) in zip(lines, expected):
+			p, N = disc.intersect(start, end)
+			self.assertVector(p, point)
+			self.assertVector(N, normal)
+
+			# Reverse direction should yield same point and inverse normal
+			p, N = disc.intersect(end, start)
+			self.assertVector(p, point)
+			self.assertVector(N, -Vec3(*normal))
+
+	def test_hollow_disc_no_intersect(self):
+		from lepton.domain import Disc
+		disc = Disc((2,2,2), (0,1,0), 3, 1)
+		for start, end in [
+			((2, 3, 2.5), (2, 0, 1.5)),
+			((2, 2, 2), (5, 2, 2)),
+			((-2, 10, 20), (-5, 15, 19))]:
+			self.assertEqual(
+				disc.intersect(start, end), (None, None))
+			self.assertEqual(
+				disc.intersect(end, start), (None, None))
 
 if __name__=='__main__':
 	unittest.main()
