@@ -114,13 +114,35 @@ static inline float InvSqrt (float x) {
 
 #define Vec3_len_sq(v) ((v)->x*(v)->x + (v)->y*(v)->y + (v)->z*(v)->z)
 
-#define Vec3_normalize(result, v) \
+/* Fast vector normalize at the expense of accuracy */
+#define Vec3_normalize_fast(result, v) \
 	Vec3_scalar_mul(result, v, InvSqrt(Vec3_len_sq(v)))
+
+/* Slower but more precise normalize */
+static inline void Vec3_normalize(Vec3 *result, Vec3 *v)
+{
+	float len;
+	len = Vec3_len_sq(v);
+	if (len > EPSILON) {
+		len = 1.0f / sqrtf(len);
+		Vec3_scalar_mul(result, v, len);
+	} else {
+		/* Maybe we should just clamp to zero here
+		   But I erred on the side of less data loss
+		   Callers concerned about this should pre or post-check
+		   the vector length.
+		*/
+		result->x = v->x;
+		result->y = v->y;
+		result->z = v->z;
+	}
+}
 
 /* Populate a color from a Python sequence of 3 or 4 numbers */
 static inline int Color_FromSequence(Color *dest, PyObject *sequence);
 
-static inline float Vec3_len(Vec3 *v) {
+static inline float Vec3_len(Vec3 *v) 
+{
 	float len;
 	len = Vec3_len_sq(v);
 	return len ? (1.0f / InvSqrt(len)) : 0.0f;
