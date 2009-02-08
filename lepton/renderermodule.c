@@ -259,11 +259,11 @@ BillboardRenderer_draw(RendererObject *self)
 	vright_unit.x = mvmatrix[0];
 	vright_unit.y = mvmatrix[4];
 	vright_unit.z = mvmatrix[8];
-	Vec3_normalize(&vright_unit, &vright_unit);
+	Vec3_normalize_fast(&vright_unit, &vright_unit);
 	vup_unit.x = mvmatrix[1];
 	vup_unit.y = mvmatrix[5];
 	vup_unit.z = mvmatrix[9];
-	Vec3_normalize(&vup_unit, &vup_unit);
+	Vec3_normalize_fast(&vup_unit, &vup_unit);
 
 	glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
