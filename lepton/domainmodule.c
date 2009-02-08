@@ -231,13 +231,8 @@ PlaneDomain_init(PlaneDomainObject *self, PyObject *args)
 	
 	len = Vec3_len_sq(&self->normal);
 	if (len != 1.0f) {
-		/* Normalize more precisely then via Vec3_normalize,
-		   checking for zero */
-		if (len) {
-			len = sqrt(len);
-			self->normal.x /= len;
-			self->normal.y /= len;
-			self->normal.z /= len;
+		if (len > EPSILON) {
+			Vec3_normalize(&self->normal, &self->normal);
 		} else {
 			PyErr_SetString(PyExc_ValueError, 
 				"PlaneDomain: zero-length normal vector");
