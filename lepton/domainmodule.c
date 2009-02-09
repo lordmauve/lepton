@@ -15,6 +15,7 @@
  * $Id $ */
 
 #include <Python.h>
+#include <structmember.h>
 #include <math.h>
 #include "vector.h"
 #include "fastrng.h"
@@ -78,22 +79,26 @@ static PyObject *
 LineDomain_generate(LineDomainObject *self) 
 {
 	float d;
-	PyObject *x, *y, *z;
+	PyObject *x, *y, *z, *pt;
 	Vec3 direction;
 
 	Vec3_sub(&direction, &self->end_point, &self->start_point);
 	d = rand_uni();
 	x = PyFloat_FromDouble(self->start_point.x + direction.x * d);
-	if (x == NULL)
-		return NULL;
 	y = PyFloat_FromDouble(self->start_point.y + direction.y * d);
-	if (y == NULL)
-		return NULL;
 	z = PyFloat_FromDouble(self->start_point.z + direction.z * d);
-	if (z == NULL)
+	if (x == NULL || y == NULL || z == NULL) {
+		Py_XDECREF(x);
+		Py_XDECREF(y);
+		Py_XDECREF(z);
 		return NULL;
-	
-	return PyTuple_Pack(3, x, y, z);
+	}
+
+	pt = PyTuple_Pack(3, x, y, z);
+	Py_DECREF(x);
+	Py_DECREF(y);
+	Py_DECREF(z);
+	return pt;
 }
 
 static PyMethodDef LineDomain_methods[] = {
@@ -224,7 +229,7 @@ PlaneDomain_init(PlaneDomainObject *self, PyObject *args)
 {
 	double len;
 
-	if (!PyArg_ParseTuple(args, "(fff)(fff)|i:__init__",
+	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
 		&self->point.x, &self->point.y, &self->point.z,
 		&self->normal.x, &self->normal.y, &self->normal.z))
 		return -1;
@@ -246,19 +251,23 @@ PlaneDomain_init(PlaneDomainObject *self, PyObject *args)
 static PyObject *
 PlaneDomain_generate(PlaneDomainObject *self) 
 {
-	PyObject *x, *y, *z;
+	PyObject *x, *y, *z, *pt;
 
 	x = PyFloat_FromDouble(self->point.x);
-	if (x == NULL)
-		return NULL;
 	y = PyFloat_FromDouble(self->point.y);
-	if (y == NULL)
-		return NULL;
 	z = PyFloat_FromDouble(self->point.z);
-	if (z == NULL)
+	if (x == NULL || y == NULL || z == NULL) {
+		Py_XDECREF(x);
+		Py_XDECREF(y);
+		Py_XDECREF(z);
 		return NULL;
+	}
 	
-	return PyTuple_Pack(3, x, y, z);
+	pt = PyTuple_Pack(3, x, y, z);
+	Py_DECREF(x);
+	Py_DECREF(y);
+	Py_DECREF(z);
+	return pt;
 }
 
 static PyObject *
@@ -465,22 +474,26 @@ AABoxDomain_init(AABoxDomainObject *self, PyObject *args)
 static PyObject *
 AABoxDomain_generate(AABoxDomainObject *self) 
 {
-	PyObject *x, *y, *z;
+	PyObject *x, *y, *z, *pt;
 	Vec3 size;
 
 	Vec3_sub(&size, &self->max, &self->min);
 
 	x = PyFloat_FromDouble(self->min.x + size.x * rand_uni());
-	if (x == NULL)
-		return NULL;
 	y = PyFloat_FromDouble(self->min.y + size.y * rand_uni());
-	if (y == NULL)
-		return NULL;
 	z = PyFloat_FromDouble(self->min.z + size.z * rand_uni());
-	if (z == NULL)
+	if (x == NULL || y == NULL || z == NULL) {
+		Py_XDECREF(x);
+		Py_XDECREF(y);
+		Py_XDECREF(z);
 		return NULL;
+	}
 	
-	return PyTuple_Pack(3, x, y, z);
+	pt = PyTuple_Pack(3, x, y, z);
+	Py_DECREF(x);
+	Py_DECREF(y);
+	Py_DECREF(z);
+	return pt;
 }
 
 #define pt_in_box(box, px, py, pz) \
@@ -762,7 +775,7 @@ SphereDomain_init(SphereDomainObject *self, PyObject *args)
 static PyObject *
 SphereDomain_generate(SphereDomainObject *self) 
 {
-	PyObject *x, *y, *z;
+	PyObject *x, *y, *z, *pt;
 	float dist, mag2, mag;
 	Vec3 point;
 
@@ -780,19 +793,22 @@ SphereDomain_generate(SphereDomainObject *self)
 	dist = self->inner_radius + rand_uni() * (
 		self->outer_radius - self->inner_radius);
 	Vec3_scalar_muli(&point, dist);
-	// printf("%f %f (%f, %f, %f)\n", dist, Vec3_len(&point), point.x, point.y, point.z);
 
 	x = PyFloat_FromDouble(point.x + self->center.x);
-	if (x == NULL)
-		return NULL;
 	y = PyFloat_FromDouble(point.y + self->center.y);
-	if (y == NULL)
-		return NULL;
 	z = PyFloat_FromDouble(point.z + self->center.z);
-	if (z == NULL)
+	if (x == NULL || y == NULL || z == NULL) {
+		Py_XDECREF(x);
+		Py_XDECREF(y);
+		Py_XDECREF(z);
 		return NULL;
+	}
 	
-	return PyTuple_Pack(3, x, y, z);
+	pt = PyTuple_Pack(3, x, y, z);
+	Py_DECREF(x);
+	Py_DECREF(y);
+	Py_DECREF(z);
+	return pt;
 }
 
 static int
@@ -1024,6 +1040,308 @@ static PyTypeObject SphereDomain_Type = {
 	0,                      /*tp_is_gc*/
 };
 
+/* --------------------------------------------------------------------- */
+
+static PyTypeObject DiscDomain_Type;
+
+typedef struct {
+	PyObject_HEAD
+	Vec3 center;
+	Vec3 normal;
+	Vec3 up;
+	Vec3 right;
+	float inner_radius;
+	float outer_radius;
+	float d;
+} DiscDomainObject;
+
+static int
+DiscDomain_set_normal(DiscDomainObject *self, PyObject *normal_in, void *closure)
+{
+	Vec3 world_up, tmp;
+	float len;
+	
+	if (!Vec3_FromSequence(&self->normal, normal_in))
+		return -1;
+	
+	len = Vec3_len_sq(&self->normal);
+	if (len != 1.0f) {
+		if (len > EPSILON) {
+			Vec3_normalize(&self->normal, &self->normal);
+		} else {
+			PyErr_SetString(PyExc_ValueError, "DiscDomain: zero-length normal vector");
+			return -1;
+		}
+	}
+	self->d = Vec3_dot(&self->center, &self->normal);
+
+	world_up.x = 0.0f; world_up.y = 0.0f; world_up.z = 1.0f;
+	Vec3_scalar_mul(&tmp, &self->normal, Vec3_dot(&world_up, &self->normal));
+	Vec3_sub(&self->up, &world_up, &tmp);
+	if (Vec3_len_sq(&self->up) < EPSILON) {
+		/* Try another world up axis */
+		world_up.x = 0.0f; world_up.y = 1.0f; world_up.z = 0.0f;
+		Vec3_scalar_mul(&tmp, &self->normal, Vec3_dot(&world_up, &self->normal));
+		Vec3_sub(&self->up, &world_up, &tmp);
+		if (Vec3_len_sq(&self->up) < EPSILON) {
+			/* Try yet another world up axis */
+			world_up.x = 1.0f; world_up.y = 0.0f; world_up.z = 0.0f;
+			Vec3_scalar_mul(&tmp, &self->normal, Vec3_dot(&world_up, &self->normal));
+			Vec3_sub(&self->up, &world_up, &tmp);
+			if (Vec3_len_sq(&self->up) < EPSILON) {
+				PyErr_SetString(PyExc_ValueError, "DiscDomain: invalid normal vector");
+				return -1;
+			}
+		}
+	}
+	Vec3_normalize(&self->up, &self->up);
+	Vec3_cross(&self->right, &self->up, &self->normal);
+	return 0;
+}
+
+static PyObject *
+DiscDomain_get_normal(DiscDomainObject *self, void *closure)
+{
+	return (PyObject *)Vector_new((PyObject *)self, &self->normal, 3);
+}
+
+static int
+DiscDomain_init(DiscDomainObject *self, PyObject *args)
+{
+	PyObject *normal;
+
+	self->inner_radius = 0.0f;
+	if (!PyArg_ParseTuple(args, "(fff)Of|f:__init__",
+		&self->center.x, &self->center.y, &self->center.z,
+		&normal, &self->outer_radius, &self->inner_radius))
+		return -1;
+	
+	return DiscDomain_set_normal(self, normal, NULL);
+}
+
+/* Generate a random point in the disk specified */
+static inline void
+generate_point_in_disc(Vec3 *point, Vec3 *center, 
+	float inner_radius, float outer_radius, Vec3 *up, Vec3 *right)
+{
+	float x, y, mag, outer_diam, range;
+	
+	if (inner_radius == 0.0f) {
+		/* solid circle */
+		outer_diam = outer_radius * 2.0f;
+		do {
+			x = rand_uni() * outer_diam - outer_radius;
+			y = rand_uni() * outer_diam - outer_radius;
+		} while ((x*x) + (y*y) > outer_radius*outer_radius);
+	} else {
+		/* hollow disc or circular shell */
+		do {
+			x = rand_uni() - 0.5f;
+			y = rand_uni() - 0.5f;
+			mag = (x*x) + (y*y);
+		} while (mag < EPSILON);
+		range = (outer_radius - inner_radius) / outer_radius;
+		/* Unfortunately InvSqrt() is not precise enough for shells */
+		mag = (1.0f / sqrtf(mag)) * (rand_uni() * range + (1.0f - range)) * outer_radius;
+		x *= mag;
+		y *= mag;
+	}
+	/* Rotate x, y using the up and right vectors and offset from center*/
+	point->x = x*right->x + y*up->x + center->x;
+	point->y = x*right->y + y*up->y + center->y;
+	point->z = x*right->z + y*up->z + center->z;
+}
+
+static PyObject *
+DiscDomain_generate(DiscDomainObject *self) 
+{
+	PyObject *x, *y, *z, *pt;
+	Vec3 point;
+
+	generate_point_in_disc(&point, &self->center, self->inner_radius, self->outer_radius,
+		&self->up, &self->right);
+
+	x = PyFloat_FromDouble(point.x);
+	y = PyFloat_FromDouble(point.y);
+	z = PyFloat_FromDouble(point.z);
+	if (x == NULL || y == NULL || z == NULL) {
+		Py_XDECREF(x);
+		Py_XDECREF(y);
+		Py_XDECREF(z);
+		return NULL;
+	}
+	
+	pt = PyTuple_Pack(3, x, y, z);
+	Py_DECREF(x);
+	Py_DECREF(y);
+	Py_DECREF(z);
+	return pt;
+}
+
+static PyObject *
+DiscDomain_intersect(DiscDomainObject *self, PyObject *args) 
+{
+	Vec3 norm, start, end, vec, from_center;
+	float ndotv, t, dist, outer_r2, inner_r2;
+
+	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
+		&start.x, &start.y, &start.z,
+		&end.x, &end.y, &end.z))
+		return NULL;
+	
+	Vec3_copy(&norm, &self->normal);
+	Vec3_sub(&vec, &end, &start);
+	ndotv = Vec3_dot(&norm, &vec);
+	if (ndotv) {
+		t = (self->d - norm.x*start.x - norm.y*start.y - norm.z*start.z) / ndotv;
+		if (t >= 0.0f && t <= 1.0f) {
+			outer_r2 = self->outer_radius*self->outer_radius;
+			inner_r2 = self->inner_radius*self->inner_radius;
+			/* calculate intersection point */
+			Vec3_scalar_muli(&vec, t);
+			Vec3_add(&end, &start, &vec);
+			/* calculate distance from center */
+			Vec3_sub(&from_center, &end, &self->center);
+			dist = Vec3_len_sq(&from_center);
+			if (dist >= inner_r2 && dist <= outer_r2) {
+				/* Calculate the distance from the disc plane to the start point */
+				dist = Vec3_dot(&norm, &vec);
+				if (dist > 0.0f) {
+					/* start point is on opposite side of normal */
+					Vec3_neg(&norm, &norm);
+				}
+				return pack_vectors(&end, &norm);
+			}
+		}
+	}
+	Py_INCREF(NO_INTERSECTION);
+	return NO_INTERSECTION;
+}
+
+static PyMethodDef DiscDomain_methods[] = {
+	{"generate", (PyCFunction)DiscDomain_generate, METH_NOARGS,
+		PyDoc_STR("generate() -> Vector\n"
+			"Return a random point in the disc")},
+	{"intersect", (PyCFunction)DiscDomain_intersect, METH_VARARGS,
+		PyDoc_STR("intersect() -> point, normal\n"
+			"Intersect the line segment with the disc return the intersection\n"
+			"point and normal vector pointing into space on the same side of the\n"
+			"disc as the start point.\n\n"
+			"If the line does not intersect, or lies completely in the disc\n"
+			"return (None, None)")},
+	{NULL,		NULL}		/* sentinel */
+};
+
+static PyMemberDef DiscDomain_members[] = {
+    {"inner_radius", T_FLOAT, offsetof(DiscDomainObject, inner_radius), 0,
+        "Inner radius of disc. Set to zero for a solid circle"},
+    {"outer_radius", T_FLOAT, offsetof(DiscDomainObject, outer_radius), 0,
+        "Outer radius of disc. Must be >= inner_radius"},
+	{NULL}
+};
+
+static PyGetSetDef DiscDomain_descriptors[] = {
+	{"center", (getter)Vector_get, (setter)Vector_set, 
+		"Center point of disc", (void *)offsetof(DiscDomainObject, center)},
+	{"normal", (getter)DiscDomain_get_normal, (setter)DiscDomain_set_normal,
+		"Normal vector that determines disc orientation", NULL},
+	{NULL}
+};
+
+static int
+DiscDomain_contains(DiscDomainObject *self, PyObject *pt)
+{
+	Vec3 point, from_center;
+	float inner_r2, outer_r2, dist2;
+
+	pt = PySequence_Tuple(pt);
+	if (pt == NULL)
+		return -1;
+	if (!PyArg_ParseTuple(pt, "fff:__contains__", &point.x, &point.y, &point.z)) {
+		Py_DECREF(pt);
+		return -1;
+	}
+	Py_DECREF(pt);
+
+	Vec3_sub(&from_center, &point, &self->center);
+	if (fabs(Vec3_dot(&from_center, &self->normal)) < EPSILON) {
+		/* point is coplanar to disc */
+		outer_r2 = self->outer_radius*self->outer_radius;
+		inner_r2 = self->inner_radius*self->inner_radius;
+		dist2 = Vec3_len_sq(&from_center);
+		return ((inner_r2 - dist2) < EPSILON) & ((dist2 - outer_r2) < EPSILON);
+	}
+	return 0;
+}
+
+static PySequenceMethods DiscDomain_as_sequence = {
+	0,		/* sq_length */
+	0,		/* sq_concat */
+	0,		/* sq_repeat */
+	0,	    /* sq_item */
+	0,		/* sq_slice */
+	0,		/* sq_ass_item */
+	0,	    /* sq_ass_slice */
+	(objobjproc)DiscDomain_contains,	/* sq_contains */
+};
+
+PyDoc_STRVAR(DiscDomain__doc__, 
+	"Circular disc domain with arbitrary orientation\n\n"
+	"Disc(center, normal, outer_radius, inner_radius=0)\n\n"
+	"center -- The center point of the disc (3-number sequence)\n"
+	"normal -- Normal vector perpendicular to the disc. This need not\n"
+	"be a unit vector.\n"
+	"outer_radius -- The outer radius of the disc.\n"
+	"inner_radius -- The inner radius of the disc, must be <= outer_radius.\n"
+	"defaults to 0, which creates a solid circle");
+
+static PyTypeObject DiscDomain_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"domain.Disc",		/*tp_name*/
+	sizeof(DiscDomainObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)Domain_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	&DiscDomain_as_sequence, /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	0,                      /*tp_call*/
+	0,                      /*tp_str*/
+	0, /*tp_getattro*/
+	0, /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	DiscDomain__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	DiscDomain_methods,  /*tp_methods*/
+	DiscDomain_members,  /*tp_members*/
+	DiscDomain_descriptors, /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)DiscDomain_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
+
 PyMODINIT_FUNC
 init_domain(void)
 {
@@ -1050,14 +1368,17 @@ init_domain(void)
 	if (PyType_Ready(&SphereDomain_Type) < 0)
 		return;
 
+	DiscDomain_Type.tp_alloc = PyType_GenericAlloc;
+	DiscDomain_Type.tp_new = PyType_GenericNew;
+	if (PyType_Ready(&DiscDomain_Type) < 0)
+		return;
+
 	/* Create the module and add the types */
 	m = Py_InitModule3("_domain", NULL, "Spacial domains");
 	if (m == NULL)
 		return;
 
 	/* initialize singleton marker for no intersection */
-	Py_INCREF(Py_None);
-	Py_INCREF(Py_None);
 	NO_INTERSECTION = PyTuple_Pack(2, Py_None, Py_None);
 	if (NO_INTERSECTION == NULL)
 		return;
@@ -1103,6 +1424,8 @@ init_domain(void)
 	PyModule_AddObject(m, "AABox", (PyObject *)&AABoxDomain_Type);
 	Py_INCREF(&SphereDomain_Type);
 	PyModule_AddObject(m, "Sphere", (PyObject *)&SphereDomain_Type);
+	Py_INCREF(&DiscDomain_Type);
+	PyModule_AddObject(m, "Disc", (PyObject *)&DiscDomain_Type);
 
 	rand_seed(time(NULL));
 }

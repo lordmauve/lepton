@@ -147,9 +147,7 @@ get_Color(Color *color, PyObject *template, const char *attrname);
 int
 get_Float(float *f, PyObject *template, const char *attrname);
 
-/* Create a new particle reference object for the given group and index
- * no range checking is done
- */
+/* Create a new particle reference object for the given group and particle */
 inline ParticleRefObject *
 ParticleRefObject_New(PyObject *parent, Particle *p);
 
@@ -158,5 +156,15 @@ ParticleRefObject_New(PyObject *parent, Particle *p);
  */
 VectorObject *
 Vector_new(PyObject *parent, Vec3 *vec, int length);
+
+/* Generic vector getter for descriptors, the closure is
+   used to pass the offset to the Vec3 struct
+*/
+PyObject * 
+Vector_get(PyObject *self, void *closure);
+
+/* Generic vector setter for descriptors */
+int 
+Vector_set(PyObject *self, PyObject *value, void *closure);
 
 #endif
