@@ -108,9 +108,9 @@ static inline float InvSqrt (float x) {
 	(result)->z = -(v)->z
 
 #define Vec3_cross(result, v0, v1) \
-	(result)->x = ((v0)->y * (v1)->z) - ((v0)->z * (v1)->y) \
-	(result)->y = ((v0)->z * (v1)->x) - ((v0)->x * (v1)->z) \
-	(result)->x = ((v0)->x * (v1)->y) - ((v0)->y * (v1)->x)
+	(result)->x = ((v0)->y * (v1)->z) - ((v0)->z * (v1)->y); \
+	(result)->y = ((v0)->z * (v1)->x) - ((v0)->x * (v1)->z); \
+	(result)->z = ((v0)->x * (v1)->y) - ((v0)->y * (v1)->x)
 
 #define Vec3_len_sq(v) ((v)->x*(v)->x + (v)->y*(v)->y + (v)->z*(v)->z)
 
