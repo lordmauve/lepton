@@ -53,7 +53,29 @@ class Domain(object):
 		"""
 		raise NotImplementedError
 
-EPSILON = 0.001
+
+EPSILON = 0.00001
+
+
+class Point:
+	"""Simple single point domain"""
+
+	def __init__(self, point):
+		self.point = Vec3(*point)
+	
+	def __contains__(self, point):
+		x, y, z = point
+		cx, cy, cz = self.point
+		return (x - cx)**2 + (y - cy)**2 + (z - cz)**2 < EPSILON
+	
+	def generate(self):
+		"""Generate always returns the domain point"""
+		return tuple(self.point)
+	
+	def intersect(self, start_point, end_point):
+		"""You cannot intersect a point domain"""
+		return None, None
+
 
 def Box(*args, **kw):
 	"""Axis-aligned box domain (same as AABox for now)
