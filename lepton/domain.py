@@ -37,6 +37,12 @@ class Domain(object):
 	def __contains__(self, point):
 		"""Return true if point is inside the domain, false if not."""
 		raise NotImplementedError
+
+	def closest_point_to(self, point):
+		"""Return the closest point in the domain to the given point
+		and the surface normal vector at that point.
+		"""
+		raise NotImplementedError
 	
 	def intersect(self, start_point, end_point):
 		"""For the line segment defined by the start and end point specified
@@ -71,6 +77,19 @@ class Point:
 	def generate(self):
 		"""Generate always returns the domain point"""
 		return tuple(self.point)
+	
+	def closest_point_to(self, point):
+		"""Return the closest point in the domain to the given point
+		and a normal vector at that point. 
+
+		The point returned is always the domain point.
+		
+		The normal returned for a point domain is a unit vector parallel to
+		the line formed between the supplied point and the domain point,
+		facing outward from the domain. This effectively treats the point
+		domain like a zero-radius sphere.
+		"""
+		return self.point, -(self.point - point).normalize()
 	
 	def intersect(self, start_point, end_point):
 		"""You cannot intersect a point domain"""
