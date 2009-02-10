@@ -48,6 +48,9 @@ class DomainTest(unittest.TestCase):
 		p, N = point.closest_point_to((3,4,5))
 		self.assertVector(p, (4,5,6))
 		self.assertVector(N, Vec3(-1,-1,-1).normalize())
+		p, N = point.closest_point_to((4,5,6))
+		self.assertVector(p, (4,5,6))
+		self.assertVector(N, (0,0,0))
 
 	def test_Line(self):
 		from lepton.domain import Line
