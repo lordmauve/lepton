@@ -25,6 +25,15 @@ class DomainTest(unittest.TestCase):
 		self.failUnless(abs(y1 - y2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
 		self.failUnless(abs(z2 - z2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
 
+	def test_point(self):
+		from lepton.domain import Point
+		point = Point((1,2,3))
+		self.assertEqual(tuple(point.point), (1,2,3))
+		self.assertEqual(tuple(point.generate()), (1,2,3))
+		self.failUnless((1,2,3) in point)
+		self.failIf((1.1,2,3) in point)
+		self.failIf((0,0,0) in point)
+		self.assertEqual(point.intersect((2,2,2), (3,3,3)), (None, None))
 
 	def test_Line(self):
 		from lepton.domain import Line
