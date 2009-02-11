@@ -1058,44 +1058,16 @@ typedef struct {
 static int
 DiscDomain_set_normal(DiscDomainObject *self, PyObject *normal_in, void *closure)
 {
-	Vec3 world_up, tmp;
-	float len;
+	Vec3 axis;
 	
-	if (!Vec3_FromSequence(&self->normal, normal_in))
+	if (!Vec3_FromSequence(&axis, normal_in))
 		return -1;
 	
-	len = Vec3_len_sq(&self->normal);
-	if (len != 1.0f) {
-		if (len > EPSILON) {
-			Vec3_normalize(&self->normal, &self->normal);
-		} else {
-			PyErr_SetString(PyExc_ValueError, "DiscDomain: zero-length normal vector");
-			return -1;
-		}
+	if (!Vec3_create_rot_vectors(&axis, &self->normal, &self->up, &self->right)) {
+		PyErr_SetString(PyExc_ValueError, "DiscDomain: invalid normal vector");
+		return -1;
 	}
 	self->d = Vec3_dot(&self->center, &self->normal);
-
-	world_up.x = 0.0f; world_up.y = 0.0f; world_up.z = 1.0f;
-	Vec3_scalar_mul(&tmp, &self->normal, Vec3_dot(&world_up, &self->normal));
-	Vec3_sub(&self->up, &world_up, &tmp);
-	if (Vec3_len_sq(&self->up) < EPSILON) {
-		/* Try another world up axis */
-		world_up.x = 0.0f; world_up.y = 1.0f; world_up.z = 0.0f;
-		Vec3_scalar_mul(&tmp, &self->normal, Vec3_dot(&world_up, &self->normal));
-		Vec3_sub(&self->up, &world_up, &tmp);
-		if (Vec3_len_sq(&self->up) < EPSILON) {
-			/* Try yet another world up axis */
-			world_up.x = 1.0f; world_up.y = 0.0f; world_up.z = 0.0f;
-			Vec3_scalar_mul(&tmp, &self->normal, Vec3_dot(&world_up, &self->normal));
-			Vec3_sub(&self->up, &world_up, &tmp);
-			if (Vec3_len_sq(&self->up) < EPSILON) {
-				PyErr_SetString(PyExc_ValueError, "DiscDomain: invalid normal vector");
-				return -1;
-			}
-		}
-	}
-	Vec3_normalize(&self->up, &self->up);
-	Vec3_cross(&self->right, &self->up, &self->normal);
 	return 0;
 }
 
@@ -1341,6 +1313,7 @@ static PyTypeObject DiscDomain_Type = {
 	0,                      /*tp_free*/
 	0,                      /*tp_is_gc*/
 };
+
 
 PyMODINIT_FUNC
 init_domain(void)
