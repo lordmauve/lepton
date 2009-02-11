@@ -114,18 +114,28 @@ static inline float InvSqrt (float x) {
 
 #define Vec3_len_sq(v) ((v)->x*(v)->x + (v)->y*(v)->y + (v)->z*(v)->z)
 
-/* Fast vector normalize at the expense of accuracy */
-#define Vec3_normalize_fast(result, v) \
-	Vec3_scalar_mul(result, v, InvSqrt(Vec3_len_sq(v)))
+/* Fast vector normalize at the expense of accuracy
+   Return true if the vector was non-zero and could be normalized
+*/
+static inline int Vec3_normalize_fast(Vec3 *result, Vec3 *v)
+{
+	float len;
+	len = Vec3_len_sq(v);
+	Vec3_scalar_mul(result, v, InvSqrt(len));
+	return len > EPSILON;
+}
 
-/* Slower but more precise normalize */
-static inline void Vec3_normalize(Vec3 *result, Vec3 *v)
+/* Slower but more precise normalize 
+   Return true if the vector was non-zero and could be normalized
+*/
+static inline int Vec3_normalize(Vec3 *result, Vec3 *v)
 {
 	float len;
 	len = Vec3_len_sq(v);
 	if (len > EPSILON) {
 		len = 1.0f / sqrtf(len);
 		Vec3_scalar_mul(result, v, len);
+		return 1;
 	} else {
 		/* Maybe we should just clamp to zero here
 		   But I erred on the side of less data loss
@@ -135,6 +145,7 @@ static inline void Vec3_normalize(Vec3 *result, Vec3 *v)
 		result->x = v->x;
 		result->y = v->y;
 		result->z = v->z;
+		return 0;
 	}
 }
 
@@ -195,9 +206,49 @@ static inline void Vec3_copy(Vec3 * __restrict__ dest, Vec3 * __restrict__ src)
 	dest->z = src->z;
 }
 
+/* Given an arbitrary, non-zero LOS vector, create 3 orthogonal normalized vectors
+   cooresponding to the out, up and right axis of the cooresponding 3x3 rotation
+   matrix that may be used to tranform points along LOS. The up and right vectors
+   are arbitrarily aligned for best results.
+
+   Return true on success.
+*/
+static inline int
+Vec3_create_rot_vectors(Vec3 * __restrict__ los, Vec3 * __restrict__ out,
+	Vec3 * __restrict__ up, Vec3 * __restrict__ right)
+{
+	Vec3 world_up, tmp;
+
+	if (Vec3_normalize(out, los)) {
+		world_up.x = 0.0f; world_up.y = 0.0f; world_up.z = 1.0f;
+		Vec3_scalar_mul(&tmp, out, Vec3_dot(&world_up, out));
+		Vec3_sub(up, &world_up, &tmp);
+		if (Vec3_len_sq(up) < EPSILON) {
+			/* Try another world up axis */
+			world_up.x = 0.0f; world_up.y = 1.0f; world_up.z = 0.0f;
+			Vec3_scalar_mul(&tmp, out, Vec3_dot(&world_up, out));
+			Vec3_sub(up, &world_up, &tmp);
+			if (Vec3_len_sq(up) < EPSILON) {
+				/* Try yet another world up axis */
+				world_up.x = 1.0f; world_up.y = 0.0f; world_up.z = 0.0f;
+				Vec3_scalar_mul(&tmp, out, Vec3_dot(&world_up, out));
+				Vec3_sub(up, &world_up, &tmp);
+				if (Vec3_len_sq(up) < EPSILON) {
+					return 0;
+				}
+			}
+		}
+		Vec3_normalize(up, up);
+		Vec3_cross(right, up, out);
+		return 1;
+	}
+	return 0;
+}
+
 
 /* Return the closest point along a line segment to the given point */
-static inline void Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt, 
+static inline void 
+Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt, 
 	Vec3 * __restrict__ lstart, Vec3 * __restrict__ lend)
 {
 	Vec3 tp, lv;
