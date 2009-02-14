@@ -362,9 +362,9 @@ ParticleGroup_draw(GroupObject *self)
 	}
 	if (self->renderer != NULL && self->renderer != Py_None) {
 		r = PyObject_CallMethodObjArgs(self->renderer, draw_str, self, NULL);
-		Py_XDECREF(r);
 		if (r == NULL)
 			return NULL;
+		Py_DECREF(r);
 	}
 	Py_INCREF(Py_None);
 	return Py_None;
