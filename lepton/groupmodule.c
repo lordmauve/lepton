@@ -12,7 +12,7 @@
 ****************************************************************************/
 /* Python interface to particle group
  *
- * $Id $ */
+ * $Id$ */
 
 #include <Python.h>
 #include <structmember.h>
