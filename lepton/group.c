@@ -156,14 +156,14 @@ get_Float(float *f, PyObject *template, const char *attrname)
 PyObject *
 Vector_get(PyObject *self, void *closure)
 {
-	return (PyObject *)Vector_new(self, (Vec3 *)(self + (unsigned long)closure), 3);
+	return (PyObject *)Vector_new(self, (Vec3 *)((void *)self + (unsigned long)closure), 3);
 }
 
 int 
 Vector_set(PyObject *self, PyObject *value, void *closure)
 {
 	Vec3 *vec;
-	vec = (Vec3 *)(self + (unsigned long)closure);
+	vec = (Vec3 *)((void *)self + (unsigned long)closure);
 	if (!Vec3_FromSequence(vec, value)) {
 		return -1;
 	}
