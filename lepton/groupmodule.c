@@ -356,7 +356,6 @@ ParticleGroup_draw(GroupObject *self)
 
 	if (draw_str == NULL) {
 		draw_str = PyString_InternFromString("draw");
-		printf("INTERN!\n");
 		if (draw_str == NULL) {
 			return NULL;
 		}
