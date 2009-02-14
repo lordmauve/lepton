@@ -35,35 +35,12 @@
 
 typedef struct {
 	PyObject_HEAD
-	GroupObject	*pgroup;
 } RendererObject;
 
 /* Base renderer methods */
 
-static PyObject *
-Renderer_set_group(RendererObject *self, GroupObject *new_group)
-{
-	PyObject *r;
-
-	if (self->pgroup != NULL && (PyObject *)self->pgroup != Py_None) {
-		/* call self.group.set_renderer(None) */
-		r = PyObject_CallMethod((PyObject *)self->pgroup, "set_renderer", "O", Py_None);
-		Py_XDECREF(r);
-		if (r == NULL || PyErr_Occurred())
-			return NULL;
-	}
-
-	Py_INCREF(new_group);
-	Py_XDECREF(self->pgroup);
-	self->pgroup = new_group;
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
 static void
 Renderer_dealloc(RendererObject *self) {
-	Py_CLEAR(self->pgroup);
 	PyObject_Del(self);
 }
 	
@@ -73,7 +50,6 @@ static PyTypeObject PointRenderer_Type;
 
 typedef struct {
 	PyObject_HEAD
-	GroupObject	*pgroup;
 	float		 point_size;
 } PointRendererObject;
 
@@ -85,32 +61,31 @@ PointRenderer_init(PointRendererObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "f:__init__",kwlist, 
 		&self->point_size))
 		return -1;
-	self->pgroup = NULL;
 	return 0;
 }
 
 static PyObject *
-PointRenderer_draw(PointRendererObject *self)
+PointRenderer_draw(PointRendererObject *self, GroupObject *pgroup)
 {
 	Particle *p;
 	int GL_error;
 	unsigned long count_particles;
 
-	if (self->pgroup == NULL) {
-		PyErr_SetString(PyExc_RuntimeError, "cannot draw, no group set");
+	if (!GroupObject_Check(pgroup)) {
+		PyErr_SetString(PyExc_TypeError, "Expected ParticleGroup first argument");
 		return NULL;
 	}
 
-	count_particles = GroupObject_ActiveCount(self->pgroup);
+	count_particles = GroupObject_ActiveCount(pgroup);
 	if (count_particles > 0){
-		p = self->pgroup->plist->p;
+		p = pgroup->plist->p;
 		glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glEnableClientState(GL_COLOR_ARRAY);
 		glPointSize(self->point_size);
 		glVertexPointer(3, GL_FLOAT, sizeof(Particle), &p[0].position);
 		glColorPointer(4, GL_FLOAT, sizeof(Particle), &p[0].color);
-		glDrawArrays(GL_POINTS, 0, GroupObject_ActiveCount(self->pgroup));
+		glDrawArrays(GL_POINTS, 0, GroupObject_ActiveCount(pgroup));
 		glPopClientAttrib();
 
 		GL_error = glGetError();
@@ -124,19 +99,14 @@ PointRenderer_draw(PointRendererObject *self)
 }
 
 static struct PyMemberDef PointRenderer_members[] = {
-    {"point_size", T_FLOAT, offsetof(PointRendererObject, point_size), RESTRICTED,
+    {"point_size", T_FLOAT, offsetof(PointRendererObject, point_size), 0,
         "Size of GL_POINTS drawn"},
-    {"group", T_OBJECT, offsetof(PointRendererObject, pgroup), RO,
-        "Particle group this renderer is bound to"},
 	{NULL}
 };
 
 static PyMethodDef PointRenderer_methods[] = {
-	{"set_group", (PyCFunction)Renderer_set_group, METH_O,
-		PyDoc_STR("set_group(group) -> None\n"
-			"Sets the particle group for this renderer")},
-	{"draw", (PyCFunction)PointRenderer_draw, METH_NOARGS,
-		PyDoc_STR("Draw the particles using points")},
+	{"draw", (PyCFunction)PointRenderer_draw, METH_O,
+		PyDoc_STR("Draw the particles in the specified group using GL_POINTS")},
 	{NULL,		NULL}		/* sentinel */
 };
 
@@ -144,7 +114,7 @@ PyDoc_STRVAR(PointRenderer__doc__,
 	"Simple particle renderer using GL_POINTS. All particles in the\n"
 	"group are rendered with the same point size\n\n"
 	"PointRenderer(point_size)\n\n"
-	"point_size -- Size of GL points (float)");
+	"point_size -- Size of GL_POINTS points (float)");
 
 static PyTypeObject PointRenderer_Type = {
 	/* The ob_type field must be initialized in the module init function
@@ -200,7 +170,6 @@ static PyTypeObject BillboardRenderer_Type;
 static int
 BillboardRenderer_init(RendererObject *self, PyObject *args)
 {
-	self->pgroup = NULL;
 	return 0;
 }
 
@@ -236,7 +205,7 @@ init_billboard_indices(void) {
 }
 
 static PyObject *
-BillboardRenderer_draw(RendererObject *self)
+BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 {
 	Particle *p;
 	int GL_error;
@@ -246,13 +215,13 @@ BillboardRenderer_draw(RendererObject *self)
 	float mvmatrix[16], rotcos, rotsin;
 	Vec3 vright, vright_unit, vup, vup_unit, vrot;
 
-	if (self->pgroup == NULL) {
-		PyErr_SetString(PyExc_RuntimeError, "cannot draw, no group set");
+	if (!GroupObject_Check(pgroup)) {
+		PyErr_SetString(PyExc_TypeError, "Expected ParticleGroup first argument");
 		return NULL;
 	}
 
-	p = self->pgroup->plist->p;
-	remaining = GroupObject_ActiveCount(self->pgroup);
+	p = pgroup->plist->p;
+	remaining = GroupObject_ActiveCount(pgroup);
 
 	/* Get the alignment vectors from the view matrix */
 	glGetFloatv(GL_MODELVIEW_MATRIX, mvmatrix);
@@ -370,17 +339,8 @@ BillboardRenderer_draw(RendererObject *self)
 	return Py_None;
 }
 
-static struct PyMemberDef BillboardRenderer_members[] = {
-    {"group", T_OBJECT, offsetof(RendererObject, pgroup), RO,
-        "Particle group this renderer is bound to"},
-	{NULL}
-};
-
 static PyMethodDef BillboardRenderer_methods[] = {
-	{"set_group", (PyCFunction)Renderer_set_group, METH_O,
-		PyDoc_STR("set_group(group) -> None\n"
-			"Sets the particle group for this renderer")},
-	{"draw", (PyCFunction)BillboardRenderer_draw, METH_NOARGS,
+	{"draw", (PyCFunction)BillboardRenderer_draw, METH_O,
 		PyDoc_STR("Draw the particles using textured billboard quads")},
 	{NULL,		NULL}		/* sentinel */
 };
@@ -423,7 +383,7 @@ static PyTypeObject BillboardRenderer_Type = {
 	0,                      /*tp_iter*/
 	0,                      /*tp_iternext*/
 	BillboardRenderer_methods,  /*tp_methods*/
-	BillboardRenderer_members,  /*tp_members*/
+	0,  /*tp_members*/
 	0,                      /*tp_getset*/
 	0,                      /*tp_base*/
 	0,                      /*tp_dict*/

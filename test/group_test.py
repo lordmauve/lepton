@@ -54,11 +54,9 @@ class TestRenderer:
 	group = None
 	drawn = False
 
-	def set_group(self, group):
-		self.group = group
-	
-	def draw(self):
+	def draw(self, group):
 		self.drawn = True
+		self.group = group
 
 
 class TestParticle:
@@ -163,24 +161,18 @@ class GroupTest(unittest.TestCase):
 		renderer = TestRenderer()
 		group = ParticleGroup()
 		self.assertEqual(group.renderer, None)
-		self.assertEqual(renderer.group, None)
 
 		# Can set renderer after init
-		group.set_renderer(renderer)
+		group.renderer = renderer
 		self.assertEqual(group.renderer, renderer)
-		self.assertEqual(renderer.group, group)
 
 		# Can set renderer at init
 		group2 = ParticleGroup(renderer=renderer)
 		self.assertEqual(group2.renderer, renderer)
-		self.assertNotEqual(renderer.group, group)
-		self.assertEqual(renderer.group, group2)
 
-		# Can set renderer again
-		renderer2 = TestRenderer()
-		group.set_renderer(renderer2)
-		self.assertEqual(group.renderer, renderer2)
-		self.assertEqual(renderer2.group, group)
+		# Can set renderer back to None
+		group.renderer = None
+		self.assertEqual(renderer.group, None)
 	
 	def test_new_particle(self):
 		from lepton import ParticleGroup, Particle
@@ -362,9 +354,11 @@ class GroupTest(unittest.TestCase):
 		group, particles = self.test_new_particle()
 		renderer = TestRenderer()
 		self.assertFalse(renderer.drawn)
-		group.set_renderer(renderer)
+		self.failUnless(renderer.group is None)
+		group.renderer = renderer
 		group.draw()
 		self.assertTrue(renderer.drawn)
+		self.failUnless(renderer.group is group)
 
 
 if __name__=='__main__':
