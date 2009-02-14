@@ -38,19 +38,17 @@ ParticleGroup_dealloc(GroupObject *self)
 	PyObject_Del(self);
 }
 
-static PyObject *
-ParticleGroup_set_renderer(GroupObject *self, PyObject *new_renderer);
-
 static int
 ParticleGroup_init(GroupObject *self, PyObject *args, PyObject *kwargs)
 {
 	PyObject *particle_module, *r;
-	PyObject *controllers = NULL, *renderer = NULL, *system = NULL;
+	PyObject *controllers = NULL, *system = NULL;
 
 	static char *kwlist[] = {"controllers", "renderer", "system", NULL};
 
+	self->renderer = NULL;
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOO:__init__", kwlist,
-		&controllers, &renderer, &system))
+		&controllers, &self->renderer, &system))
 		return -1;
 
 	self->iteration = 0;
@@ -65,8 +63,10 @@ ParticleGroup_init(GroupObject *self, PyObject *args, PyObject *kwargs)
 	self->plist->pnew = 0;
 	self->plist->pkilled = 0;
 	self->controllers = NULL;
-	self->renderer = NULL;
 	self->system = NULL;
+
+	if (self->renderer != NULL)
+		Py_INCREF(self->renderer);
 
 	if (controllers != NULL) {
 		controllers = PySequence_Tuple(controllers);
@@ -74,13 +74,6 @@ ParticleGroup_init(GroupObject *self, PyObject *args, PyObject *kwargs)
 			goto error;
 	}
 	self->controllers = controllers;
-
-	if (renderer != NULL) {
-		r = ParticleGroup_set_renderer(self, renderer);
-		Py_XDECREF(r);
-		if (r == NULL || PyErr_Occurred())
-			goto error;
-	}
 
 	if (system == NULL) {
 		/* grab the global default particle system */
@@ -325,7 +318,7 @@ ParticleGroup_bind_controller(GroupObject *self, PyObject *args)
 	return Py_None;
 }
 
-/* Set the group's renderer */
+/* Unbind a controller from the group */
 static PyObject *
 ParticleGroup_unbind_controller(GroupObject *self, PyObject *ctrlr)
 {
@@ -333,7 +326,7 @@ ParticleGroup_unbind_controller(GroupObject *self, PyObject *ctrlr)
 	int i, n, ctrlr_count;
 
 	if (self->controllers == NULL || !PySequence_Contains(self->controllers, ctrlr)) {
-		PyErr_SetString(PyExc_ValueError, "renderer not bound");
+		PyErr_SetString(PyExc_ValueError, "controller not bound");
 		return NULL;
 	}
 	ctrlr_count = PyTuple_Size(self->controllers);
@@ -354,46 +347,24 @@ ParticleGroup_unbind_controller(GroupObject *self, PyObject *ctrlr)
 	return Py_None;
 }
 
-/* Set the group's renderer */
-static PyObject *
-ParticleGroup_set_renderer(GroupObject *self, PyObject *new_renderer)
-{
-	PyObject *r;
-
-	if (new_renderer != Py_None) {
-		/* call renderer.set_group(self) */
-		r = PyObject_CallMethod(new_renderer, "set_group", "O", self);
-		Py_XDECREF(r);
-		if (r == NULL || PyErr_Occurred())
-			return NULL;
-	}
-
-	if (self->renderer != NULL && self->renderer != Py_None) {
-		/* call self.renderer.set_group(None) */
-		r = PyObject_CallMethod(self->renderer, "set_group", "O", Py_None);
-		Py_XDECREF(r);
-		if (r == NULL || PyErr_Occurred())
-			return NULL;
-	}
-
-	Py_INCREF(new_renderer);
-	Py_XDECREF(self->renderer);
-	self->renderer = new_renderer;
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
 /* Draw the group using its renderer (if any) */
 static PyObject *
 ParticleGroup_draw(GroupObject *self)
 {
 	PyObject *r;
+	static PyObject *draw_str = NULL;
 
+	if (draw_str == NULL) {
+		draw_str = PyString_InternFromString("draw");
+		printf("INTERN!\n");
+		if (draw_str == NULL) {
+			return NULL;
+		}
+	}
 	if (self->renderer != NULL && self->renderer != Py_None) {
-		r = PyObject_CallMethod(self->renderer, "draw", NULL);
+		r = PyObject_CallMethodObjArgs(self->renderer, draw_str, self, NULL);
 		Py_XDECREF(r);
-		if (r == NULL || PyErr_Occurred())
+		if (r == NULL)
 			return NULL;
 	}
 	Py_INCREF(Py_None);
@@ -403,7 +374,7 @@ ParticleGroup_draw(GroupObject *self)
 static struct PyMemberDef ParticleGroup_members[] = {
     {"controllers", T_OBJECT, offsetof(GroupObject, controllers), RO,
         "Controllers bound to this group"},
-    {"renderer", T_OBJECT, offsetof(GroupObject, renderer), RO,
+    {"renderer", T_OBJECT, offsetof(GroupObject, renderer), 0,
         "Renderer bound to this group"},
     {"system", T_OBJECT, offsetof(GroupObject, system), RO,
         "Particle system this group belongs to"},
@@ -432,9 +403,6 @@ static PyMethodDef ParticleGroup_methods[] = {
 			"bound to the group to update the particles")},
 	{"draw", (PyCFunction)ParticleGroup_draw, METH_NOARGS,
 		PyDoc_STR("Draw the group using its renderer (if any)")},
-	{"set_renderer", (PyCFunction)ParticleGroup_set_renderer, METH_O,
-		PyDoc_STR("Set the renderer for the group. This replaces any existing\n"
-			"renderer. Pass None to disable rendering")},
 	{"bind_controller", (PyCFunction)ParticleGroup_bind_controller, METH_VARARGS,
 		PyDoc_STR("Bind one or more controllers to the group")},
 	{"unbind_controller", (PyCFunction)ParticleGroup_unbind_controller, METH_O,
