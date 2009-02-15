@@ -167,6 +167,6 @@ Vector_set(PyObject *self, PyObject *value, void *closure)
 	if (!Vec3_FromSequence(vec, value)) {
 		return -1;
 	}
-	return 1;
+	return 0;
 }
 
