@@ -163,6 +163,11 @@ int
 Vector_set(PyObject *self, PyObject *value, void *closure)
 {
 	Vec3 *vec;
+
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError, "Cannot delete attribute");
+		return -1;
+	}
 	vec = (Vec3 *)((void *)self + (unsigned long)closure);
 	if (!Vec3_FromSequence(vec, value)) {
 		return -1;
