@@ -20,7 +20,7 @@ import math
 
 class DomainTest(unittest.TestCase):
 
-	def assertVector(self, (x1, y1, z1), (x2,y2,z2), tolerance=0.00001):
+	def assertVector(self, (x1, y1, z1), (x2,y2,z2), tolerance=0.0001):
 		self.failUnless(abs(x1 - x2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
 		self.failUnless(abs(y1 - y2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
 		self.failUnless(abs(z2 - z2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
@@ -329,6 +329,22 @@ class DomainTest(unittest.TestCase):
 		p, N = sphere.intersect((0, 0, 0), (-5, 0, 0))
 		self.assertVector(p, (-3, 0, 0))
 		self.assertVector(N, (1, 0, 0))
+	
+	def test_Sphere_closest_point_to(self):
+		from lepton.domain import Sphere
+		from lepton.particle_struct import Vec3
+		sphere = Sphere((0,5,-1), 4.0, 2.0)
+		for point, closest, normal in [
+			((0,5,-1), (0,5,-1), (0,0,0)),
+			((5,5,-1), (4,5,-1), (1,0,0)),
+			((0,15,-1), (0,9,-1), (0,1,0)),
+			((6,11,5), Vec3(0,5,-1) + Vec3(1,1,1).normalize()*4, Vec3(1,1,1).normalize()),
+			((1,5,-1), (2,5,-1), (-1,0,0)),
+			((0,8,-1), (0,8,-1), (0,0,0)),
+			]:
+			p, N = sphere.closest_point_to(point)
+			self.assertVector(p, closest)
+			self.assertVector(N, normal)
 	
 	def test_solid_disc_generate_contains(self):
 		from lepton.domain import Disc
