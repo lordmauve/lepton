@@ -37,6 +37,9 @@ static inline float InvSqrt (float x) {
     int i = *(int*)&x;
     i = 0x5f3759df - (i>>1);
     x = *(float*)&i;
+	/* run two iterations of newton's method for 
+	   increased accuracy */
+    x = x*(1.5f - xhalf*x*x);
     x = x*(1.5f - xhalf*x*x);
     return x;
 }
