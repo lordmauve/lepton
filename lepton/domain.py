@@ -18,11 +18,8 @@ behavior
 
 __version__ = '$Id$'
 
-
-from random import random, uniform, choice
-from math import sqrt, sin, cos, pi
 from particle_struct import Vec3
-from _domain import Line, Plane, AABox, Sphere, Disc
+from _domain import Line, Plane, AABox, Sphere, Disc, Cylinder
 
 
 class Domain(object):

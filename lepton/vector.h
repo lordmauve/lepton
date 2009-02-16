@@ -156,7 +156,7 @@ static inline float Vec3_len(Vec3 *v)
 {
 	float len;
 	len = Vec3_len_sq(v);
-	return len ? (1.0f / InvSqrt(len)) : 0.0f;
+	return len * InvSqrt(len);
 }
 
 static inline void Vec3_lerp(Vec3 *result, float t, const Vec3 *v0, const Vec3 *v1)
@@ -245,7 +245,6 @@ Vec3_create_rot_vectors(Vec3 * __restrict__ los, Vec3 * __restrict__ out,
 	return 0;
 }
 
-
 /* Return the closest point along a line segment to the given point */
 static inline void 
 Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt, 
@@ -267,27 +266,6 @@ Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt,
 		Vec3_copy(dest, lstart);
 	}
 }
-
-/*
-static static inline void vmathV3Slerp( VmathVector3 *result, float t, const VmathVector3 *unitVec0, const VmathVector3 *unitVec1 )
-{
-    VmathVector3 tmpV3_0, tmpV3_1;
-    float recipSinAngle, scale0, scale1, cosAngle, angle;
-    cosAngle = vmathV3Dot( unitVec0, unitVec1 );
-    if ( cosAngle < _VECTORMATH_SLERP_TOL ) {
-        angle = acosf( cosAngle );
-        recipSinAngle = ( 1.0f / sinf( angle ) );
-        scale0 = ( sinf( ( ( 1.0f - t ) * angle ) ) * recipSinAngle );
-        scale1 = ( sinf( ( t * angle ) ) * recipSinAngle );
-    } else {
-        scale0 = ( 1.0f - t );
-        scale1 = t;
-    }
-    vmathV3ScalarMul( &tmpV3_0, unitVec0, scale0 );
-    vmathV3ScalarMul( &tmpV3_1, unitVec1, scale1 );
-    vmathV3Add( result, &tmpV3_0, &tmpV3_1 );
-}
-*/
 
 static inline void Color_copy(Color * __restrict__ dest, Color * __restrict__ src) 
 {
