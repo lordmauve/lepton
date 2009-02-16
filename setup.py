@@ -85,7 +85,7 @@ You can download binary releases or browse the source code at our Google code si
 		),
 		Extension('lepton.renderer', 
 			['lepton/group.c', 'lepton/renderermodule.c',
-			 'lepton/controllermodule.c'], 
+			 'lepton/controllermodule.c', 'lepton/groupmodule.c'], 
 			include_dirs=include_dirs,
 			library_dirs=library_dirs,
 			libraries=libraries,
