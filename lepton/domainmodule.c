@@ -777,7 +777,7 @@ static PyObject *
 SphereDomain_generate(SphereDomainObject *self) 
 {
 	PyObject *x, *y, *z, *pt;
-	float dist, mag2, mag;
+	float dist, mag2;
 	Vec3 point;
 
 	/* Generate a random unit vector */
@@ -787,9 +787,7 @@ SphereDomain_generate(SphereDomainObject *self)
 		point.z = rand_norm(0.0f, 1.0f);
 		mag2 = Vec3_len_sq(&point);
 	} while (mag2 < EPSILON);
-	/* Vec3_normalize is too inaccurate for us */
-	mag = sqrtf(mag2);
-	Vec3_scalar_div(&point, &point, mag);
+	Vec3_normalize_fast(&point, &point);
 	
 	dist = self->inner_radius + rand_uni() * (
 		self->outer_radius - self->inner_radius);
@@ -838,7 +836,7 @@ static PyObject *
 SphereDomain_intersect(SphereDomainObject *self, PyObject *args) 
 {
 	Vec3 start, end, seg, vec, norm;
-	float start_dist2, end_dist2, cmag2, r2, a, b, c, bb4ac, t1, t2, t, mag;
+	float start_dist2, end_dist2, cmag2, r2, a, b, c, bb4ac, t1, t2, t;
 	float inner_r2 = self->inner_radius*self->inner_radius;
 	float outer_r2 = self->outer_radius*self->outer_radius;
 
@@ -908,10 +906,49 @@ SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 	t = (start_dist2 <= r2) ? 1.0f : -1.0f;
 	Vec3_sub(&vec, &self->center, &end);
 	Vec3_scalar_muli(&vec, t);
-	mag = sqrtf(Vec3_len_sq(&vec));
-	Vec3_scalar_div(&norm, &vec, mag);
-	/* Vec3_normalize(&norm, &vec); is too inaccurate */
+	Vec3_normalize_fast(&norm, &vec);
 	return pack_vectors(&end, &norm);
+}
+
+static PyObject *
+SphereDomain_closest_point_to(SphereDomainObject *self, PyObject *args) 
+{
+	
+	Vec3 point, norm, vec;
+	float dist2, inner_r2, outer_r2;
+	
+	/* point: input point transformed to closest point on the sphere
+	   dist2: squared distance between point and line
+	   vec: vector between point and center
+		     then scaled to become vector between point and closest */
+
+	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
+		&point.x, &point.y, &point.z))
+		return NULL;
+	
+	inner_r2 = self->inner_radius*self->inner_radius;
+	outer_r2 = self->outer_radius*self->outer_radius;
+	Vec3_sub(&vec, &point, &self->center);
+	dist2 = Vec3_len_sq(&vec);
+
+	if (dist2 > outer_r2) {
+		/* common case,  point outside sphere */
+		Vec3_normalize_fast(&norm, &vec);
+		Vec3_copy(&vec, &norm);
+		Vec3_scalar_muli(&vec, self->outer_radius);
+		Vec3_add(&point, &vec, &self->center);
+    } else if ((dist2 < inner_r2) & (dist2 > EPSILON)) {
+		/* point inside the inner radius */
+		Vec3_normalize_fast(&norm, &vec);
+		Vec3_copy(&vec, &norm);
+		Vec3_scalar_muli(&vec, self->inner_radius);
+		Vec3_add(&point, &vec, &self->center);
+		Vec3_neg(&norm, &norm);
+	} else {
+		/* point inside sphere volume or at dead center */
+		norm.x = norm.y = norm.z = 0.0f;
+	}
+	return pack_vectors(&point, &norm);
 }
 
 static PyMethodDef SphereDomain_methods[] = {
@@ -925,6 +962,10 @@ static PyMethodDef SphereDomain_methods[] = {
 			"the sphere intersection point. If the sphere has an inner radius,\n"
 			"the intersection can occur on the inner or outer shell surface.\n\n"
 			"If the line does not intersect, return (None, None)")},
+	{"closest_point_to", (PyCFunction)SphereDomain_closest_point_to, METH_VARARGS,
+		PyDoc_STR("closest_point_to() -> Vector\n"
+			"Returns the closest point on the sphere's surface\n"
+			"to the supplied point.")},
 	{NULL,		NULL}		/* sentinel */
 };
 
@@ -1571,7 +1612,7 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 		Vec3_addi(&tmp, &self->end_point0);
 		Vec3_sub(&norm, &tp, &tmp);
 		Vec3_scalar_muli(&norm, dir);
-		Vec3_normalize(&norm, &norm);
+		Vec3_normalize_fast(&norm, &norm);
 		return pack_vectors(&tp, &norm);
 	}
 	if (collided) {
