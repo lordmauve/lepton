@@ -1500,7 +1500,6 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 		Vec3_sub(&tmp, &end, &start);
 		d2 = Vec3_len_sq(&tmp);
 		collided = 1;
-		// printf("collided end 0\n");
 	}
 
 	/* Check for end cap collision at end point 1 */
@@ -1514,7 +1513,6 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 			Vec3_copy(&norm, &tn);
 			d2 = t2;
 			collided = 1;
-			// printf("collided end 1\n");
 		}
 	}
 
@@ -1574,7 +1572,6 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 		Vec3_sub(&norm, &tp, &tmp);
 		Vec3_scalar_muli(&norm, dir);
 		Vec3_normalize(&norm, &norm);
-		// printf("collided middle\n");
 		return pack_vectors(&tp, &norm);
 	}
 	if (collided) {
