@@ -12,11 +12,12 @@
 ****************************************************************************/
 /* Native-code domains
  *
- * $Id $ */
+ * $Id$ */
 
 #include <Python.h>
 #include <structmember.h>
 #include <math.h>
+#include <float.h>
 #include "vector.h"
 #include "fastrng.h"
 #include "group.h"
@@ -276,7 +277,7 @@ PlaneDomain_intersect(PlaneDomainObject *self, PyObject *args)
 	Vec3 norm, start, end, vec;
 	float ndotv, t, dist;
 
-	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
+	if (!PyArg_ParseTuple(args, "(fff)(fff):intersect",
 		&start.x, &start.y, &start.z,
 		&end.x, &end.y, &end.z))
 		return NULL;
@@ -526,7 +527,7 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 	int start_in, end_in;
 	char* buf;
 
-	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
+	if (!PyArg_ParseTuple(args, "(fff)(fff):intersect",
 		&start.x, &start.y, &start.z,
 		&end.x, &end.y, &end.z))
 		return NULL;
@@ -841,7 +842,7 @@ SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 	float inner_r2 = self->inner_radius*self->inner_radius;
 	float outer_r2 = self->outer_radius*self->outer_radius;
 
-	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
+	if (!PyArg_ParseTuple(args, "(fff)(fff):intersect",
 		&start.x, &start.y, &start.z,
 		&end.x, &end.y, &end.z))
 		return NULL;
@@ -1059,12 +1060,17 @@ static int
 DiscDomain_set_normal(DiscDomainObject *self, PyObject *normal_in, void *closure)
 {
 	Vec3 axis;
+
+	if (normal_in == NULL) {
+		PyErr_SetString(PyExc_TypeError, "Cannot delete normal attribute");
+		return -1;
+	}
 	
 	if (!Vec3_FromSequence(&axis, normal_in))
 		return -1;
 	
 	if (!Vec3_create_rot_vectors(&axis, &self->normal, &self->up, &self->right)) {
-		PyErr_SetString(PyExc_ValueError, "DiscDomain: invalid normal vector");
+		PyErr_SetString(PyExc_ValueError, "Disc: invalid normal vector");
 		return -1;
 	}
 	self->d = Vec3_dot(&self->center, &self->normal);
@@ -1087,6 +1093,12 @@ DiscDomain_init(DiscDomainObject *self, PyObject *args)
 		&self->center.x, &self->center.y, &self->center.z,
 		&normal, &self->outer_radius, &self->inner_radius))
 		return -1;
+
+	if (self->outer_radius < self->inner_radius) {
+		PyErr_SetString(PyExc_ValueError, 
+			"Disc: Expected outer_radius >= inner_radius");
+		return -1;
+	}
 	
 	return DiscDomain_set_normal(self, normal, NULL);
 }
@@ -1150,44 +1162,59 @@ DiscDomain_generate(DiscDomainObject *self)
 	return pt;
 }
 
-static PyObject *
-DiscDomain_intersect(DiscDomainObject *self, PyObject *args) 
+static inline int
+disc_intersect(Vec3 *sect_pt, Vec3 *sect_norm, 
+	Vec3 *disc_center, Vec3 *disc_norm, float disc_cdotn,
+	float disc_inner_r2, float disc_outer_r2,
+	Vec3 *seg_start, Vec3 *seg_vec)
 {
-	Vec3 norm, start, end, vec, from_center;
-	float ndotv, t, dist, outer_r2, inner_r2;
+	Vec3 tmp, sect_v;
+	float ndotv, t, dist;
 
-	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
-		&start.x, &start.y, &start.z,
-		&end.x, &end.y, &end.z))
-		return NULL;
-	
-	Vec3_copy(&norm, &self->normal);
-	Vec3_sub(&vec, &end, &start);
-	ndotv = Vec3_dot(&norm, &vec);
+	ndotv = Vec3_dot(disc_norm, seg_vec);
 	if (ndotv) {
-		t = (self->d - norm.x*start.x - norm.y*start.y - norm.z*start.z) / ndotv;
+		t = (disc_cdotn - disc_norm->x*seg_start->x - disc_norm->y*seg_start->y 
+			- disc_norm->z*seg_start->z) / ndotv;
 		if (t >= 0.0f && t <= 1.0f) {
-			outer_r2 = self->outer_radius*self->outer_radius;
-			inner_r2 = self->inner_radius*self->inner_radius;
 			/* calculate intersection point */
-			Vec3_scalar_muli(&vec, t);
-			Vec3_add(&end, &start, &vec);
+			Vec3_scalar_mul(&sect_v, seg_vec, t);
+			Vec3_add(sect_pt, seg_start, &sect_v);
 			/* calculate distance from center */
-			Vec3_sub(&from_center, &end, &self->center);
-			dist = Vec3_len_sq(&from_center);
-			if (dist >= inner_r2 && dist <= outer_r2) {
-				/* Calculate the distance from the disc plane to the start point */
-				dist = Vec3_dot(&norm, &vec);
-				if (dist > 0.0f) {
+			Vec3_sub(&tmp, sect_pt, disc_center);
+			dist = Vec3_len_sq(&tmp);
+			if ((dist >= disc_inner_r2) & (dist <= disc_outer_r2)) {
+				if (Vec3_dot(disc_norm, &sect_v) > 0.0f) {
 					/* start point is on opposite side of normal */
-					Vec3_neg(&norm, &norm);
+					Vec3_scalar_mul(sect_norm, disc_norm, -1.0f);
+				} else {
+					Vec3_copy(sect_norm, disc_norm);
 				}
-				return pack_vectors(&end, &norm);
+				return 1;
 			}
 		}
 	}
-	Py_INCREF(NO_INTERSECTION);
-	return NO_INTERSECTION;
+	return 0;
+}
+
+static PyObject *
+DiscDomain_intersect(DiscDomainObject *self, PyObject *args) 
+{
+	Vec3 start, end, vec, point, normal;
+
+	if (!PyArg_ParseTuple(args, "(fff)(fff):intersect",
+		&start.x, &start.y, &start.z,
+		&end.x, &end.y, &end.z))
+		return NULL;
+
+	Vec3_sub(&vec, &end, &start);
+	if (!disc_intersect(&point, &normal, &self->center, &self->normal, self->d,
+		self->inner_radius*self->inner_radius, self->outer_radius*self->outer_radius,
+		&start, &vec)) {
+		Py_INCREF(NO_INTERSECTION);
+		return NO_INTERSECTION;
+	} else {
+		return pack_vectors(&point, &normal);
+	}
 }
 
 static PyMethodDef DiscDomain_methods[] = {
@@ -1314,6 +1341,396 @@ static PyTypeObject DiscDomain_Type = {
 	0,                      /*tp_is_gc*/
 };
 
+/* --------------------------------------------------------------------- */
+
+static PyTypeObject CylinderDomain_Type;
+
+typedef struct {
+	PyObject_HEAD
+	Vec3 end_point0;
+	Vec3 end_point1;
+	Vec3 axis;
+	Vec3 axis_norm;
+	Vec3 up;
+	Vec3 right;
+	float len;
+	float len_sq;
+	float inner_radius;
+	float outer_radius;
+} CylinderDomainObject;
+
+/* Setup rotation vectors after changing cylinder end points */
+static int
+CylinderDomain_setup_rot(CylinderDomainObject *self)
+{
+	Vec3_sub(&self->axis, &self->end_point1, &self->end_point0);
+	self->len_sq = Vec3_len_sq(&self->axis);
+	self->len = sqrtf(self->len_sq);
+	if (self->len_sq < EPSILON || 
+		!Vec3_create_rot_vectors(&self->axis, &self->axis_norm, &self->up, &self->right)) {
+		PyErr_SetString(PyExc_ValueError, "Cylinder: End points too close");
+		return -1;
+	}
+	return 0;
+}
+
+static int
+CylinderDomain_init(CylinderDomainObject *self, PyObject *args)
+{
+	self->inner_radius = 0.0f;
+	if (!PyArg_ParseTuple(args, "(fff)(fff)f|f:__init__",
+		&self->end_point0.x, &self->end_point0.y, &self->end_point0.z,
+		&self->end_point1.x, &self->end_point1.y, &self->end_point1.z,
+		&self->outer_radius, &self->inner_radius))
+		return -1;
+
+	if (self->outer_radius < self->inner_radius) {
+		PyErr_SetString(PyExc_ValueError, 
+			"Cylinder: Expected outer_radius >= inner_radius");
+		return -1;
+	}
+	
+	return CylinderDomain_setup_rot(self);
+}
+
+static PyObject *
+CylinderDomain_generate(CylinderDomainObject *self) 
+{
+	PyObject *x, *y, *z, *pt;
+	Vec3 center, point;
+	float d;
+
+	Vec3_sub(&center, &self->end_point1, &self->end_point0);
+	d = rand_uni();
+	Vec3_scalar_muli(&center, d);
+	Vec3_addi(&center, &self->end_point0);
+	generate_point_in_disc(&point, &center, self->inner_radius, self->outer_radius,
+		&self->up, &self->right);
+
+	x = PyFloat_FromDouble(point.x);
+	y = PyFloat_FromDouble(point.y);
+	z = PyFloat_FromDouble(point.z);
+	if (x == NULL || y == NULL || z == NULL) {
+		Py_XDECREF(x);
+		Py_XDECREF(y);
+		Py_XDECREF(z);
+		return NULL;
+	}
+	
+	pt = PyTuple_Pack(3, x, y, z);
+	Py_DECREF(x);
+	Py_DECREF(y);
+	Py_DECREF(z);
+	return pt;
+}
+
+static PyObject *
+CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args) 
+{
+	Vec3 start, end, to_start, seg, tmp, xa, xb, norm, tp, tn;
+	float inner_r2, outer_r2, r2, d2, dir, a, b, c, bb4ac, t, t1, t2;
+	int collided = 0;
+
+	if (!PyArg_ParseTuple(args, "(fff)(fff):intersect",
+		&start.x, &start.y, &start.z,
+		&end.x, &end.y, &end.z))
+		return NULL;
+	
+	/* The assumed common-case here is no intersection, so we are
+	   optimizing for that case. The idea is to cheaply see if
+	   the start and end point could possibly intersect and bail
+	   early if not.
+
+	   To accomplish that, we find the distance between the start
+	   point and the infinite line along the cylinder axis.
+	   Then we see if the end point is sufficiently far from the
+	   start that it could intersect the domain surface. Only if
+	   this possibility exists is the actual intersection test
+	   performed.
+
+	   Point to line distance algorithm derived from:
+	   http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+	*/
+	Vec3_sub(&to_start, &start, &self->end_point0);
+	Vec3_cross(&tmp, &self->axis, &to_start);
+	t = Vec3_len_sq(&tmp) / self->len_sq;
+	a = t * InvSqrt(t); /* distance from start to axis */
+	Vec3_sub(&seg, &end, &start);
+	b = Vec3_len(&seg);
+	inner_r2 = self->inner_radius*self->inner_radius;
+	outer_r2 = self->outer_radius*self->outer_radius;
+
+	if ((fabs(a - self->outer_radius) > b) & (fabs(a - self->inner_radius) > b)) {
+		/* No chance of intersection */
+		Py_INCREF(NO_INTERSECTION);
+		return NO_INTERSECTION;
+	} else if (a >= self->outer_radius) {
+		r2 = outer_r2;
+		dir = 1.0f;	
+	} else if (!self->inner_radius) {
+		/* start point potentially contained in solid cylinder volume */
+		r2 = outer_r2;
+		dir = -1.0f;
+	} else if (a <= self->inner_radius) {
+		r2 = inner_r2;
+		dir = -1.0f;
+	} else {
+		/* start point potentially contained in shell cylinder volume,
+		   we'll need to compare it to the end point distance to axis
+		*/
+		Vec3_sub(&tmp, &self->end_point0, &end);
+		Vec3_cross(&tmp, &self->axis, &tmp);
+		t = Vec3_len_sq(&tmp) / self->len_sq;
+		c = t * InvSqrt(t); /* distance from end to axis */
+		if (c > a) {
+			r2 = outer_r2;
+			dir = -1.0f;
+		} else {
+			r2 = inner_r2;
+			dir = 1.0f;
+		}
+	}
+	norm.x = norm.y = norm.z = 0.0f; /* shutup compiler warning */
+	d2 = FLT_MAX;
+
+	/* Check for end cap collision at end point 0 */
+	if (disc_intersect(&end, &norm, 
+		&self->end_point0, &self->axis_norm, Vec3_dot(&self->end_point0, &self->axis_norm),
+		inner_r2, outer_r2, &start, &seg)) {
+		Vec3_sub(&tmp, &end, &start);
+		d2 = Vec3_len_sq(&tmp);
+		collided = 1;
+		// printf("collided end 0\n");
+	}
+
+	/* Check for end cap collision at end point 1 */
+	if (disc_intersect(&tp, &tn, 
+		&self->end_point1, &self->axis_norm, Vec3_dot(&self->end_point1, &self->axis_norm),
+		inner_r2, outer_r2, &start, &seg)) {
+		Vec3_sub(&tmp, &tp, &start);
+		t2 = Vec3_len_sq(&tmp);
+		if (t2 < d2) {
+			Vec3_copy(&end, &tp);
+			Vec3_copy(&norm, &tn);
+			d2 = t2;
+			collided = 1;
+			// printf("collided end 1\n");
+		}
+	}
+
+	/* Check for intersection against infinite cylinder along axis */
+	Vec3_cross(&xa, &to_start, &self->axis);
+	Vec3_cross(&xb, &seg, &self->axis);
+	a = Vec3_len_sq(&xb);
+	b = 2.0f * Vec3_dot(&xb, &xa);
+	c = Vec3_len_sq(&xa) - (r2 * self->len_sq);
+	bb4ac = b*b - 4.0f * a * c;
+	// printf("r2 = %f\n", r2);
+	// printf("a = %f, b = %f, c = %f, bb4ac = %f\n", a, b, c, bb4ac);
+	if (fabs(bb4ac) <= EPSILON) {
+		/* intersects at single point */
+		t = -b / (2.0f * a);
+	} else if (bb4ac >= -EPSILON) {
+		/* 2-point intersection */
+		bb4ac = sqrtf(bb4ac);
+		t1 = (-b - bb4ac) / (2.0f * a);
+		t2 = (-b + bb4ac) / (2.0f * a);
+		t = ((t2 < 0.0f) | (t2 > 1.0f)) ? t1 : 
+			((t1 < 0.0f) | (t1 > 1.0f)) ? t2 :
+			min(t1, t2);
+		// printf("t1 = %f, t2 = %f\n", t1, t2);
+	} else if (collided) {
+		/* collided only against an end cap */
+		return pack_vectors(&end, &norm);
+	} else {
+		Py_INCREF(NO_INTERSECTION);
+		return NO_INTERSECTION;
+	}
+	if ((t < 0.0f) | (t > 1.0f)) {
+		/* intersection point not in segment */
+		Py_INCREF(NO_INTERSECTION);
+		return NO_INTERSECTION;
+	}
+	// printf("t = %f\n", t);
+	Vec3_scalar_muli(&seg, t);
+	Vec3_add(&tp, &start, &seg);
+	/* Project the intersection point of the infinite cylinder 
+	   onto the axis to determine if it truly intersects
+	   and allow us to compute the normal */
+	Vec3_sub(&tmp, &tp, &self->end_point0);
+	t = Vec3_dot(&self->axis_norm, &tmp);
+
+	if ((t >= 0.0f) & (t <= self->len)) {
+		/* Intersects middle of cylinder */
+		if (collided) {
+			Vec3_sub(&tmp, &tp, &start);
+			if (d2 <= Vec3_len_sq(&tmp)) {
+				/* Other collisions were closer */
+				return pack_vectors(&end, &norm);
+			}
+		}
+		Vec3_scalar_mul(&tmp, &self->axis_norm, t);
+		Vec3_addi(&tmp, &self->end_point0);
+		Vec3_sub(&norm, &tp, &tmp);
+		Vec3_scalar_muli(&norm, dir);
+		Vec3_normalize(&norm, &norm);
+		// printf("collided middle\n");
+		return pack_vectors(&tp, &norm);
+	}
+	if (collided) {
+		return pack_vectors(&end, &norm);
+	}
+	Py_INCREF(NO_INTERSECTION);
+	return NO_INTERSECTION;
+}
+
+static int Cylinder_set_end_point0(CylinderDomainObject *self, PyObject *value, void *closure)
+{
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError, "Cannot delete end_point0 attribute");
+		return -1;
+	}
+	if (!Vec3_FromSequence(&self->end_point0, value)) {
+		return -1;
+	}
+	return CylinderDomain_setup_rot(self);
+}
+
+static int Cylinder_set_end_point1(CylinderDomainObject *self, PyObject *value, void *closure)
+{
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError, "Cannot delete end_point1 attribute");
+		return -1;
+	}
+	if (!Vec3_FromSequence(&self->end_point1, value)) {
+		return -1;
+	}
+	return CylinderDomain_setup_rot(self);
+}
+
+static PyMethodDef CylinderDomain_methods[] = {
+	{"generate", (PyCFunction)CylinderDomain_generate, METH_NOARGS,
+		PyDoc_STR("generate() -> Vector\n"
+			"Return a random point in the cylinder volume")},
+	{"intersect", (PyCFunction)CylinderDomain_intersect, METH_VARARGS,
+		PyDoc_STR("intersect() -> point, normal\n"
+			"Intersect the line segment with the cylinder return the intersection\n"
+			"point and normal vector pointing into space on the same side of the\n"
+			"surface as the start point.\n\n"
+			"If the line does not intersect, or lies completely in the cylinder\n"
+			"return (None, None)")},
+	{NULL,		NULL}		/* sentinel */
+};
+
+static PyMemberDef CylinderDomain_members[] = {
+    {"inner_radius", T_FLOAT, offsetof(CylinderDomainObject, inner_radius), 0,
+        "Inner radius of disc. Set to zero for a solid circle"},
+    {"outer_radius", T_FLOAT, offsetof(CylinderDomainObject, outer_radius), 0,
+        "Outer radius of disc. Must be >= inner_radius"},
+	{"length", T_FLOAT, offsetof(CylinderDomainObject, len), RO,
+		"Length of cylinder axis"},
+	{NULL}
+};
+
+static PyGetSetDef CylinderDomain_descriptors[] = {
+	{"end_point0", (getter)Vector_get, (setter)Cylinder_set_end_point0, 
+		"End point of cylinder axis", (void *)offsetof(CylinderDomainObject, end_point0)},
+	{"end_point1", (getter)Vector_get, (setter)Cylinder_set_end_point1, 
+		"End point of cylinder axis", (void *)offsetof(CylinderDomainObject, end_point1)},
+	{NULL}
+};
+
+static int
+CylinderDomain_contains(CylinderDomainObject *self, PyObject *pt)
+{
+	Vec3 point, from_end, tmp;
+	float inner_r2, outer_r2, dist2, c;
+
+	pt = PySequence_Tuple(pt);
+	if (pt == NULL)
+		return -1;
+	if (!PyArg_ParseTuple(pt, "fff:__contains__", &point.x, &point.y, &point.z)) {
+		Py_DECREF(pt);
+		return -1;
+	}
+	Py_DECREF(pt);
+
+	inner_r2 = self->inner_radius*self->inner_radius;
+	outer_r2 = self->outer_radius*self->outer_radius;
+	Vec3_sub(&from_end, &point, &self->end_point0);
+	Vec3_cross(&tmp, &self->axis, &from_end);
+	dist2 = Vec3_len_sq(&tmp) / self->len_sq; /* sq distance from point to axis */
+	c = Vec3_dot(&self->axis_norm, &from_end);
+	return ((inner_r2 - dist2) < EPSILON) & ((dist2 - outer_r2) < EPSILON) 
+		& (c >= 0.0f) & (c <= self->len);
+}
+
+static PySequenceMethods CylinderDomain_as_sequence = {
+	0,		/* sq_length */
+	0,		/* sq_concat */
+	0,		/* sq_repeat */
+	0,	    /* sq_item */
+	0,		/* sq_slice */
+	0,		/* sq_ass_item */
+	0,	    /* sq_ass_slice */
+	(objobjproc)CylinderDomain_contains,	/* sq_contains */
+};
+
+PyDoc_STRVAR(CylinderDomain__doc__, 
+	"Capped right-cylinder domain with arbitrary orientation\n\n"
+	"Cylinder(end_point0, end_point1, outer_radius, inner_radius=0)\n\n"
+	"end_point0 -- End point of cylinder axis\n"
+	"end_point1 -- End point of cylinder axis\n"
+	"outer_radius -- The outer radius of the cylinder volume.\n"
+	"inner_radius -- The inner radius of the cylinder, must be <= outer_radius.\n"
+	"defaults to 0, which creates a solid volume");
+
+static PyTypeObject CylinderDomain_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"domain.Cylinder",		/*tp_name*/
+	sizeof(CylinderDomainObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)Domain_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	&CylinderDomain_as_sequence, /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	0,                      /*tp_call*/
+	0,                      /*tp_str*/
+	0, /*tp_getattro*/
+	0, /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	CylinderDomain__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	CylinderDomain_methods,  /*tp_methods*/
+	CylinderDomain_members,  /*tp_members*/
+	CylinderDomain_descriptors, /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)CylinderDomain_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
 
 PyMODINIT_FUNC
 init_domain(void)
@@ -1344,6 +1761,11 @@ init_domain(void)
 	DiscDomain_Type.tp_alloc = PyType_GenericAlloc;
 	DiscDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&DiscDomain_Type) < 0)
+		return;
+
+	CylinderDomain_Type.tp_alloc = PyType_GenericAlloc;
+	CylinderDomain_Type.tp_new = PyType_GenericNew;
+	if (PyType_Ready(&CylinderDomain_Type) < 0)
 		return;
 
 	/* Create the module and add the types */
@@ -1388,7 +1810,6 @@ init_domain(void)
 	if (center_str == NULL)
 		return;
 
-
 	Py_INCREF(&LineDomain_Type);
 	PyModule_AddObject(m, "Line", (PyObject *)&LineDomain_Type);
 	Py_INCREF(&PlaneDomain_Type);
@@ -1399,6 +1820,8 @@ init_domain(void)
 	PyModule_AddObject(m, "Sphere", (PyObject *)&SphereDomain_Type);
 	Py_INCREF(&DiscDomain_Type);
 	PyModule_AddObject(m, "Disc", (PyObject *)&DiscDomain_Type);
+	Py_INCREF(&CylinderDomain_Type);
+	PyModule_AddObject(m, "Cylinder", (PyObject *)&CylinderDomain_Type);
 
 	rand_seed(time(NULL));
 }

@@ -350,6 +350,10 @@ class DomainTest(unittest.TestCase):
 	def test_hollow_disc_generate_contains(self):
 		from lepton.domain import Disc
 		disc = Disc((0, 1, 2), (0, 1, 0), 2, 1)
+		self.assertEqual(tuple(disc.center), (0, 1, 2))
+		self.assertEqual(tuple(disc.normal), (0, 1, 0))
+		self.assertEqual(disc.inner_radius, 1)
+		self.assertEqual(disc.outer_radius, 2)
 		for i in range(20):
 			x, y, z = disc.generate()
 			mag = x**2 + (y - 1)**2 + (z - 2)**2
@@ -450,6 +454,159 @@ class DomainTest(unittest.TestCase):
 				disc.intersect(start, end), (None, None))
 			self.assertEqual(
 				disc.intersect(end, start), (None, None))
+	
+	def test_cylinder_length(self):
+		from lepton.domain import Cylinder
+		cyl = Cylinder((0,0,0), (2,0,0), 1)
+		self.assertEqual(cyl.length, 2)
+		self.assertVector(cyl.end_point0, (0,0,0))
+		self.assertVector(cyl.end_point1, (2,0,0))
+		cyl = Cylinder((1,0,-1), (3,2,1), 1)
+		self.assertAlmostEqual(cyl.length, math.sqrt(12), 5)
+		self.assertVector(cyl.end_point0, (1,0,-1))
+		self.assertVector(cyl.end_point1, (3,2,1))
+
+		# Changing end points shoud adjust length
+		cyl.end_point0 = (3, 0, -1)
+		self.assertAlmostEqual(cyl.length, math.sqrt(8), 5)
+		cyl.end_point1 = (5, 0, -1)
+		self.assertAlmostEqual(cyl.length, 2, 5)
+
+	def test_solid_cyl_generate_contains(self):
+		from lepton.domain import Cylinder
+		cyl = Cylinder((0, 1, 2), (0, 2, 2), 2)
+		for i in range(20):
+			x, y, z = cyl.generate()
+			mag = x**2 + (z - 2)**2
+			self.failUnless(mag <= 4, ((x, y), mag))
+			self.failUnless(1 <= y <= 2, y)
+			self.failUnless((x, y, z) in cyl, (x, y ,z))
+
+		self.failUnless((0, 1, 2) in cyl)
+		self.failUnless((0, 2, 2) in cyl)
+		self.failUnless((2, 1.5, 2) in cyl)
+		self.failUnless((-2, 1.5, 2) in cyl)
+		self.failIf((2.1, 1, 2) in cyl)
+		self.failIf((-2.1, 1, 2) in cyl)
+		self.failIf((0, 0, 2) in cyl)
+		self.failIf((0, 2.1, 2) in cyl)
+
+	def test_hollow_cyl_generate_contains(self):
+		from lepton.domain import Cylinder
+		cyl = Cylinder((-1, -1, 0), (-3, -1, 0), 2, 1)
+		for i in range(20):
+			x, y, z = cyl.generate()
+			mag = (y + 1)**2 + z**2
+			self.failUnless(1 <= mag <= 4, ((y, z), mag))
+			self.failUnless(-3 <= x <= -1, y)
+			self.failUnless((x, y, z) in cyl, (x, y ,z))
+
+		self.failUnless((-1.5, -2, 0) in cyl)
+		self.failUnless((-2, -1, -1) in cyl)
+		self.failUnless((-3, 0, 0) in cyl)
+		self.failUnless((-1, 0, 0) in cyl)
+		self.failIf((-2, 2, 0) in cyl)
+		self.failIf((-2, -1, 2.1) in cyl)
+		self.failIf((0, 0, 2) in cyl)
+		self.failIf((0, 2.1, 2) in cyl)
+		self.failIf((-1, -1, 0) in cyl)
+		self.failIf((-2, -1, 0) in cyl)
+		self.failIf((-3, -1, 0) in cyl)
+
+	def test_shell_cyl_generate_contains(self):
+		from lepton.domain import Cylinder
+		cyl = Cylinder((2, 3, 4), (2, 3, 6), 2, 2)
+		for i in range(20):
+			x, y, z = cyl.generate()
+			mag = (x - 2)**2 + (y - 3)**2
+			self.assertAlmostEqual(mag, 4.0, 4)
+			self.failUnless(4 <= z <= 6, z)
+			self.failUnless((x, y, z) in cyl, (x, y ,z))
+
+	def test_solid_cyl_intersect(self):
+		from lepton.domain import Cylinder
+		from lepton.particle_struct import Vec3
+		cyl = Cylinder((0,-1,0), (0,1,0), 1)
+		lines = [
+			((-2, 0, 0), (0, 0, 0)),
+			((2, 1, 0), (0, 1, 0)),
+			((0, 0, -2), (0, 0, 5)),
+			((0, 2, 0.5), (0, 0, 0.5)),
+			((0.5, -3, 0), (0.5, -0.5, 0)),
+		]
+		expected = [
+			((-1, 0, 0), (-1, 0, 0)),
+			((1, 1, 0), (1, 0, 0)),
+			((0, 0, -1), (0, 0, -1)),
+			((0, 1, 0.5), (0, 1, 0)),
+			((0.5, -1, 0), (0, -1, 0)),
+		]
+
+		for (start, end), (point, normal) in zip(lines, expected):
+			p, N = cyl.intersect(start, end)
+			self.assertVector(p, point)
+			self.assertVector(N, normal)
+
+			# Reverse direction should yield same point and inverse normal
+			p, N = cyl.intersect(end, start)
+			self.assertVector(p, point)
+			self.assertVector(N, -Vec3(*normal))
+
+	def test_solid_cyl_no_intersect(self):
+		from lepton.domain import Cylinder
+		cyl = Cylinder((-1,-1,0), (1,1,0), 4, 0)
+		for start, end in [
+			((-1, -1, 0), (-2, -1, 0)),
+			((1, 1, 0), (1, 1.1, 0)),
+			((-5, -5, 0), (-3, -3, 0)),
+			((-2, -2, 4.1), (2, 2, 4.1)),
+			((-2, -2, -2), (-2, -2, -2)),
+			((-2, 10, 20), (-5, 15, 19))]:
+			self.assertEqual(
+				cyl.intersect(start, end), (None, None))
+			self.assertEqual(
+				cyl.intersect(end, start), (None, None))
+
+	def test_hollow_cyl_intersect(self):
+		from lepton.domain import Cylinder
+		from lepton.particle_struct import Vec3
+		cyl = Cylinder((3,1,0), (5,1,0), 2, 1)
+		lines = [
+			((4, 4, 0), (4, 2, 0)),
+			((3, 4, 0), (6, 1, 0)),
+			((4, 1, 0), (4, 4, 0)),
+			((2, 2.5, 0), (4, 2.5, 0)),
+			((2, 1 , 0.5), (4, 1, 2.5)),
+		]
+		expected = [
+			((4, 3, 0), (0, 1, 0)),
+			((4, 3, 0), (0, 1, 0)),
+			((4, 2, 0), (0, -1, 0)),
+			((3, 2.5, 0), (-1, 0, 0)),
+			((3, 1, 1.5), (-1, 0, 0)),
+		]
+
+		for (start, end), (point, normal) in zip(lines, expected):
+			p, N = cyl.intersect(start, end)
+			self.assertVector(p, point)
+			self.assertVector(N, normal)
+
+	def test_hollow_cyl_no_intersect(self):
+		from lepton.domain import Cylinder
+		cyl = Cylinder((0,1,-5), (0,1,0), 5, 1)
+		for start, end in [
+			((0, 1, -6), (0, 1, 1)),
+			((0, 1.5, -2), (0, 0.5, -1)),
+			((-10, 1, -5.1), (10, 1, -5.1)),
+			((0, -5, 0.1), (0, 1, 0.1)),
+			((0, 1, -3), (0, 1, -3)),
+			((5, 1, -4), (5, 1, -1)),
+			((-2, 10, 20), (-5, 15, 19))]:
+			self.assertEqual(
+				cyl.intersect(start, end), (None, None))
+			self.assertEqual(
+				cyl.intersect(end, start), (None, None))
+
 
 if __name__=='__main__':
 	unittest.main()
