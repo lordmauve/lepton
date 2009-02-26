@@ -1770,6 +1770,502 @@ static PyTypeObject CylinderDomain_Type = {
 	0,                      /*tp_is_gc*/
 };
 
+/* --------------------------------------------------------------------- */
+
+static PyTypeObject ConeDomain_Type;
+
+typedef struct {
+	PyObject_HEAD
+	Vec3 apex;
+	Vec3 base;
+	Vec3 axis;
+	Vec3 axis_norm;
+	Vec3 up;
+	Vec3 right;
+	float len;
+	float len_sq;
+	float inner_radius;
+	float outer_radius;
+	float inner_cosa;
+	float outer_cosa;
+} ConeDomainObject;
+
+/* Recalculate afer changing cone radii */
+static void
+ConeDomain_set_radius(ConeDomainObject *self)
+{
+	Vec3 wall, offset;
+
+	Vec3_scalar_mul(&offset, &self->right, self->outer_radius);
+	Vec3_add(&wall, &self->axis, &offset);
+	Vec3_normalize(&wall, &wall);
+	self->outer_cosa = Vec3_dot(&self->axis_norm, &wall);
+	if (self->inner_radius) {
+		Vec3_scalar_mul(&offset, &self->right, self->inner_radius);
+		Vec3_add(&wall, &self->axis, &offset);
+		Vec3_normalize(&wall, &wall);
+		self->inner_cosa = Vec3_dot(&self->axis_norm, &wall);
+	} else {
+		self->inner_cosa = 1.0f;
+	}
+}
+
+/* Setup rotation vectors after changing cone end points */
+static int
+ConeDomain_setup_rot(ConeDomainObject *self)
+{
+	Vec3_sub(&self->axis, &self->base, &self->apex);
+	self->len_sq = Vec3_len_sq(&self->axis);
+	self->len = sqrtf(self->len_sq);
+	if (self->len_sq < EPSILON || 
+		!Vec3_create_rot_vectors(&self->axis, &self->axis_norm, &self->up, &self->right)) {
+		PyErr_SetString(PyExc_ValueError, "Cone: Apex and end point too close");
+		return -1;
+	}
+	ConeDomain_set_radius(self);
+	return 0;
+}
+
+static int
+ConeDomain_init(ConeDomainObject *self, PyObject *args)
+{
+	self->inner_radius = 0.0f;
+	if (!PyArg_ParseTuple(args, "(fff)(fff)f|f:__init__",
+		&self->apex.x, &self->apex.y, &self->apex.z,
+		&self->base.x, &self->base.y, &self->base.z,
+		&self->outer_radius, &self->inner_radius))
+		return -1;
+
+	if (self->outer_radius < self->inner_radius) {
+		PyErr_SetString(PyExc_ValueError, 
+			"Cone: Expected outer_radius >= inner_radius");
+		return -1;
+	}
+	
+	return ConeDomain_setup_rot(self);
+}
+
+static PyObject *
+ConeDomain_generate(ConeDomainObject *self) 
+{
+	PyObject *x, *y, *z, *pt;
+	Vec3 center, point;
+	float d;
+
+	Vec3_copy(&center, &self->axis);
+	d = 1.0f - sqrtf(rand_uni());
+	Vec3_scalar_muli(&center, d);
+	Vec3_addi(&center, &self->apex);
+	generate_point_in_disc(&point, &center, self->inner_radius*d, self->outer_radius*d,
+		&self->up, &self->right);
+
+	x = PyFloat_FromDouble(point.x);
+	y = PyFloat_FromDouble(point.y);
+	z = PyFloat_FromDouble(point.z);
+	if (x == NULL || y == NULL || z == NULL) {
+		Py_XDECREF(x);
+		Py_XDECREF(y);
+		Py_XDECREF(z);
+		return NULL;
+	}
+	
+	pt = PyTuple_Pack(3, x, y, z);
+	Py_DECREF(x);
+	Py_DECREF(y);
+	Py_DECREF(z);
+	return pt;
+}
+
+/* Set point to the point on the segment at t
+   Return true if the point is in the segment and on the "right" side of the cone */
+static inline int
+cone_sect_point(Vec3 *point, Vec3 *seg_start, Vec3 *seg_norm, float seg_len, float t, 
+	Vec3 *cone_apex, Vec3 *cone_axis, float cone_len)
+{
+	Vec3 to_pt;
+	float h;
+
+	Vec3_scalar_mul(point, seg_norm, t);
+	Vec3_addi(point, seg_start);
+	Vec3_sub(&to_pt, point, cone_apex);
+	h = Vec3_dot(&to_pt, cone_axis);
+	// printf("t=%f, sl=%f, h=%f, cl=%f, valid=%d\n", t, seg_len, h, cone_len, (t > 0.0f) & (t <= seg_len) & (h > -EPSILON) & (h <= cone_len));
+	return (t > EPSILON) & (t <= seg_len) & (h > -EPSILON) & (h <= cone_len);
+}
+
+static int
+cone_intersect(Vec3 *sect_pt, Vec3 *sect_norm, 
+	Vec3 *cone_apex, Vec3 *cone_axis, float cone_cosa, float cone_len,
+	Vec3 *seg_start, Vec3 *seg_norm, float seg_len)
+{
+	/* Code derived from: http://www.geometrictools.com/Documentation/IntersectionLineCone.pdf */
+	Vec3 to_start, to_sect, pt1, pt2;
+	float cosa2, d1, d2, a, b, c, bbac;
+	float t1, t2 = FLT_MAX;
+	int pt1_valid, pt2_valid, at_apex;
+
+	d1 = Vec3_dot(cone_axis, seg_norm);
+	cosa2 = cone_cosa * cone_cosa;
+	Vec3_sub(&to_start, seg_start, cone_apex);
+	d2 = Vec3_dot(cone_axis, &to_start);
+	a = d1*d1 - cosa2;
+	b = d1*d2 - cosa2 * Vec3_dot(seg_norm, &to_start);
+	c = d2*d2 - cosa2 * Vec3_len_sq(&to_start);
+	pt2.x = pt2.y = pt2.z = 0.0f; /* shutup compiler warning */
+	// printf("a=%f, b=%f, c=%f\n", a, b, c);
+	
+	if ((a > EPSILON) | (a < -EPSILON)) {
+		bbac = b*b - a*c;
+		// printf("bbac=%f\n", bbac);
+		if (bbac < -EPSILON) {
+			return 0; /* no intersection */
+		} else if (bbac < EPSILON) { /* desr == 0 */
+			t1 = -b / a; /* intersects at single point */
+			pt1_valid = cone_sect_point(&pt1, seg_start, seg_norm, seg_len, 
+				t1, cone_apex, cone_axis, cone_len);
+			pt2_valid = 0;
+		} else {
+			/* two intersection points */
+			bbac = sqrtf(bbac);
+			t1 = (-b + bbac) / a;
+			pt1_valid = cone_sect_point(&pt1, seg_start, seg_norm, seg_len,
+				t1, cone_apex, cone_axis, cone_len);
+			t2 = (-b - bbac) / a;
+			pt2_valid = cone_sect_point(&pt2, seg_start, seg_norm, seg_len,
+				t2, cone_apex, cone_axis, cone_len);
+		}
+	} else if ((b > EPSILON) | (b < -EPSILON)) {
+		/* a = 0, b != 0 */
+		t1 = -0.5f * c / b;
+		// printf("t1=%f\n", t1);
+		pt1_valid = cone_sect_point(&pt1, seg_start, seg_norm, seg_len,
+			t1, cone_apex, cone_axis, cone_len);
+		pt2_valid = 0;
+	} else if ((c > EPSILON) | (c < -EPSILON)) {
+		/* a = b = 0, c != 0 */
+		return 0;
+	} else {
+		/* a = b = c = 0, intersects apex */
+		Vec3_copy(sect_pt, cone_apex);
+		Vec3_neg(sect_norm, cone_axis);
+		return 1;
+	}
+	if (pt1_valid & (!pt2_valid | (t1 <= t2))) {
+		Vec3_copy(sect_pt, &pt1);
+	} else if (pt2_valid & (!pt1_valid | (t2 <= t1))) {
+		Vec3_copy(sect_pt, &pt2);
+	} else {
+		return 0;
+	}
+	/* calculate the normal by projecting the point onto the axis 
+	   perpendicular to the cone surface */
+	Vec3_sub(&to_sect, sect_pt, cone_apex);
+	t1 = Vec3_dot(&to_sect, cone_axis) / cosa2;
+	Vec3_scalar_mul(&pt1, cone_axis, t1);
+	// printf("cosa2=%f, t1=%f, d=%f\n", cosa2, t1, Vec3_dot(&to_sect, cone_axis));
+	Vec3_addi(&pt1, cone_apex);
+	Vec3_sub(&pt1, sect_pt, &pt1);
+	at_apex = !Vec3_normalize(sect_norm, &pt1);
+	if (at_apex) {
+		Vec3_neg(sect_norm, cone_axis);
+	}
+	return 1;
+}
+		
+static PyObject *
+ConeDomain_intersect(ConeDomainObject *self, PyObject *args) 
+{
+	Vec3 start, end, to_start, seg, seg_norm, tmp, norm, tp, tn;
+	float d2, a, b, t2, seg_len;
+	float dir = 1.0f;
+	int collided = 0;
+
+	if (!PyArg_ParseTuple(args, "(fff)(fff):intersect",
+		&start.x, &start.y, &start.z,
+		&end.x, &end.y, &end.z))
+		return NULL;
+	
+	/* figure out where the start point is in relation to the 
+	   cone volume. It's either outside the outer cone, inside the
+	   inner cone or inside the cone volume
+	*/
+	Vec3_sub(&seg, &end, &start);
+	seg_len = Vec3_len(&seg);
+	if (seg_len) {
+		Vec3_scalar_div(&seg_norm, &seg, seg_len);
+		Vec3_sub(&to_start, &start, &self->apex);
+		Vec3_normalize(&to_start, &to_start);
+		a = Vec3_dot(&to_start, &self->axis_norm);
+		norm.x = norm.y = norm.z = 0.0f; /* shutup compiler warning */
+		d2 = FLT_MAX;
+		// printf("a=%f, cosa=%f\n", a, self->outer_cosa);
+		if (a <= self->inner_cosa) {
+			// printf("start outside\n");
+			/* start outside inner cone */
+			if (cone_intersect(&end, &norm,	
+				&self->apex, &self->axis_norm, self->outer_cosa, self->len,
+				&start, &seg_norm, seg_len)) {
+				Vec3_sub(&tmp, &end, &start);
+				d2 = Vec3_len_sq(&tmp);
+				collided = 1;
+				dir = (a <= self->outer_cosa) * 2.0f - 1.0f;
+			}
+		}
+		Vec3_sub(&to_start, &start, &self->base);
+		b = Vec3_dot(&to_start, &self->axis);
+		if ((b > 0.0f) | (a > self->inner_cosa)) {
+			/* start is "below" base plane or inside inner cone */
+			// printf("start below\n");
+			if (self->inner_cosa < 1.0f && cone_intersect(&tp, &tn, 
+				&self->apex, &self->axis_norm, self->inner_cosa, self->len,
+				&start, &seg_norm, seg_len)) {
+				Vec3_sub(&tmp, &tp, &start);
+				t2 = Vec3_len_sq(&tmp);
+				collided = 1;
+				if (t2 < d2) {
+					Vec3_copy(&end, &tp);
+					Vec3_copy(&norm, &tn);
+					d2 = t2;
+					dir = (a <= self->inner_cosa) * 2.0f - 1.0f;
+				}
+			}
+			if (disc_intersect(&tp, &tn,
+				&self->base, &self->axis_norm, Vec3_dot(&self->base, &self->axis_norm),
+				self->inner_radius*self->inner_radius, self->outer_radius*self->outer_radius,
+				&start, &seg)) {
+				Vec3_sub(&tmp, &tp, &start);
+				collided = 1;
+				if (Vec3_len_sq(&tmp) < d2) {
+					Vec3_copy(&end, &tp);
+					Vec3_copy(&norm, &tn);
+					dir = 1.0f;
+				}
+			}
+		}
+	} else {
+		Py_INCREF(NO_INTERSECTION);
+		return NO_INTERSECTION;
+	}
+	if (collided) {
+		// printf("dir=%f\n", dir);
+		Vec3_scalar_muli(&norm, dir);
+		return pack_vectors(&end, &norm);
+	} else {
+		Py_INCREF(NO_INTERSECTION);
+		return NO_INTERSECTION;
+	}
+}
+
+static int Cone_set_apex(ConeDomainObject *self, PyObject *value, void *closure)
+{
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError, "Cannot delete apex attribute");
+		return -1;
+	}
+	if (!Vec3_FromSequence(&self->apex, value)) {
+		return -1;
+	}
+	return ConeDomain_setup_rot(self);
+}
+
+static int Cone_set_base(ConeDomainObject *self, PyObject *value, void *closure)
+{
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError, "Cannot delete base attribute");
+		return -1;
+	}
+	if (!Vec3_FromSequence(&self->base, value)) {
+		return -1;
+	}
+	return ConeDomain_setup_rot(self);
+}
+
+static int Cone_set_inner_radius(ConeDomainObject *self, PyObject *value, void *closure)
+{
+	float radius;
+
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError, "Cannot delete inner_radius attribute");
+		return -1;
+	}
+	value = PyNumber_Float(value);
+	if (value != NULL) {
+		radius = PyFloat_AS_DOUBLE(value);
+		if (radius > self->outer_radius) {
+			PyErr_SetString(PyExc_ValueError, 
+				"Cone: Expected outer_radius >= inner_radius");
+			return -1;
+		}
+		self->inner_radius = radius;
+		ConeDomain_set_radius(self);
+		Py_DECREF(value);
+		return 0;
+	}
+	return -1;
+}
+
+static PyObject *
+Cone_get_inner_radius(ConeDomainObject *self, void *closure)
+{
+	return PyFloat_FromDouble(self->inner_radius);
+}
+
+static int Cone_set_outer_radius(ConeDomainObject *self, PyObject *value, void *closure)
+{
+	float radius;
+
+	if (value == NULL) {
+		PyErr_SetString(PyExc_TypeError, "Cannot delete outer_radius attribute");
+		return -1;
+	}
+	value = PyNumber_Float(value);
+	if (value != NULL) {
+		radius = PyFloat_AS_DOUBLE(value);
+		if (radius < self->inner_radius) {
+			PyErr_SetString(PyExc_ValueError, 
+				"Cone: Expected outer_radius >= inner_radius");
+			return -1;
+		}
+		self->outer_radius = radius;
+		ConeDomain_set_radius(self);
+		Py_DECREF(value);
+		return 0;
+	}
+	return -1;
+}
+
+static PyObject *
+Cone_get_outer_radius(ConeDomainObject *self, void *closure)
+{
+	return PyFloat_FromDouble(self->outer_radius);
+}
+
+static PyMethodDef ConeDomain_methods[] = {
+	{"generate", (PyCFunction)ConeDomain_generate, METH_NOARGS,
+		PyDoc_STR("generate() -> Vector\n"
+			"Return a random point in the cylinder volume")},
+	{"intersect", (PyCFunction)ConeDomain_intersect, METH_VARARGS,
+		PyDoc_STR("intersect() -> point, normal\n"
+			"Intersect the line segment with the cylinder return the intersection\n"
+			"point and normal vector pointing into space on the same side of the\n"
+			"surface as the start point.\n\n"
+			"If the line does not intersect, or lies completely in the cylinder\n"
+			"return (None, None)")},
+	{NULL,		NULL}		/* sentinel */
+};
+
+static PyMemberDef ConeDomain_members[] = {
+	{"length", T_FLOAT, offsetof(ConeDomainObject, len), RO,
+		"Length of cylinder axis"},
+	{NULL}
+};
+
+static PyGetSetDef ConeDomain_descriptors[] = {
+	{"apex", (getter)Vector_get, (setter)Cone_set_apex, 
+		"End point of cylinder axis", (void *)offsetof(ConeDomainObject, apex)},
+	{"base", (getter)Vector_get, (setter)Cone_set_base, 
+		"End point of cylinder axis", (void *)offsetof(ConeDomainObject, base)},
+	{"inner_radius", (getter)Cone_get_inner_radius, (setter)Cone_set_inner_radius, 
+		"Inner radius of cone base. Set to zero for a solid volume", NULL},
+	{"outer_radius", (getter)Cone_get_outer_radius, (setter)Cone_set_outer_radius, 
+		"Outer radius of cone base. Must be >= inner_radius", NULL},
+	{NULL}
+};
+
+static int
+ConeDomain_contains(ConeDomainObject *self, PyObject *pt)
+{
+	Vec3 point, from_apex, from_base;
+	float axis_cos, base_cos;
+	int at_apex;
+
+	pt = PySequence_Tuple(pt);
+	if (pt == NULL)
+		return -1;
+	if (!PyArg_ParseTuple(pt, "fff:__contains__", &point.x, &point.y, &point.z)) {
+		Py_DECREF(pt);
+		return -1;
+	}
+	Py_DECREF(pt);
+
+	Vec3_sub(&from_apex, &point, &self->apex);
+	at_apex = !Vec3_normalize(&from_apex, &from_apex);
+	axis_cos = Vec3_dot(&from_apex, &self->axis_norm);
+	Vec3_sub(&from_base, &point, &self->base);
+	base_cos = Vec3_dot(&from_base, &self->axis_norm);
+	return at_apex | ((axis_cos - self->inner_cosa < EPSILON) 
+		& (self->outer_cosa - axis_cos < EPSILON)
+		& (base_cos <= 0.0f));
+}
+
+static PySequenceMethods ConeDomain_as_sequence = {
+	0,		/* sq_length */
+	0,		/* sq_concat */
+	0,		/* sq_repeat */
+	0,	    /* sq_item */
+	0,		/* sq_slice */
+	0,		/* sq_ass_item */
+	0,	    /* sq_ass_slice */
+	(objobjproc)ConeDomain_contains,	/* sq_contains */
+};
+
+PyDoc_STRVAR(ConeDomain__doc__, 
+	"Right-cone domain with arbitrary orientation\n\n"
+	"Cone(apex, base, outer_radius, inner_radius=0)\n\n"
+	"apex -- End point of cone axis at the apex where it tapers to zero radius.\n"
+	"base -- End point of cone axis at the base of the cone.\n"
+	"outer_radius -- The outer radius of the cone volume.\n"
+	"inner_radius -- The inner radius of the cone, must be <= outer_radius.\n"
+	"Describes the radius of a smaller cone that is subtracted from the larger\n"
+	"cone described by the outer_radius. defaults to 0, which creates a solid volume");
+
+static PyTypeObject ConeDomain_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"domain.Cone",		/*tp_name*/
+	sizeof(ConeDomainObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)Domain_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	&ConeDomain_as_sequence, /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	0,                      /*tp_call*/
+	0,                      /*tp_str*/
+	0, /*tp_getattro*/
+	0, /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	ConeDomain__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	ConeDomain_methods,  /*tp_methods*/
+	ConeDomain_members,  /*tp_members*/
+	ConeDomain_descriptors, /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)ConeDomain_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
+
 PyMODINIT_FUNC
 init_domain(void)
 {
@@ -1804,6 +2300,11 @@ init_domain(void)
 	CylinderDomain_Type.tp_alloc = PyType_GenericAlloc;
 	CylinderDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&CylinderDomain_Type) < 0)
+		return;
+
+	ConeDomain_Type.tp_alloc = PyType_GenericAlloc;
+	ConeDomain_Type.tp_new = PyType_GenericNew;
+	if (PyType_Ready(&ConeDomain_Type) < 0)
 		return;
 
 	/* Create the module and add the types */
@@ -1860,6 +2361,8 @@ init_domain(void)
 	PyModule_AddObject(m, "Disc", (PyObject *)&DiscDomain_Type);
 	Py_INCREF(&CylinderDomain_Type);
 	PyModule_AddObject(m, "Cylinder", (PyObject *)&CylinderDomain_Type);
+	Py_INCREF(&ConeDomain_Type);
+	PyModule_AddObject(m, "Cone", (PyObject *)&ConeDomain_Type);
 
 	rand_seed(time(NULL));
 }

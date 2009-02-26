@@ -23,7 +23,7 @@ class DomainTest(unittest.TestCase):
 	def assertVector(self, (x1, y1, z1), (x2,y2,z2), tolerance=0.0001):
 		self.failUnless(abs(x1 - x2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
 		self.failUnless(abs(y1 - y2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
-		self.failUnless(abs(z2 - z2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
+		self.failUnless(abs(z1 - z2) <= tolerance, ((x1, y1, z1), (x2,y2,z2)))
 
 	def test_point(self):
 		from lepton.domain import Point
@@ -249,7 +249,7 @@ class DomainTest(unittest.TestCase):
 		]
 		expected = [
 			((0, -1, 2), (0, -1, 0)),
-			((math.sin(math.pi/4)*2, math.sin(math.pi/4)*2+1, math.sin(math.pi/4)*2+2), 
+			((math.sin(math.pi/4)*2, math.sin(math.pi/4)*2+1, 2), 
 				Vec3(1, 1, 0).normalize()),
 			((0, -1, 2), (0, -1, 0)),
 		]
@@ -299,7 +299,7 @@ class DomainTest(unittest.TestCase):
 		expected = [
 			((2, 1, 0), (0, 0, -1)),
 			((3, 1, -1), (-1, 0, 0)),
-			((math.sin(math.pi/4)*3+2, math.sin(math.pi/4)*3+1, math.sin(math.pi/4)*3-1), 
+			((math.sin(math.pi/4)*3+2, math.sin(math.pi/4)*3+1, -1),
 				Vec3(1, 1, 0).normalize()),
 			((2, 2, -1), (0, 1, 0)),
 		]
@@ -405,7 +405,7 @@ class DomainTest(unittest.TestCase):
 			((3, normal.y, 1), (-3, normal.y, 1)),
 		]
 		expected = [
-			((-2, 0, 1), -normal),
+			((-2, 0, 0), -normal),
 			((-2, 0, 1), normal),
 			((-2 - normal.x, normal.y, 1), normal),
 		]
@@ -546,7 +546,7 @@ class DomainTest(unittest.TestCase):
 		lines = [
 			((-2, 0, 0), (0, 0, 0)),
 			((2, 1, 0), (0, 1, 0)),
-			((0, 0, -2), (0, 0, 5)),
+			((0, 0, -2), (0, 0, 0.8)),
 			((0, 2, 0.5), (0, 0, 0.5)),
 			((0.5, -3, 0), (0.5, -0.5, 0)),
 		]
@@ -585,7 +585,6 @@ class DomainTest(unittest.TestCase):
 
 	def test_hollow_cyl_intersect(self):
 		from lepton.domain import Cylinder
-		from lepton.particle_struct import Vec3
 		cyl = Cylinder((3,1,0), (5,1,0), 2, 1)
 		lines = [
 			((4, 4, 0), (4, 2, 0)),
@@ -623,6 +622,186 @@ class DomainTest(unittest.TestCase):
 			self.assertEqual(
 				cyl.intersect(end, start), (None, None))
 
+	def test_solid_cone_generate_contains(self):
+		from lepton.domain import Cone
+		cone = Cone((-2, 0, 4), (-2, 2, 4), 2)
+		for i in range(20):
+			x, y, z = cone.generate()
+			dist = math.sqrt(abs(x + 2)**2 + abs(z - 4)**2)
+			self.failUnless(dist <= y * 2, (x, y, z))
+			self.failUnless(0 <= y <= 2, y)
+			self.failUnless((x, y, z) in cone, (x, y ,z))
+
+		self.failUnless((-2, 0, 4) in cone)
+		self.failUnless((-2, 1, 4) in cone)
+		self.failUnless((-2.5, 0.5, 4) in cone)
+		self.failUnless((-2, 1, 5) in cone)
+		self.failIf((-2.1, 0, 4) in cone)
+		self.failIf((-2, 2.1, 4) in cone)
+		self.failIf((-100, 0, 1000) in cone)
+		self.failIf((0, 0, 0) in cone)
+	
+	def test_nonaa_cone_generate_contains(self):
+		# Test arbitrarily aligned cone
+		from lepton.domain import Cone
+		cone = Cone((-20, 12.5, -2.1), (-30, -10.22, 5.602), 5.77)
+		for i in range(20):
+			x, y, z = cone.generate()
+			self.failUnless((x, y, z) in cone, (x, y ,z))
+
+	def test_hollow_cone_generate_contains(self):
+		from lepton.domain import Cone
+		cone = Cone((1, -2, -1), (1, -2, 3), 3, 1)
+		for i in range(20):
+			x, y, z = cone.generate()
+			r = (z + 1) / 4.0
+			dist = math.sqrt(abs(x - 1)**2 + abs(y + 2)**2)
+			self.failUnless(r <= dist <= r * 3 , (x, y, z, r))
+			self.failUnless(-1 <= z <= 3, z)
+			self.failUnless((x, y, z) in cone, (x, y ,z))
+
+		self.failUnless((1, -2, -1) in cone)
+		self.failUnless((1, -3.5, 3) in cone)
+		self.failUnless((2, -2, 1) in cone)
+		self.failIf((-1, -2, -0.9) in cone)
+		self.failIf((1, -2, 3) in cone)
+		self.failIf((-100, 0, 1000) in cone)
+		self.failIf((0, 0, 0) in cone)
+
+	def test_shell_cone_generate_contains(self):
+		from lepton.domain import Cone
+		cone = Cone((0, 0, 0), (-10, 0, 0), 3, 3)
+		for i in range(20):
+			x, y, z = cone.generate()
+			r = -x * 3.0 / 10.0
+			dist = math.sqrt(abs(y)**2 + abs(z)**2)
+			self.assertAlmostEqual(dist, r, 4)
+			self.failUnless(-10 <= x <= 0, z)
+			self.failUnless((x, y, z) in cone, (x, y ,z))
+
+		self.failUnless((0, 0, 0) in cone)
+		self.failUnless((-10, 3, 0) in cone)
+		self.failUnless((-10, 0, 3) in cone)
+		self.failUnless((-5, 0, 1.5) in cone)
+		self.failIf((-10, 0, 0) in cone)
+		self.failIf((0.1, 0, 0) in cone)
+		self.failIf((-0.1, 0, 0) in cone)
+		self.failIf((-100, 0, 1000) in cone)
+	
+	def test_cone_apex_base_length(self):
+		from lepton.domain import Cone
+		from lepton.particle_struct import Vec3
+		cone = Cone((2,2,2), (4,2,2), 2)
+		self.assertVector(cone.apex, (2,2,2))
+		self.assertVector(cone.base, (4,2,2))
+		self.assertEqual(cone.length, 2)
+		cone.apex = (2.5, 2, 2)
+		self.assertVector(cone.apex, (2.5,2,2))
+		self.assertVector(cone.base, (4,2,2))
+		self.assertEqual(cone.length, 1.5)
+		cone.base = (3, 3, 3)
+		self.assertVector(cone.apex, (2.5,2,2))
+		self.assertVector(cone.base, (3,3,3))
+		self.assertEqual(cone.length, (Vec3(2.5,2,2) - Vec3(3,3,3)).length())
+	
+	def test_cone_radii(self):
+		from lepton.domain import Cone
+		cone = Cone((3,6,1), (9,1,3), 5, 4)
+		self.assertEqual(cone.inner_radius, 4)
+		self.assertEqual(cone.outer_radius, 5)
+		cone.inner_radius = 3
+		cone.outer_radius = 6
+		self.assertEqual(cone.inner_radius, 3)
+		self.assertEqual(cone.outer_radius, 6)
+		self.assertRaises(ValueError, setattr, cone, "inner_radius", 7)
+		self.assertEqual(cone.inner_radius, 3)
+		self.assertRaises(ValueError, setattr, cone, "outer_radius", 2)
+		self.assertEqual(cone.outer_radius, 6)
+
+	def test_solid_cone_intersect(self):
+		from lepton.domain import Cone
+		from lepton.particle_struct import Vec3
+		cone = Cone((0,1,0), (0,-1,0), 2)
+		lines = [
+			((-2, 0, 0), (0, 0, 0)),
+			((3, 1, 0), (-1, 1, 0)),
+			((0, 0, -2), (0, 0, 5)),
+			((0.5, -3, 0), (0.5, -0.5, 0)),
+			((-1, 2, 0), (1, 0, 0)),
+			((-5, -2, 0), (5, 0, 0)),
+			((0, 10, 1), (0, -10, 1)),
+			((1, 1, 0), (-1, -1, 0)),
+			((0, 0, 0), (3, 0, 0)),
+		]
+		expected = [
+			((-1, 0, 0), Vec3(-1, 1, 0).normalize()),
+			((0, 1, 0), (0, 1, 0)),
+			((0, 0, -1), Vec3(0, 1, -1).normalize()),
+			((0.5, -1, 0), (0, -1, 0)),
+			((0, 1, 0), (0, 1, 0)),
+			((0, -1, 0), (0, -1, 0)),
+			((0, 0, 1), Vec3(0, 1, 1).normalize()),
+			((0.5, 0.5, 0), Vec3(1, 1, 0).normalize()),
+			((1, 0, 0), Vec3(-1, -1, 0).normalize()),
+		]
+
+		for (start, end), (point, normal) in zip(lines, expected):
+			p, N = cone.intersect(start, end)
+			self.assertVector(p, point)
+			self.assertVector(N, normal)
+
+	def test_solid_cone_no_intersect(self):
+		from lepton.domain import Cone
+		cone = Cone((-1,-1,0), (1,1,0), 4, 0)
+		for start, end in [
+			((-1, -1, 0), (-2, -1, 0)),
+			((1, 1, 0), (1, 1.1, 0)),
+			((-3, 7, 0), (7, -3, 0)),
+			((-5, -5, 0), (-3, -3, 0)),
+			((-2, -2, 4.1), (2, 2, 4.1)),
+			((-2, -2, -2), (-2, -2, -2)),
+			((-2, 10, 20), (-5, 15, 19))]:
+			self.assertEqual(
+				cone.intersect(start, end), (None, None))
+	
+	def test_hollow_cone_intersect(self):
+		from lepton.domain import Cone
+		from lepton.particle_struct import Vec3
+		cone = Cone((0,0,2), (0,0,-1), 3, 1)
+		lines = [
+			((0, 0, -3), (0, 0, 3)),
+			((0, -5, 0), (0, 5, 0)),
+			((0, 0, 0), (0, 5, 0)),
+			((2, 0, -2), (2, 0, 0)),
+			((0.5, 0, -3), (0.5, 0, 3)),
+		]
+		expected = [
+			((0, 0, 2), (0, 0, -1)),
+			((0, -2, 0), Vec3(0, -1, 1).normalize()),
+			((0, 2.0/3.0, 0), Vec3(0, -3, -1).normalize()),
+			((2, 0, -1), (0, 0, -1)),
+			((0.5, 0, 0.5), Vec3(-3, 0, -1).normalize()),
+		]
+
+		for (start, end), (point, normal) in zip(lines, expected):
+			p, N = cone.intersect(start, end)
+			self.assertVector(p, point)
+			self.assertVector(N, normal)
+
+	def test_hollow_cone_no_intersect(self):
+		from lepton.domain import Cone
+		cone = Cone((-1,-1,0), (1,1,0), 4, 3)
+		for start, end in [
+			((-1, -1, 0), (-2, -1, 0)),
+			((1, 1, 0), (1, 1.1, 0)),
+			((-3, 7, 0), (7, -3, 0)),
+			((-5, -5, 0), (-3, -3, 0)),
+			((-2, -2, 4.1), (2, 2, 4.1)),
+			((-2, -2, -2), (-2, -2, -2)),
+			((1, 1 ,0), (0, 0, 0)),
+			((-2, 10, 20), (-5, 15, 19))]:
+			self.assertEqual(
+				cone.intersect(start, end), (None, None))
 
 if __name__=='__main__':
 	unittest.main()

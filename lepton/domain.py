@@ -19,7 +19,7 @@ behavior
 __version__ = '$Id$'
 
 from particle_struct import Vec3
-from _domain import Line, Plane, AABox, Sphere, Disc, Cylinder
+from _domain import Line, Plane, AABox, Sphere, Disc, Cylinder, Cone
 
 
 class Domain(object):
