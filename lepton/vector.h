@@ -157,9 +157,7 @@ static inline int Color_FromSequence(Color *dest, PyObject *sequence);
 
 static inline float Vec3_len(Vec3 *v) 
 {
-	float len;
-	len = Vec3_len_sq(v);
-	return len * InvSqrt(len);
+	return sqrtf(Vec3_len_sq(v));
 }
 
 static inline void Vec3_lerp(Vec3 *result, float t, const Vec3 *v0, const Vec3 *v1)
