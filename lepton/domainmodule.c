@@ -1161,13 +1161,13 @@ generate_point_in_disc(Vec3 *point, Vec3 *center,
 	} else {
 		/* hollow disc or circular shell */
 		do {
-			x = rand_uni() - 0.5f;
-			y = rand_uni() - 0.5f;
+			x = rand_norm(0.0f, 1.0f);
+			y = rand_norm(0.0f, 1.0f);
 			mag = (x*x) + (y*y);
 		} while (mag < EPSILON);
 		range = (outer_radius - inner_radius) / outer_radius;
 		/* Unfortunately InvSqrt() is not precise enough for shells */
-		mag = (1.0f / sqrtf(mag)) * (rand_uni() * range + (1.0f - range)) * outer_radius;
+		mag = (1.0f / sqrtf(mag)) * (sqrtf(rand_uni()) * range + (1.0f - range)) * outer_radius;
 		x *= mag;
 		y *= mag;
 	}
