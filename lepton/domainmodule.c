@@ -789,7 +789,7 @@ SphereDomain_generate(SphereDomainObject *self)
 	} while (mag2 < EPSILON);
 	Vec3_normalize_fast(&point, &point);
 	
-	dist = self->inner_radius + rand_uni() * (
+	dist = self->inner_radius + sqrtf(rand_uni()) * (
 		self->outer_radius - self->inner_radius);
 	Vec3_scalar_muli(&point, dist);
 
@@ -1853,7 +1853,7 @@ ConeDomain_generate(ConeDomainObject *self)
 	float d;
 
 	Vec3_copy(&center, &self->axis);
-	d = 1.0f - sqrtf(rand_uni());
+	d = sqrtf(rand_uni());
 	Vec3_scalar_muli(&center, d);
 	Vec3_addi(&center, &self->apex);
 	generate_point_in_disc(&point, &center, self->inner_radius*d, self->outer_radius*d,
