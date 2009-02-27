@@ -65,6 +65,19 @@ class DomainTest(unittest.TestCase):
 			self.failIf((x, y, x) in line)
 		self.assertEqual(line.intersect((1.0, 1.0, 2.0), (0, 2.0, 3.0)), (None, None))
 	
+	def test_line_closest_pt_to(self):
+		from lepton.domain import Line
+		from lepton.particle_struct import Vec3
+		line = Line((0, -1, 0), (0, 2, 0))
+		for point, closest, normal in [
+			((-1, 0, 0), (0, 0, 0), (-1, 0, 0)),
+			((1, 1, 1), (0, 1, 0), Vec3(1, 0, 1).normalize()),
+			((0, -2, 0), (0, -1, 0), (0, 0, 0)),
+			]:
+			p, N = line.closest_point_to(point)
+			self.assertVector(p, point)
+			self.assertVector(N, normal)
+	
 	def test_horizontal_Plane(self):
 		from lepton.domain import Plane
 

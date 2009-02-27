@@ -102,13 +102,51 @@ LineDomain_generate(LineDomainObject *self)
 	return pt;
 }
 
+static PyObject *
+LineDomain_closest_point_to(LineDomainObject *self, PyObject *args) 
+{
+	Vec3 point, closest, norm, tp, lv;
+	float mag2;
+
+	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
+		&point.x, &point.y, &point.z))
+		return NULL;
+
+	Vec3_sub(&lv, &self->end_point, &self->start_point);
+	Vec3_sub(&tp, &point, &self->start_point);
+	mag2 = Vec3_len_sq(&lv);
+	if (mag2 > EPSILON) {
+		float t = Vec3_dot(&tp, &lv) / mag2;
+		/* Use the closest point along the infinite line to calc the normal */
+		Vec3_scalar_mul(&closest, &lv, t);
+		Vec3_add(&closest, &self->start_point, &closest);
+		Vec3_sub(&norm, &point, &closest);
+		Vec3_normalize(&norm, &norm);
+		/* Find the closest point actually on the segment */
+		t = clamp(t, 0.0f, 1.0f);
+		Vec3_scalar_muli(&lv, t);
+		Vec3_add(&closest, &self->start_point, &lv);
+	} else {
+		/* zero-length line */
+		Vec3_copy(&closest, &self->start_point);
+		norm.x = norm.y = norm.z = 0.0f;
+	}
+
+	return pack_vectors(&point, &norm);
+}
+
 static PyMethodDef LineDomain_methods[] = {
 	{"generate", (PyCFunction)LineDomain_generate, METH_NOARGS,
 		PyDoc_STR("generate() -> Vector\n"
 			"Return a random point along the line segment domain")},
 	{"intersect", (PyCFunction)Domain_never_intersects, METH_VARARGS,
-		PyDoc_STR("intersect() -> point, normal\n"
+		PyDoc_STR("intersect(seg_start, seg_end) -> point, normal\n"
 			"You cannot intersect a line segment")},
+	{"closest_point_to", (PyCFunction)LineDomain_closest_point_to, METH_VARARGS,
+		PyDoc_STR("closest_point_to(point) -> point, normal\n"
+			"Returns the closest point and normal on the line\n"
+			"to the supplied point.")},
+
 	{NULL,		NULL}		/* sentinel */
 };
 
@@ -309,7 +347,7 @@ static PyMethodDef PlaneDomain_methods[] = {
 		PyDoc_STR("generate() -> Vector\n"
 			"Aways return the provided point on the plane")},
 	{"intersect", (PyCFunction)PlaneDomain_intersect, METH_VARARGS,
-		PyDoc_STR("intersect() -> point, normal\n"
+		PyDoc_STR("intersect(seg_start, seg_end) -> point, normal\n"
 			"Intersect the line segment with the plane return the intersection\n"
 			"point and normal vector pointing into space on the same side of the\n"
 			"plane as the start point.\n\n"
@@ -632,7 +670,7 @@ static PyMethodDef AABoxDomain_methods[] = {
 		PyDoc_STR("generate() -> Vector\n"
 			"Return a random point inside the box")},
 	{"intersect", (PyCFunction)AABoxDomain_intersect, METH_VARARGS,
-		PyDoc_STR("intersect() -> point, normal\n"
+		PyDoc_STR("intersect(seg_start, seg_end) -> point, normal\n"
 			"Intersect the line segment with the box return the first\n"
 			"intersection point and normal vector pointing into space from\n"
 			"the box side intersected.\n\n"
@@ -956,14 +994,14 @@ static PyMethodDef SphereDomain_methods[] = {
 		PyDoc_STR("generate() -> Vector\n"
 			"Return a random point inside the sphere or spherical shell")},
 	{"intersect", (PyCFunction)SphereDomain_intersect, METH_VARARGS,
-		PyDoc_STR("intersect() -> point, normal\n"
+		PyDoc_STR("intersect(seg_start, seg_end) -> point, normal\n"
 			"Intersect the line segment with the sphere and return the first\n"
 			"intersection point and normal vector pointing into space from\n"
 			"the sphere intersection point. If the sphere has an inner radius,\n"
 			"the intersection can occur on the inner or outer shell surface.\n\n"
 			"If the line does not intersect, return (None, None)")},
 	{"closest_point_to", (PyCFunction)SphereDomain_closest_point_to, METH_VARARGS,
-		PyDoc_STR("closest_point_to() -> Vector\n"
+		PyDoc_STR("closest_point_to(point) -> point, normal\n"
 			"Returns the closest point on the sphere's surface\n"
 			"to the supplied point.")},
 	{NULL,		NULL}		/* sentinel */
@@ -1263,7 +1301,7 @@ static PyMethodDef DiscDomain_methods[] = {
 		PyDoc_STR("generate() -> Vector\n"
 			"Return a random point in the disc")},
 	{"intersect", (PyCFunction)DiscDomain_intersect, METH_VARARGS,
-		PyDoc_STR("intersect() -> point, normal\n"
+		PyDoc_STR("intersect(seg_start, seg_end) -> point, normal\n"
 			"Intersect the line segment with the disc return the intersection\n"
 			"point and normal vector pointing into space on the same side of the\n"
 			"disc as the start point.\n\n"
@@ -1651,7 +1689,7 @@ static PyMethodDef CylinderDomain_methods[] = {
 		PyDoc_STR("generate() -> Vector\n"
 			"Return a random point in the cylinder volume")},
 	{"intersect", (PyCFunction)CylinderDomain_intersect, METH_VARARGS,
-		PyDoc_STR("intersect() -> point, normal\n"
+		PyDoc_STR("intersect(seg_start, seg_end) -> point, normal\n"
 			"Intersect the line segment with the cylinder return the intersection\n"
 			"point and normal vector pointing into space on the same side of the\n"
 			"surface as the start point.\n\n"
@@ -2145,7 +2183,7 @@ static PyMethodDef ConeDomain_methods[] = {
 		PyDoc_STR("generate() -> Vector\n"
 			"Return a random point in the cylinder volume")},
 	{"intersect", (PyCFunction)ConeDomain_intersect, METH_VARARGS,
-		PyDoc_STR("intersect() -> point, normal\n"
+		PyDoc_STR("intersect(seg_start, seg_end) -> point, normal\n"
 			"Intersect the line segment with the cylinder return the intersection\n"
 			"point and normal vector pointing into space on the same side of the\n"
 			"surface as the start point.\n\n"
