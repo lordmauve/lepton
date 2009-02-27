@@ -787,7 +787,7 @@ SphereDomain_generate(SphereDomainObject *self)
 		point.z = rand_norm(0.0f, 1.0f);
 		mag2 = Vec3_len_sq(&point);
 	} while (mag2 < EPSILON);
-	Vec3_normalize_fast(&point, &point);
+	Vec3_normalize(&point, &point);
 	
 	dist = self->inner_radius + sqrtf(rand_uni()) * (
 		self->outer_radius - self->inner_radius);
@@ -906,7 +906,7 @@ SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 	t = (start_dist2 <= r2) ? 1.0f : -1.0f;
 	Vec3_sub(&vec, &self->center, &end);
 	Vec3_scalar_muli(&vec, t);
-	Vec3_normalize_fast(&norm, &vec);
+	Vec3_normalize(&norm, &vec);
 	return pack_vectors(&end, &norm);
 }
 
@@ -933,13 +933,13 @@ SphereDomain_closest_point_to(SphereDomainObject *self, PyObject *args)
 
 	if (dist2 > outer_r2) {
 		/* common case,  point outside sphere */
-		Vec3_normalize_fast(&norm, &vec);
+		Vec3_normalize(&norm, &vec);
 		Vec3_copy(&vec, &norm);
 		Vec3_scalar_muli(&vec, self->outer_radius);
 		Vec3_add(&point, &vec, &self->center);
     } else if ((dist2 < inner_r2) & (dist2 > EPSILON)) {
 		/* point inside the inner radius */
-		Vec3_normalize_fast(&norm, &vec);
+		Vec3_normalize(&norm, &vec);
 		Vec3_copy(&vec, &norm);
 		Vec3_scalar_muli(&vec, self->inner_radius);
 		Vec3_add(&point, &vec, &self->center);
@@ -1612,7 +1612,7 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 		Vec3_addi(&tmp, &self->end_point0);
 		Vec3_sub(&norm, &tp, &tmp);
 		Vec3_scalar_muli(&norm, dir);
-		Vec3_normalize_fast(&norm, &norm);
+		Vec3_normalize(&norm, &norm);
 		return pack_vectors(&tp, &norm);
 	}
 	if (collided) {
