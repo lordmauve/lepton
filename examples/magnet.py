@@ -70,7 +70,7 @@ if __name__ == '__main__':
     # Attractive attractor    
     sphere = Sphere((0.0,0.0,0.0),proton_size)
     proton = Magnet(sphere, charge=2500.0, inner_cutoff=20.0)
-    proton.color = (0.1,0.7,0.1)
+    proton.color = (0.1,0.1,0.7)
     protons.append(proton)
     spheres.append(sphere)
 
@@ -99,7 +99,7 @@ if __name__ == '__main__':
         velocity=(3,1,1), 
         color=(0.0,0.0,0.0,0.0), 
         ),
-        color=[(0.1,1.0,0.1,1.0)]
+        color=[(0.1,0.1,1.0,1.0)]
 
     )
 
@@ -112,7 +112,7 @@ if __name__ == '__main__':
                 rotation=(0,0,math.pi),
                 velocity=(1,1,1),
                 size=(1.5,1.5,1.5),
-                color=(0.00,0.0,1.0,0.01),
+                color=(0.00,1.0,0.0,0.01),
                 age=trail_lifetime))
 
     trails = ParticleGroup(
