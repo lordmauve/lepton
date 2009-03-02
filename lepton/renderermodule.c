@@ -304,8 +304,8 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 
 			/* colors */
 			data[POINT0].color[0] = p->color.r * 255;
-			data[POINT0].color[1] = p->color.b * 255;
-			data[POINT0].color[2] = p->color.g * 255;
+			data[POINT0].color[1] = p->color.g * 255;
+			data[POINT0].color[2] = p->color.b * 255;
 			data[POINT0].color[3] = p->color.a * 255;
 			data[POINT1].colorl = data[POINT0].colorl;
 			data[POINT2].colorl = data[POINT0].colorl;
