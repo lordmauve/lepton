@@ -1350,6 +1350,7 @@ DiscDomain_closest_point_to(DiscDomainObject *self, PyObject *args)
 		/* Point on center axis */
 		Vec3_copy(&closest, &self->center);
 		norm.x = norm.y = norm.z = 0.0f;
+		return pack_vectors(&closest, &norm);
 	}
 	if (t >= 0.0f) {
 		Vec3_copy(&norm, &self->normal);

@@ -507,6 +507,9 @@ class DomainTest(unittest.TestCase):
 			((-2, 2, 2), (-2, 1.5, 1.5), Vec3(0, 1, 1).normalize()),
 			((-2, -1, 2), (-2, 0, 3), Vec3(0, -1, -1).normalize()),
 			((-3, 5, 8), (-3, 0, 3), Vec3(0, 1, 1).normalize()),
+			((-3, 1, 2), (-3, 1, 2), (0, 0, 0)),
+			((-3, 3, 4), (-3, 1, 2), (0, 0, 0)),
+			((-3, 0, 1), (-3, 1, 2), (0, 0, 0)),
 			]:
 			p, N = line.closest_point_to(point)
 			self.assertVector(p, closest)
