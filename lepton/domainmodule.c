@@ -131,8 +131,7 @@ LineDomain_closest_point_to(LineDomainObject *self, PyObject *args)
 		Vec3_copy(&closest, &self->start_point);
 		norm.x = norm.y = norm.z = 0.0f;
 	}
-
-	return pack_vectors(&point, &norm);
+	return pack_vectors(&closest, &norm);
 }
 
 static PyMethodDef LineDomain_methods[] = {
@@ -146,7 +145,6 @@ static PyMethodDef LineDomain_methods[] = {
 		PyDoc_STR("closest_point_to(point) -> point, normal\n"
 			"Returns the closest point and normal on the line\n"
 			"to the supplied point.")},
-
 	{NULL,		NULL}		/* sentinel */
 };
 
@@ -342,6 +340,28 @@ PlaneDomain_intersect(PlaneDomainObject *self, PyObject *args)
 	return NO_INTERSECTION;
 }
 
+static PyObject *
+PlaneDomain_closest_point_to(PlaneDomainObject *self, PyObject *args) 
+{
+	Vec3 point, closest, norm, tp;
+	float t;
+
+	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
+		&point.x, &point.y, &point.z))
+		return NULL;
+	
+	Vec3_sub(&tp, &point, &self->point);
+	t = Vec3_dot(&tp, &self->normal);
+	Vec3_scalar_mul(&tp, &self->normal, t);
+	Vec3_sub(&closest, &point, &tp);
+	if (t >= 0.0f) {
+		Vec3_copy(&norm, &self->normal);
+	} else {
+		Vec3_neg(&norm, &self->normal);
+	}
+	return pack_vectors(&closest, &norm);
+}
+
 static PyMethodDef PlaneDomain_methods[] = {
 	{"generate", (PyCFunction)PlaneDomain_generate, METH_NOARGS,
 		PyDoc_STR("generate() -> Vector\n"
@@ -353,6 +373,10 @@ static PyMethodDef PlaneDomain_methods[] = {
 			"plane as the start point.\n\n"
 			"If the line does not intersect, or lies completely in the plane\n"
 			"return (None, None)")},
+	{"closest_point_to", (PyCFunction)PlaneDomain_closest_point_to, METH_VARARGS,
+		PyDoc_STR("closest_point_to(point) -> point, normal\n"
+			"Returns the closest point and normal on the plane\n"
+			"to the supplied point.")},
 	{NULL,		NULL}		/* sentinel */
 };
 
@@ -1296,6 +1320,45 @@ DiscDomain_intersect(DiscDomainObject *self, PyObject *args)
 	}
 }
 
+static PyObject *
+DiscDomain_closest_point_to(DiscDomainObject *self, PyObject *args) 
+{
+	Vec3 point, closest, norm, tp;
+	float t, d2, outer_r2, inner_r2;
+
+	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
+		&point.x, &point.y, &point.z))
+		return NULL;
+	
+	outer_r2 = self->outer_radius*self->outer_radius;
+	inner_r2 = self->inner_radius*self->inner_radius;
+	Vec3_sub(&tp, &point, &self->center);
+	t = Vec3_dot(&tp, &self->normal);
+	Vec3_scalar_mul(&tp, &self->normal, t);
+	Vec3_sub(&closest, &point, &tp);
+	Vec3_sub(&tp, &closest, &self->center);
+	d2 = Vec3_len_sq(&tp);
+	if (d2 > outer_r2) {
+		Vec3_normalize(&tp, &tp);
+		Vec3_scalar_muli(&tp, self->outer_radius);
+		Vec3_add(&closest, &tp, &self->center);
+	} else if ((d2 > EPSILON) & (d2 < inner_r2)) {
+		Vec3_normalize(&tp, &tp);
+		Vec3_scalar_muli(&tp, self->inner_radius);
+		Vec3_add(&closest, &tp, &self->center);
+	} else if (d2 <= EPSILON) {
+		/* Point on center axis */
+		Vec3_copy(&closest, &self->center);
+		norm.x = norm.y = norm.z = 0.0f;
+	}
+	if (t >= 0.0f) {
+		Vec3_copy(&norm, &self->normal);
+	} else {
+		Vec3_neg(&norm, &self->normal);
+	}
+	return pack_vectors(&closest, &norm);
+}
+
 static PyMethodDef DiscDomain_methods[] = {
 	{"generate", (PyCFunction)DiscDomain_generate, METH_NOARGS,
 		PyDoc_STR("generate() -> Vector\n"
@@ -1307,6 +1370,10 @@ static PyMethodDef DiscDomain_methods[] = {
 			"disc as the start point.\n\n"
 			"If the line does not intersect, or lies completely in the disc\n"
 			"return (None, None)")},
+	{"closest_point_to", (PyCFunction)DiscDomain_closest_point_to, METH_VARARGS,
+		PyDoc_STR("closest_point_to(point) -> point, normal\n"
+			"Returns the closest point on the disc's surface\n"
+			"to the supplied point.")},
 	{NULL,		NULL}		/* sentinel */
 };
 
