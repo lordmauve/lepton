@@ -76,7 +76,7 @@ class DomainTest(unittest.TestCase):
 			((0, 30, 400), (0, 2, 0), (0, 0, 1)),
 			]:
 			p, N = line.closest_point_to(point)
-			self.assertVector(p, point)
+			self.assertVector(p, closest)
 			self.assertVector(N, normal)
 	
 	def test_horizontal_Plane(self):
@@ -135,6 +135,19 @@ class DomainTest(unittest.TestCase):
 		from lepton.domain import Plane
 		self.assertRaises(ValueError, Plane, (0,0,0), (0,0,0))
 	
+	def test_plane_closest_pt_to(self):
+		from lepton.domain import Plane
+		from lepton.particle_struct import Vec3
+		line = Plane((0, 0, 0), (0, 1, 0))
+		for point, closest, normal in [
+			((0, 1, 0), (0, 0, 0), (0, 1, 0)),
+			((5, 0, 5), (5, 0, 5), (0, 1, 0)),
+			((10, -1, 0), (10, 0, 0), (0, -1, 0)),
+			]:
+			p, N = line.closest_point_to(point)
+			self.assertVector(p, closest)
+			self.assertVector(N, normal)
+
 	def test_AABox_generate_contains(self):
 		from lepton.domain import AABox
 		box = AABox((-3, -1, 0), (-2, 1, 3))
@@ -484,7 +497,21 @@ class DomainTest(unittest.TestCase):
 				disc.intersect(start, end), (None, None))
 			self.assertEqual(
 				disc.intersect(end, start), (None, None))
-	
+		
+	def test_disc_closest_pt_to(self):
+		from lepton.domain import Disc
+		from lepton.particle_struct import Vec3
+		line = Disc((-3, 1, 2), (0, 1, 1), 4, 1)
+		for point, closest, normal in [
+			((-2, 1, 2), (-2, 1, 2), Vec3(0, 1, 1).normalize()),
+			((-2, 2, 2), (-2, 1.5, 1.5), Vec3(0, 1, 1).normalize()),
+			((-2, -1, 2), (-2, 0, 3), Vec3(0, -1, -1).normalize()),
+			((-3, 5, 8), (-3, 0, 3), Vec3(0, 1, 1).normalize()),
+			]:
+			p, N = line.closest_point_to(point)
+			self.assertVector(p, closest)
+			self.assertVector(N, normal)
+
 	def test_cylinder_length(self):
 		from lepton.domain import Cylinder
 		cyl = Cylinder((0,0,0), (2,0,0), 1)
