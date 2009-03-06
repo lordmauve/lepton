@@ -1320,43 +1320,55 @@ DiscDomain_intersect(DiscDomainObject *self, PyObject *args)
 	}
 }
 
+static inline void
+disc_closest_pt_to(Vec3 *closest, Vec3 *norm,
+	Vec3 *disc_center, Vec3 *disc_norm, 
+	float disc_inner_r, float disc_outer_r,
+	Vec3 *point)
+{
+	Vec3 tp;
+	float t, d2, outer_r2, inner_r2;
+
+	outer_r2 = disc_outer_r * disc_outer_r;
+	inner_r2 = disc_inner_r * disc_inner_r;
+	Vec3_sub(&tp, point, disc_center);
+	t = Vec3_dot(&tp, disc_norm);
+	Vec3_scalar_mul(&tp, disc_norm, t);
+	Vec3_sub(closest, point, &tp);
+	Vec3_sub(&tp, closest, disc_center);
+	d2 = Vec3_len_sq(&tp);
+	if (d2 > outer_r2) {
+		Vec3_normalize(&tp, &tp);
+		Vec3_scalar_muli(&tp, disc_outer_r);
+		Vec3_add(closest, &tp, disc_center);
+	} else if ((d2 > EPSILON) & (d2 < inner_r2)) {
+		Vec3_normalize(&tp, &tp);
+		Vec3_scalar_muli(&tp, disc_inner_r);
+		Vec3_add(closest, &tp, disc_center);
+	} else if (d2 <= EPSILON) {
+		/* Point on center axis */
+		Vec3_copy(closest, disc_center);
+		norm->x = norm->y = norm->z = 0.0f;
+		return;
+	}
+	if (t >= 0.0f) {
+		Vec3_copy(norm, disc_norm);
+	} else {
+		Vec3_neg(norm, disc_norm);
+	}
+}
+
 static PyObject *
 DiscDomain_closest_point_to(DiscDomainObject *self, PyObject *args) 
 {
-	Vec3 point, closest, norm, tp;
-	float t, d2, outer_r2, inner_r2;
+	Vec3 point, closest, norm;
 
 	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
 		&point.x, &point.y, &point.z))
 		return NULL;
 	
-	outer_r2 = self->outer_radius*self->outer_radius;
-	inner_r2 = self->inner_radius*self->inner_radius;
-	Vec3_sub(&tp, &point, &self->center);
-	t = Vec3_dot(&tp, &self->normal);
-	Vec3_scalar_mul(&tp, &self->normal, t);
-	Vec3_sub(&closest, &point, &tp);
-	Vec3_sub(&tp, &closest, &self->center);
-	d2 = Vec3_len_sq(&tp);
-	if (d2 > outer_r2) {
-		Vec3_normalize(&tp, &tp);
-		Vec3_scalar_muli(&tp, self->outer_radius);
-		Vec3_add(&closest, &tp, &self->center);
-	} else if ((d2 > EPSILON) & (d2 < inner_r2)) {
-		Vec3_normalize(&tp, &tp);
-		Vec3_scalar_muli(&tp, self->inner_radius);
-		Vec3_add(&closest, &tp, &self->center);
-	} else if (d2 <= EPSILON) {
-		/* Point on center axis */
-		Vec3_copy(&closest, &self->center);
-		norm.x = norm.y = norm.z = 0.0f;
-		return pack_vectors(&closest, &norm);
-	}
-	if (t >= 0.0f) {
-		Vec3_copy(&norm, &self->normal);
-	} else {
-		Vec3_neg(&norm, &self->normal);
-	}
+	disc_closest_pt_to(&closest, &norm, &self->center, &self->normal,
+		self->inner_radius, self->outer_radius, &point);
 	return pack_vectors(&closest, &norm);
 }
 
@@ -1728,6 +1740,60 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 	return NO_INTERSECTION;
 }
 
+static PyObject *
+CylinderDomain_closest_point_to(CylinderDomainObject *self, PyObject *args) 
+{
+	Vec3 point, closest, norm, tp, vec;
+	float inner_r2, outer_r2, dist2;
+
+	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
+		&point.x, &point.y, &point.z))
+		return NULL;
+
+	/* find the closest point along the axis */
+	Vec3_sub(&tp, &point, &self->end_point0);
+	float t = Vec3_dot(&tp, &self->axis) / self->len_sq;
+	if (t < 0.0f) {
+		/* closest to cap at end point 0 */
+		disc_closest_pt_to(&point, &norm,
+			&self->end_point0,  &self->axis_norm, 
+			self->inner_radius, self->outer_radius,
+			&point);
+	} else if (t > 1.0f) {
+		/* closest to cap at end point 1 */
+		disc_closest_pt_to(&point, &norm,
+			&self->end_point1,  &self->axis_norm, 
+			self->inner_radius, self->outer_radius,
+			&point);
+	} else {
+		/* closest to cylinder body */
+		inner_r2 = self->inner_radius*self->inner_radius;
+		outer_r2 = self->outer_radius*self->outer_radius;
+		Vec3_scalar_mul(&closest, &self->axis, t);
+		Vec3_add(&closest, &self->end_point0, &closest);
+		Vec3_sub(&vec, &point, &closest);
+		dist2 = Vec3_len_sq(&vec);
+		if (dist2 > outer_r2) {
+			/* common case,  point outside cylinder */
+			Vec3_normalize(&norm, &vec);
+			Vec3_copy(&vec, &norm);
+			Vec3_scalar_muli(&vec, self->outer_radius);
+			Vec3_add(&point, &vec, &closest);
+		} else if ((dist2 < inner_r2) & (dist2 > EPSILON)) {
+			/* point inside the inner radius */
+			Vec3_normalize(&norm, &vec);
+			Vec3_copy(&vec, &norm);
+			Vec3_scalar_muli(&vec, self->inner_radius);
+			Vec3_add(&point, &vec, &closest);
+			Vec3_neg(&norm, &norm);
+		} else {
+			/* point inside cylinder volume or along axis */
+			norm.x = norm.y = norm.z = 0.0f;
+		}
+	}
+	return pack_vectors(&point, &norm);
+}
+
 static int Cylinder_set_end_point0(CylinderDomainObject *self, PyObject *value, void *closure)
 {
 	if (value == NULL) {
@@ -1763,6 +1829,10 @@ static PyMethodDef CylinderDomain_methods[] = {
 			"surface as the start point.\n\n"
 			"If the line does not intersect, or lies completely in the cylinder\n"
 			"return (None, None)")},
+	{"closest_point_to", (PyCFunction)CylinderDomain_closest_point_to, METH_VARARGS,
+		PyDoc_STR("closest_point_to(point) -> point, normal\n"
+			"Returns the closest point on the cylinder's surface\n"
+			"to the supplied point.")},
 	{NULL,		NULL}		/* sentinel */
 };
 
