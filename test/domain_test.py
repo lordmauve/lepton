@@ -501,7 +501,7 @@ class DomainTest(unittest.TestCase):
 	def test_disc_closest_pt_to(self):
 		from lepton.domain import Disc
 		from lepton.particle_struct import Vec3
-		line = Disc((-3, 1, 2), (0, 1, 1), 4, 1)
+		disc = Disc((-3, 1, 2), (0, 1, 1), 4, 1)
 		for point, closest, normal in [
 			((-2, 1, 2), (-2, 1, 2), Vec3(0, 1, 1).normalize()),
 			((-2, 2, 2), (-2, 1.5, 1.5), Vec3(0, 1, 1).normalize()),
@@ -511,7 +511,7 @@ class DomainTest(unittest.TestCase):
 			((-3, 3, 4), (-3, 1, 2), (0, 0, 0)),
 			((-3, 0, 1), (-3, 1, 2), (0, 0, 0)),
 			]:
-			p, N = line.closest_point_to(point)
+			p, N = disc.closest_point_to(point)
 			self.assertVector(p, closest)
 			self.assertVector(N, normal)
 
@@ -665,6 +665,30 @@ class DomainTest(unittest.TestCase):
 				cyl.intersect(start, end), (None, None))
 			self.assertEqual(
 				cyl.intersect(end, start), (None, None))
+
+	def test_cyl_closest_pt_to(self):
+		from lepton.domain import Cylinder
+		from lepton.particle_struct import Vec3
+		cyl = Cylinder((-2, 3, 0), (0, 3, 0), 3, 2)
+		for point, closest, normal in [
+			((-1, 7, 0), (-1, 6, 0), (0, 1, 0)),
+			((-2, 3, -6), (-2, 3, -3), (0, 0, -1)),
+			((0, 6, 3), Vec3(0, 3, 0) + Vec3(0, 1, 1).normalize() * 3, Vec3(0, 1, 1).normalize()),
+			((-2.2, 5.5, 0), (-2, 5.5, 0), (-1, 0, 0)),
+			((-5, 10, 0), (-2, 6, 0), (-1, 0, 0)),
+			((-10, 3, 1), (-2, 3, 2), (-1, 0, 0)),
+			((0.5, 0, 0), (0, 0, 0), (1, 0, 0)),
+			((3, 5, 0), (0, 5, 0), (1, 0, 0)),
+			((20, 3, -0.1), (0, 3, -2), (1, 0, 0)),
+			# points inside cylinder and along axis
+			((-0.5, 5.5, 0), (-0.5, 5.5, 0), (0, 0, 0)),
+			((-1, 3, 0), (-1, 3, 0), (0, 0, 0)),
+			((-30, 3, 0), (-2, 3, 0), (0, 0, 0)),
+			((30, 3, 0), (0, 3, 0), (0, 0, 0)),
+			]:
+			p, N = cyl.closest_point_to(point)
+			self.assertVector(p, closest)
+			self.assertVector(N, normal)
 
 	def test_solid_cone_generate_contains(self):
 		from lepton.domain import Cone
