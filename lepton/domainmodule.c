@@ -1341,20 +1341,23 @@ disc_closest_pt_to(Vec3 *closest, Vec3 *norm,
 		Vec3_normalize(&tp, &tp);
 		Vec3_scalar_muli(&tp, disc_outer_r);
 		Vec3_add(closest, &tp, disc_center);
-	} else if ((d2 > EPSILON) & (d2 < inner_r2)) {
+	} else if ((d2 > EPSILON) & (d2 < inner_r2 + EPSILON)) {
 		Vec3_normalize(&tp, &tp);
 		Vec3_scalar_muli(&tp, disc_inner_r);
 		Vec3_add(closest, &tp, disc_center);
-	} else if (d2 <= EPSILON) {
+	} else if ((d2 <= EPSILON) & (d2 < inner_r2)) {
 		/* Point on center axis */
 		Vec3_copy(closest, disc_center);
 		norm->x = norm->y = norm->z = 0.0f;
 		return;
 	}
-	if (t >= 0.0f) {
+	if (t > EPSILON) {
 		Vec3_copy(norm, disc_norm);
-	} else {
+	} else if (t < -EPSILON) {
 		Vec3_neg(norm, disc_norm);
+	} else {
+		/* point contained in disc */
+		norm->x = norm->y = norm->z = 0.0f;
 	}
 }
 
@@ -2232,6 +2235,108 @@ ConeDomain_intersect(ConeDomainObject *self, PyObject *args)
 	}
 }
 
+static PyObject *
+ConeDomain_closest_point_to(ConeDomainObject *self, PyObject *args) 
+{
+	Vec3 point, closest, norm, tp, vec, vec_norm;
+	float d, t, r, c, dir, h;
+
+	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
+		&point.x, &point.y, &point.z))
+		return NULL;
+	
+	/* General algorithm:
+
+	Find the closest point on the axis line of the cone and
+	project it onto the surface of the cone by determining
+	the radius at the point on the axis. Note this point may be "behind"
+	the apex on the inverse cone. Now find the closest point
+	along the line containing the projected point and the apex.
+	If this point lies behind the apex, then the closest point
+	is the apex. If it is beyond the base, find the closest point
+	on the base disc. Otherwise it is the closest point. */
+
+	Vec3_sub(&tp, &point, &self->apex);
+	t = Vec3_dot(&tp, &self->axis) / self->len_sq;
+	/* determine if the point lies beyond the outer radius,
+	   within the inner radius or between the two */
+	Vec3_normalize(&vec_norm, &tp);
+	d = Vec3_dot(&vec_norm, &self->axis_norm);
+	// printf("d=%f t=%f\n", d, t);
+	if ((d < self->outer_cosa) & (d > -self->outer_cosa)) {
+		/* point outside cone, common case */
+		r = self->outer_radius;
+		c = self->outer_cosa;
+		dir = 1.0f;
+	} else if ((d > self->inner_cosa) & (d < 1.0f - EPSILON)) {
+		/* point inside inner radius, but not on axis */
+		r = self->inner_radius;
+		c = self->inner_cosa;
+		dir = -1.0f;
+	} else if ((d <= -self->outer_cosa) | (t < EPSILON)) {
+		/* point far "behind" apex or on axis behind apex */
+		Vec3_neg(&norm, &self->axis_norm);
+		return pack_vectors(&self->apex, &norm);
+	} else if ((d > self->inner_cosa) & (d >= 1.0f - EPSILON)) {
+		/* point on axis beyond apex */
+		return pack_vectors(&self->apex, &self->axis_norm);
+	} else if ((t > -EPSILON) & (t < 1.0f + EPSILON)) {
+		/* point within cone volume */
+		norm.x = norm.y = norm.z = 0.0f;
+		return pack_vectors(&point, &norm);
+	} else {
+		/* point beyond base between inner and outer radii */
+		disc_closest_pt_to(&point, &norm,
+			&self->base,  &self->axis_norm, 
+			self->inner_radius, self->outer_radius,
+			&point);
+		return pack_vectors(&point, &norm);
+	}
+
+	if (fabs(t) > EPSILON) {
+		/* find the closest point along the axis */
+		Vec3_scalar_mul(&closest, &self->axis, t);
+		Vec3_add(&closest, &self->apex, &closest);
+		Vec3_sub(&vec, &point, &closest);
+		/* Project the axis point onto the cone surface */
+		Vec3_normalize(&vec_norm, &vec);
+		Vec3_scalar_mul(&vec, &vec_norm, r * t);
+		Vec3_addi(&closest, &vec);
+	} else {
+		/* closest point along axis is the apex, 
+		   So instead find the point on the cone surface
+		   around the base that is coplanar to the axis
+		   and point provided. Since we know the line
+		   between the apex and point is parallel to the
+		   base, this is easily done */
+		Vec3_normalize(&vec, &tp);
+		Vec3_scalar_muli(&vec, r);
+		Vec3_add(&closest, &self->base, &vec);
+	}
+
+	/* find the closest point along the cone surface line */
+	Vec3_sub(&vec, &closest, &self->apex);
+	t = Vec3_dot(&vec, &tp) / Vec3_len_sq(&vec);
+	Vec3_scalar_muli(&vec, t);
+	h = self->len / c;
+	// printf("t=%f  h=%f\n", t, h);
+	if (Vec3_len_sq(&vec) < (h*h) + EPSILON) {
+		/* point is between apex and base */
+		Vec3_add(&closest, &self->apex, &vec);
+		Vec3_sub(&norm, &point, &closest);
+		Vec3_normalize(&norm, &norm);
+		Vec3_scalar_muli(&norm, dir);
+		return pack_vectors(&closest, &norm);
+	}
+	/* point beyond base */
+	disc_closest_pt_to(&point, &norm,
+		&self->base,  &self->axis_norm, 
+		self->inner_radius, self->outer_radius,
+		&point);
+	return pack_vectors(&point, &norm);
+}
+
+
 static int Cone_set_apex(ConeDomainObject *self, PyObject *value, void *closure)
 {
 	if (value == NULL) {
@@ -2327,6 +2432,10 @@ static PyMethodDef ConeDomain_methods[] = {
 			"surface as the start point.\n\n"
 			"If the line does not intersect, or lies completely in the cylinder\n"
 			"return (None, None)")},
+	{"closest_point_to", (PyCFunction)ConeDomain_closest_point_to, METH_VARARGS,
+		PyDoc_STR("closest_point_to(point) -> point, normal\n"
+			"Returns the closest point on the cone's surface\n"
+			"to the supplied point.")},
 	{NULL,		NULL}		/* sentinel */
 };
 
