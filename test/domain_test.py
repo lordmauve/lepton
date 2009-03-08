@@ -503,13 +503,25 @@ class DomainTest(unittest.TestCase):
 		from lepton.particle_struct import Vec3
 		disc = Disc((-3, 1, 2), (0, 1, 1), 4, 1)
 		for point, closest, normal in [
-			((-2, 1, 2), (-2, 1, 2), Vec3(0, 1, 1).normalize()),
+			((-2, 1, 2), (-2, 1, 2), (0, 0, 0)),
 			((-2, 2, 2), (-2, 1.5, 1.5), Vec3(0, 1, 1).normalize()),
 			((-2, -1, 2), (-2, 0, 3), Vec3(0, -1, -1).normalize()),
 			((-3, 5, 8), (-3, 0, 3), Vec3(0, 1, 1).normalize()),
 			((-3, 1, 2), (-3, 1, 2), (0, 0, 0)),
 			((-3, 3, 4), (-3, 1, 2), (0, 0, 0)),
 			((-3, 0, 1), (-3, 1, 2), (0, 0, 0)),
+			]:
+			p, N = disc.closest_point_to(point)
+			self.assertVector(p, closest)
+			self.assertVector(N, normal)
+
+	def test_solid_disc_closest_pt_to_on_axis(self):
+		from lepton.domain import Disc
+		disc = Disc((0, 3, 0), (0, 1, 0), 3)
+		for point, closest, normal in [
+			((0, 4, 0), (0, 3, 0), (0, 1, 0)),
+			((0, 3, 0), (0, 3, 0), (0, 0, 0)),
+			((0, 2, 0), (0, 3, 0), (0, -1, 0)),
 			]:
 			p, N = disc.closest_point_to(point)
 			self.assertVector(p, closest)
@@ -685,6 +697,20 @@ class DomainTest(unittest.TestCase):
 			((-1, 3, 0), (-1, 3, 0), (0, 0, 0)),
 			((-30, 3, 0), (-2, 3, 0), (0, 0, 0)),
 			((30, 3, 0), (0, 3, 0), (0, 0, 0)),
+			]:
+			p, N = cyl.closest_point_to(point)
+			self.assertVector(p, closest)
+			self.assertVector(N, normal)
+
+	def test_solid_cyl_closest_pt_to_on_axis(self):
+		from lepton.domain import Cylinder
+		cyl = Cylinder((0, 3, 0), (0, 0, 0), 3)
+		for point, closest, normal in [
+			((0, 4, 0), (0, 3, 0), (0, 1, 0)),
+			((0, 3, 0), (0, 3, 0), (0, 0, 0)),
+			((0, 2, 0), (0, 2, 0), (0, 0, 0)),
+			((0, -2, 0), (0, 0, 0), (0, -1, 0)),
+			((0, 0, 0), (0, 0, 0), (0, 0, 0)),
 			]:
 			p, N = cyl.closest_point_to(point)
 			self.assertVector(p, closest)
@@ -870,6 +896,43 @@ class DomainTest(unittest.TestCase):
 			((-2, 10, 20), (-5, 15, 19))]:
 			self.assertEqual(
 				cone.intersect(start, end), (None, None))
+
+	def test_cone_closest_pt_to(self):
+		from lepton.domain import Cone
+		from lepton.particle_struct import Vec3
+		cone = Cone((0, 1, -2), (3, -2, -2), math.sqrt(18), 1)
+		for point, closest, normal in [
+			((1, 2, -2), (1, 1, -2), (0, 1, 0)),
+			((-1, -1, -2), (0, -1, -2), (-1, 0, 0)),
+			((-1, -2, -2), (0, -2, -2), (-1, 0, 0)),
+			((-1, 3, -1), (0, 1, -2), Vec3(-1, 1, 0).normalize()),
+			((-4, 5, -2), (0, 1, -2), Vec3(-1, 1, 0).normalize()),
+			((6, 0, -2), (5.5, 0.5, -2), Vec3(1, -1, 0).normalize()),
+			((1.566666, -0.566666, -2.1), (1.5, -0.5, -2.5), 
+				Vec3(-1, 1, -6).normalize()),
+			((2, 0, -3.5), (2, 0, -3.5), (0, 0, 0)),
+			((10, -9, -2), (0, 1, -2), Vec3(1, -1, 0).normalize()),
+			((1, 0, -2), (0, 1, -2), Vec3(1, -1, 0).normalize()),
+			((0, 1, -2), (0, 1, -2), (0, 0, 0)),
+			]:
+			p, N = cone.closest_point_to(point)
+			self.assertVector(p, closest)
+			self.assertVector(N, normal)
+	
+	def test_solid_cone_closest_pt_to_on_axis(self):
+		from lepton.domain import Cone
+		cone = Cone((0, 3, 0), (0, 0, 0), 3)
+		for point, closest, normal in [
+			((0, 4, 0), (0, 3, 0), (0, 1, 0)),
+			((0, 3, 0), (0, 3, 0), (0, 0, 0)),
+			((0, 2, 0), (0, 2, 0), (0, 0, 0)),
+			((0, -2, 0), (0, 0, 0), (0, -1, 0)),
+			((0, 0, 0), (0, 0, 0), (0, 0, 0)),
+			]:
+			p, N = cone.closest_point_to(point)
+			self.assertVector(p, closest)
+			self.assertVector(N, normal)
+
 
 if __name__=='__main__':
 	unittest.main()
