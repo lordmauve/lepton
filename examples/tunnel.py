@@ -77,6 +77,7 @@ if __name__ == '__main__':
 	glTexParameteri(texture.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 	glTexParameteri(texture.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 	glBindTexture(texture.target, texture.id)
+	default_system.run_ahead(5, 40)
 
 	pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
 	pyglet.clock.set_fps_limit(None)
