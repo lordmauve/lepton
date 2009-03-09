@@ -19,18 +19,18 @@ import sys
 
 class TestGroup:
 
-	updated = False
 	drawn = False
 
 	def __init__(self):
 		self.particles = set()
+		self.updated = 0
 	
 	def __iter__(self):
 		# Iterate a copy to tolerate mutation during iteration
 		return iter(set(self.particles))
 	
 	def update(self, td):
-		self.updated = True
+		self.updated += 1
 		self.time_delta = td
 	
 	def draw(self):
@@ -106,6 +106,23 @@ class SystemTest(unittest.TestCase):
 		system.update(0.05)
 		self.failUnless(group1.updated)
 		self.failUnless(group2.updated)
+	
+	def test_run_ahead(self):
+		from lepton import ParticleSystem
+		system = ParticleSystem()
+		group1 = TestGroup()
+		group2 = TestGroup()
+		system.add_group(group1)
+		system.add_group(group2)
+		self.failIf(group1.updated)
+		self.failIf(group2.updated)
+		system.run_ahead(2, 30)
+		self.assertEqual(group1.updated, 60)
+		self.assertEqual(group1.time_delta, 1.0 / 30.0)
+		self.assertEqual(group2.updated, 60)
+		self.assertEqual(group2.time_delta, 1.0 / 30.0)
+		self.failIf(group1.drawn)
+		self.failIf(group2.drawn)
 
 	def test_draw(self):
 		from lepton import ParticleSystem
