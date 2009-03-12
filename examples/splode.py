@@ -30,7 +30,7 @@ if __name__ == '__main__':
 	win.clear()
 
 	def on_resize(width, height):
-		"""Initial settings for the OpenGL state machine, clear color, window size, etc"""
+		"""Setup 3D projection for window"""
 		glViewport(0, 0, width, height)
 		glMatrixMode(GL_PROJECTION)
 		glLoadIdentity()
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 			size=(5,5,0),
 			up=(0,0,math.pi*2), 
 			rotation=(0,0,math.pi*0.03),),
-		color=[(0.5,0,0), (0.5,0.5,0.5), (0.4,0.1,0.1), (0.85,0,0.3)],
+		color=[(0.5,0,0), (0.5,0.5,0.5), (0.4,0.1,0.1), (0.85,0.3,0)],
 	)
 	fire_emitter.emit(400, fire)
 
