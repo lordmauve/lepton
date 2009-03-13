@@ -347,7 +347,9 @@ class BounceControllerTest(ControllerTestBase):
             self.failUnless(cbcontroller is bounce, cbcontroller)
             self.assertEqual(cbpoint[1], 0)
 
+
 class MagnetControllerTest(ControllerTestBase):
+
     def _make_group(self):
         from lepton import Particle, ParticleGroup
         g = ParticleGroup()
