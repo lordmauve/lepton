@@ -424,16 +424,12 @@ FaderController_call(FaderControllerObject *self, PyObject *args)
 	out_alpha = self->end_alpha - self->max_alpha;
 	count = GroupObject_ActiveCount(pgroup);
 	while (count--) {
-		//if p.age > in_end and (out_start is None or p.age <= out_start):
 		if ((p->age > in_end) && (p->age <= out_start)) {
-		//if ((p->age > in_end) && (p->age < out_start)) {
 			p->color.a = self->max_alpha;
 		} else if ( (p->age > in_start) && (p->age < in_end)) {
 			p->color.a = self->start_alpha + in_alpha * ((p->age - in_start) / in_time);
-		//out_start is not None and p.age > out_start and p.age < out_end
-		}else if ((p->age >= out_start) && (p->age < out_end)) {
+		} else if ((p->age >= out_start) && (p->age < out_end)) {
 			p->color.a = self->max_alpha + out_alpha * ((p->age - out_start) / out_time);
-		//elif out_end is not None and p.age >= out_end:
 		} else if (p->age >= out_end) {
 			p->color.a = self->end_alpha;
 		}
