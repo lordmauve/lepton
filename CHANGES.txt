@@ -1,4 +1,25 @@
-2008-1-28 -- 0.8.1a
+2009-3-15 -- 0.9a
+
+- Fix reference leaks in particle emission and domain generate methods
+- Plane domains are now proper half-space geometries so they support 
+  __contains__, which means they can be used with the Collector controller.
+- Implement Point domain.
+- Implement arbitrarily orientable Disc, Cylinder and Cone domains.
+- Add tunnel example.
+- Implement new closest_point_to() methods for various domains.
+- Fix distribution of points generated in a Sphere domain with a nonzero
+  inner radius.
+- Refactor renderer/group binding to avoid circrefs and an infinite loop
+  bug. This also simplifies the API. Thanks to Ken Lauer for the report.
+- Fix color bug in the billboard renderer, thanks again to Ken Lauer.
+- Add ParticleSystem.run_ahead() method to warm up the particle system
+  or "fast forward" the simulation.
+- Add Magnet controller and example. Thanks to Andrew Charles for the
+  initial implementation of these.
+- Various code cleanups and fixes for building on Windows. Thanks to
+  Jussi Lepistö.
+
+2009-1-28 -- 0.8.1a
 
 - Adjusted code so it compiles with Visual C++ 2008.
   Big thanks to Jussi Lepistö (Knarkles) for doing this work!
