@@ -37,7 +37,14 @@ class Domain(object):
 
 	def closest_point_to(self, point):
 		"""Return the closest point in the domain to the given point
-		and the surface normal vector at that point.
+		and the surface normal vector at that point. If the given
+		point is in the domain, return the point and a null normal
+		vector.
+
+		Note the closest point may not in the domain, if there are
+		mulitple points in the domain that are closest. In that case
+		return the average of the closest points and a null normal
+		vector.
 		"""
 		raise NotImplementedError
 	
