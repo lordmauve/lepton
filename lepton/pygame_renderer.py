@@ -20,24 +20,8 @@ __version__ = '$Id$'
 from pygame.transform import rotozoom
 from math import degrees
 
-class Renderer(object):
-	"""Renderer base class"""
 
-	group = None
-
-	def set_group(self, group):
-		"""Set the renderer's group"""
-		if self.group is not None and self.group is not group:
-			self.group.set_renderer(None)
-		self.group = group
-		# Subclasses may wish to extend this to reset state
-	
-	def draw(self):
-		"""Render the group's particles"""
-		raise NotImplementedError
-
-
-class FillRenderer(Renderer):
+class FillRenderer:
 	"""Renders particles to a pygame surface using simple fills"""
 
 	def __init__(self, surface, flags=None):
@@ -48,15 +32,15 @@ class FillRenderer(Renderer):
 		self.surface = surface
 		self.flags = flags
 	
-	def draw(self):
+	def draw(self, group):
 		fill = self.surface.fill
 		if self.flags is None:
-			for p in self.group:
+			for p in group:
 				fill(p.color.clamp(0, 255), 
 					(p.position.x, p.position.y, p.size.x, p.size.y))
 		else:
 			flags = self.flags
-			for p in self.group:
+			for p in group:
 				fill(p.color.clamp(0, 255), 
 					(p.position.x, p.position.y, p.size.x, p.size.y), flags)
 
@@ -116,7 +100,7 @@ class Cache:
 			self._aged.popitem()
 
 
-class BlitRenderer(Renderer):
+class BlitRenderer:
 	"""Renders particles by blitting to a pygame surface"""
 
 	surf_cache = Cache(200)
@@ -132,16 +116,16 @@ class BlitRenderer(Renderer):
 		self.particle_surface = particle_surface
 		self.rotate_and_scale = rotate_and_scale
 	
-	def draw(self):
+	def draw(self, group):
 		blit = self.surface.blit
 		psurface = self.particle_surface
 		if not self.rotate_and_scale:
-			for p in self.group:
+			for p in group:
 				blit(psurface, (p.position.x, p.position.y))
 		else:
 			cache = self.surf_cache
 			surfid = id(psurface)
-			for p in self.group:
+			for p in group:
 				size = int(p.size.x)
 				rot = int(p.rotation.x)
 				cachekey = (surfid, size, rot)
