@@ -1450,6 +1450,178 @@ static PyTypeObject BounceController_Type = {
 	0,                      /*tp_is_gc*/
 };
 
+/* --------------------------------------------------------------------- */
+
+static PyTypeObject MagnetController_Type;
+
+typedef struct {
+	PyObject_HEAD
+	PyObject *domain;
+	float charge;
+	float exponent;
+	float inner_cutoff;
+	float outer_cutoff;
+} MagnetControllerObject;
+
+static void
+MagnetController_dealloc(MagnetControllerObject *self) {
+	if (self->domain !=NULL)
+		Py_CLEAR(self->domain);
+	PyObject_Del(self);
+}
+
+static int
+MagnetController_init(MagnetControllerObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"domain", "charge", "exponent", "inner_cutoff", "outer_cutoff", NULL};
+
+	self->inner_cutoff = 0.0f;
+	self->outer_cutoff = FLT_MAX;
+	self->exponent = 2.0f;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Of|fff:__init__", kwlist,
+		&self->domain, &self->charge, &self->exponent, &self->inner_cutoff, &self->outer_cutoff))
+		return -1;
+	if (!PyObject_HasAttrString(self->domain, "closest_point_to")) {
+		PyErr_Format(PyExc_TypeError, "Specified domain does not implement closest_point_to()");
+		return -1;
+	}
+	Py_INCREF(self->domain);
+	return 0;
+}
+
+static PyObject *
+MagnetController_call(MagnetControllerObject *self, PyObject *args)
+{
+	float k, a_plus_1, d, td, dist2, mag_over_dist, inner_co2, outer_co2;
+	GroupObject *pgroup;
+	VectorObject *position = NULL;
+	PyObject *closest_pt_to = NULL, *res = NULL, *pt = NULL;
+	Vec3 vec;
+	register Particle *p;
+	register unsigned long count;
+
+	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
+		return NULL;
+	
+	if (!GroupObject_Check(pgroup))
+		return NULL;
+
+	inner_co2 = self->inner_cutoff*self->inner_cutoff;
+	outer_co2 = self->outer_cutoff*self->outer_cutoff;
+	k = self->charge;
+	a_plus_1 = self->exponent + 1.0f;
+	p = pgroup->plist->p;
+	count = GroupObject_ActiveCount(pgroup);
+	position = Vector_new(NULL, &p->position, 3);
+	closest_pt_to = PyObject_GetAttrString(self->domain, "closest_point_to");
+	if (position == NULL || closest_pt_to == NULL)
+		goto error;
+	while (count--) {
+		if (Particle_IsAlive(*p)) {
+			position->vec = &p->position;
+			res = PyObject_CallFunctionObjArgs(closest_pt_to, position, NULL);
+			if (res == NULL)
+				goto error;
+			pt = PySequence_GetItem(res, 0);
+			if (pt == NULL || !Vec3_FromSequence(&vec, pt))
+				goto error;
+			Py_CLEAR(res);
+			Py_CLEAR(pt);
+			Vec3_subi(&vec, &p->position);
+			dist2 = Vec3_len_sq(&vec);
+			if ((dist2 >= inner_co2) & (dist2 <= outer_co2)) {
+				d = sqrtf(dist2) + EPSILON;
+				mag_over_dist = k / powf(d, a_plus_1);
+				Vec3_scalar_muli(&vec, mag_over_dist);
+				Vec3_addi(&p->velocity, &vec);
+			}
+		}
+		p++;
+	}
+	Py_DECREF(position);
+	Py_DECREF(closest_pt_to);
+	
+	Py_INCREF(Py_None);
+	return Py_None;
+
+error:
+	Py_XDECREF(position);
+	Py_XDECREF(res);
+	Py_XDECREF(pt);
+	Py_XDECREF(closest_pt_to);
+	return NULL;
+}
+
+static struct PyMemberDef MagnetController_members[] = {
+    {"domain", T_OBJECT, offsetof(MagnetControllerObject, domain), 0,
+        "Particles are attracted or repulsed from the domain's surface."},
+    {"charge", T_FLOAT, offsetof(MagnetControllerObject, charge), 0,
+        "Determines the magnitude of the magnetic force from the domain.\n"
+		"A positive charge is attractive, a negative charge is repulsive."},
+    {"exponent", T_FLOAT, offsetof(MagnetControllerObject, exponent), 0,
+		"The magnetic force falls off proportional to the particle distance "
+		"from the domain raised to this power."},
+    {"inner_cutoff", T_FLOAT, offsetof(MagnetControllerObject, inner_cutoff), 0,
+		"No force is exerted on particles with a distance from the domain "
+		"less than this value. Good for avoiding unstable large forces at close distance "
+		"or for creating an \"orbital\" distance."},
+    {"outer_cutoff", T_FLOAT, offsetof(MagnetControllerObject, outer_cutoff), 0,
+		"No force is exerted on particles with a distance from the domain "
+		"greater than this value. Useful as an optimization to avoid calculating "
+		"trivial forces on distant particles."},
+	{NULL}
+};
+
+PyDoc_STRVAR(MagnetController__doc__, 
+	"Magnet(domain, charge, exponent=2, inner_cutoff=0, outer_cutoff=inf)");
+
+static PyTypeObject MagnetController_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"controller.Magnet",		/*tp_name*/
+	sizeof(MagnetControllerObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)MagnetController_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	0,	        /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	(ternaryfunc)MagnetController_call, /*tp_call*/
+	0,                      /*tp_str*/
+	0,                      /*tp_getattro*/
+	0,                      /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	MagnetController__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	0,  /*tp_methods*/
+	MagnetController_members,  /*tp_members*/
+	0,                      /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)MagnetController_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
+
 PyMODINIT_FUNC
 init_controller(void)
 {
@@ -1504,6 +1676,12 @@ init_controller(void)
 	if (PyType_Ready(&BounceController_Type) < 0)
 		return;
 
+	MagnetController_Type.tp_alloc = PyType_GenericAlloc;
+	MagnetController_Type.tp_new = PyType_GenericNew;
+	MagnetController_Type.tp_getattro = PyObject_GenericGetAttr;
+	if (PyType_Ready(&MagnetController_Type) < 0)
+		return;
+
 	/* Create the module and add the types */
 	m = Py_InitModule3("_controller", NULL, "Particle Controllers");
 	if (m == NULL)
@@ -1525,4 +1703,6 @@ init_controller(void)
 	PyModule_AddObject(m, "Collector", (PyObject *)&CollectorController_Type);
 	Py_INCREF(&BounceController_Type);
 	PyModule_AddObject(m, "Bounce", (PyObject *)&BounceController_Type);
+	Py_INCREF(&MagnetController_Type);
+	PyModule_AddObject(m, "Magnet", (PyObject *)&MagnetController_Type);
 }
