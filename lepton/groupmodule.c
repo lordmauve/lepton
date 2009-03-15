@@ -558,16 +558,16 @@ Vector_setattr(VectorObject *self, char *name, PyObject *v)
 	result = 0;
 	switch (name[0]) {
 		case 'r': case 'x': 
-			self->vec->x = PyFloat_AS_DOUBLE(v);
+			self->vec->x = (float)PyFloat_AS_DOUBLE(v);
 			break;
 		case 'g': case 'y':
-			self->vec->y = PyFloat_AS_DOUBLE(v);
+			self->vec->y = (float)PyFloat_AS_DOUBLE(v);
 			break;
 		case 'b': case 'z':
-			self->vec->z = PyFloat_AS_DOUBLE(v);
+			self->vec->z = (float)PyFloat_AS_DOUBLE(v);
 			break;
 		case 'a':
-			self->color->a = PyFloat_AS_DOUBLE(v);
+			self->color->a = (float)PyFloat_AS_DOUBLE(v);
 			break;
 		default:
 			PyErr_SetString(PyExc_AttributeError, name);
@@ -943,9 +943,9 @@ ParticleProxy_setattr(ParticleRefObject *self, char *name, PyObject *v)
 				&self->p->color.b, 
 				&self->p->color.a) - 1;
 			break;
-		case 8: self->p->mass = PyFloat_AS_DOUBLE(v);
+		case 8: self->p->mass = (float)PyFloat_AS_DOUBLE(v);
 			break;
-		case 9: self->p->age = PyFloat_AS_DOUBLE(v);
+		case 9: self->p->age = (float)PyFloat_AS_DOUBLE(v);
 	};
 
 	Py_XDECREF(v);
