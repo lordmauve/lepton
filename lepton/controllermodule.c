@@ -184,9 +184,9 @@ MovementController_init(MovementControllerObject *self, PyObject *args, PyObject
 			damping_arg = PyNumber_Float(damping_arg);
 			if (damping_arg == NULL)
 				return -1;
-			self->damping.x = PyFloat_AS_DOUBLE(damping_arg);
-			self->damping.y = PyFloat_AS_DOUBLE(damping_arg);
-			self->damping.z = PyFloat_AS_DOUBLE(damping_arg);
+			self->damping.x = (float)PyFloat_AS_DOUBLE(damping_arg);
+			self->damping.y = (float)PyFloat_AS_DOUBLE(damping_arg);
+			self->damping.z = (float)PyFloat_AS_DOUBLE(damping_arg);
 			Py_DECREF(damping_arg);
 		}
 	} else {
@@ -618,8 +618,8 @@ ColorBlenderController_init(ColorBlenderControllerObject *self, PyObject *args)
 	PyObject *color_times = NULL, *item = NULL, *color_tup = NULL;
 	float last_time, next_time, iter_time, t;
 	Color last_color, next_color, grad, *color;
-	Py_ssize_t color_times_len;
-	unsigned long cti, i, count;
+	Py_ssize_t color_times_len, cti;
+	unsigned long i, count;
 
 	self->resolution = 30;
 	if (!PyArg_ParseTuple(args, "O|k:__init__", &color_times, &self->resolution))
@@ -669,7 +669,7 @@ ColorBlenderController_init(ColorBlenderControllerObject *self, PyObject *args)
 		return -1;
 	}
 
-	self->length = (self->max_age - self->min_age) * self->resolution;
+	self->length = (unsigned long)((self->max_age - self->min_age) * self->resolution);
 	if (self->length == 0) {
 		PyErr_SetString(PyExc_ValueError, 
 			"ColorBlender: color_times interval too short for resolution");
@@ -770,7 +770,7 @@ ColorBlenderController_call(ColorBlenderControllerObject *self, PyObject *args)
 	count = GroupObject_ActiveCount(pgroup);
 	while (count--) {
 		if (p->age >= min_age && p->age <= max_age) {
-			g = (p->age - min_age) * resolution;
+			g = (unsigned long)((p->age - min_age) * resolution);
 			p->color.r = gradient[g].r;
 			p->color.g = gradient[g].g;
 			p->color.b = gradient[g].b;
@@ -895,9 +895,9 @@ GrowthController_init(GrowthControllerObject *self, PyObject *args, PyObject *kw
 		growth_arg = PyNumber_Float(growth_arg);
 		if (growth_arg == NULL)
 			return -1;
-		self->growth.x = PyFloat_AS_DOUBLE(growth_arg);
-		self->growth.y = PyFloat_AS_DOUBLE(growth_arg);
-		self->growth.z = PyFloat_AS_DOUBLE(growth_arg);
+		self->growth.x = (float)PyFloat_AS_DOUBLE(growth_arg);
+		self->growth.y = (float)PyFloat_AS_DOUBLE(growth_arg);
+		self->growth.z = (float)PyFloat_AS_DOUBLE(growth_arg);
 	}
 	Py_DECREF(growth_arg);
 
@@ -917,9 +917,9 @@ GrowthController_init(GrowthControllerObject *self, PyObject *args, PyObject *kw
 			damping_arg = PyNumber_Float(damping_arg);
 			if (damping_arg == NULL)
 				return -1;
-			self->damping.x = PyFloat_AS_DOUBLE(damping_arg);
-			self->damping.y = PyFloat_AS_DOUBLE(damping_arg);
-			self->damping.z = PyFloat_AS_DOUBLE(damping_arg);
+			self->damping.x = (float)PyFloat_AS_DOUBLE(damping_arg);
+			self->damping.y = (float)PyFloat_AS_DOUBLE(damping_arg);
+			self->damping.z = (float)PyFloat_AS_DOUBLE(damping_arg);
 			Py_DECREF(damping_arg);
 		}
 	} else {

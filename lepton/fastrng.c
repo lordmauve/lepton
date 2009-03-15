@@ -80,40 +80,40 @@ rand_seed(unsigned long s)
 
 	/* Setup ziggurat tables for rand_norm() */
 	q = vn / exp(-.5 * dn*dn);
-	kn[0] = (dn / q)*m1;
+	kn[0] = (unsigned long)((dn / q)*m1);
 	kn[1] = 0;
 
-	wn[0] = q / m1;
-	wn[127] = dn / m1;
+	wn[0] = (float)(q / m1);
+	wn[127] = (float)(dn / m1);
 
 	fn[0] = 1.0f;
-	fn[127] = exp(-.5 * dn*dn);
+	fn[127] = (float)exp(-.5 * dn*dn);
 
     for (i = 126; i >= 1; i--) {
 		dn = sqrt(-2. * log(vn / dn + exp(-.5 * dn*dn)));
-		kn[i+1] = (dn / tn)*m1;
+		kn[i+1] = (unsigned long)((dn / tn)*m1);
 		tn = dn;
-		fn[i] = exp(-.5 * dn*dn);
-		wn[i] = dn / m1;
+		fn[i] = (float)exp(-.5 * dn*dn);
+		wn[i] = (float)(dn / m1);
     }
 
 	/* Setup tables for rand_expo() */
 	q = ve / exp(-de);
-	ke[0] = (de / q)*m2;
+	ke[0] = (unsigned long)((de / q)*m2);
 	ke[1] = 0;
 
-	we[0] = q / m2;
-	we[255] = de / m2;
+	we[0] = (float)(q / m2);
+	we[255] = (float)(de / m2);
 
 	fe[0] = 1.0f;
-	fe[255] = exp(-de);
+	fe[255] = (float)exp(-de);
 
 	for (i=254; i>=1; i--) {
 		de = -log(ve / de + exp(-de));
-		ke[i+1] = (de / te)*m2;
+		ke[i+1] = (unsigned long)((de / te)*m2);
 		te = de;
-		fe[i] = exp(-de);
-		we[i] = de / m2;
+		fe[i] = (float)exp(-de);
+		we[i] = (float)(de / m2);
 	}
 }
 
@@ -175,7 +175,7 @@ norm_outlier(long hz, long iz)
 		/* Try again from the top and see if we can exit */
 		hz = rand_int32();
 		iz = hz & 127;
-		if (labs(hz) < kn[iz]) 
+		if ((unsigned long)labs(hz) < kn[iz]) 
 			return hz * wn[iz];
 	}
 }
@@ -191,7 +191,7 @@ rand_norm(const float mu, const float sigma)
 {
 	long hz = rand_int32();
 	long iz = hz & 127;
-	return mu + ((labs(hz) < kn[iz]) ? hz * wn[iz] : norm_outlier(hz, iz)) * sigma;
+	return mu + (((unsigned long)labs(hz) < kn[iz]) ? hz * wn[iz] : norm_outlier(hz, iz)) * sigma;
 }
 
 /*

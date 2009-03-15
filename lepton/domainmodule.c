@@ -513,8 +513,10 @@ typedef struct {
 static PyObject * max_point_str;
 static PyObject * min_point_str;
 
+#ifndef _WIN32
 #define min(a, b) ((a) <= (b) ? (a) : (b))
 #define max(a, b) ((a) >= (b) ? (a) : (b))
+#endif
 
 static int
 AABoxDomain_init(AABoxDomainObject *self, PyObject *args)
@@ -1063,14 +1065,14 @@ SphereDomain_setattr(SphereDomainObject *self, PyObject *name_str, PyObject *v)
 		v = PyNumber_Float(v);
 		if (v == NULL)
 			return -1;
-		self->outer_radius = PyFloat_AS_DOUBLE(v);
+		self->outer_radius = (float)PyFloat_AS_DOUBLE(v);
 		Py_DECREF(v);
 		return 0;
 	} else if (name_str == inner_radius_str) {
 		v = PyNumber_Float(v);
 		if (v == NULL)
 			return -1;
-		self->inner_radius = PyFloat_AS_DOUBLE(v);
+		self->inner_radius = (float)PyFloat_AS_DOUBLE(v);
 		Py_DECREF(v);
 		return 0;
 	} else {
@@ -1748,6 +1750,7 @@ CylinderDomain_closest_point_to(CylinderDomainObject *self, PyObject *args)
 {
 	Vec3 point, closest, norm, tp, vec;
 	float inner_r2, outer_r2, dist2;
+	float t;
 
 	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
 		&point.x, &point.y, &point.z))
@@ -1755,7 +1758,7 @@ CylinderDomain_closest_point_to(CylinderDomainObject *self, PyObject *args)
 
 	/* find the closest point along the axis */
 	Vec3_sub(&tp, &point, &self->end_point0);
-	float t = Vec3_dot(&tp, &self->axis) / self->len_sq;
+	t = Vec3_dot(&tp, &self->axis) / self->len_sq;
 	if (t < 0.0f) {
 		/* closest to cap at end point 0 */
 		disc_closest_pt_to(&point, &norm,
@@ -2371,7 +2374,7 @@ static int Cone_set_inner_radius(ConeDomainObject *self, PyObject *value, void *
 	}
 	value = PyNumber_Float(value);
 	if (value != NULL) {
-		radius = PyFloat_AS_DOUBLE(value);
+		radius = (float)PyFloat_AS_DOUBLE(value);
 		if (radius > self->outer_radius) {
 			PyErr_SetString(PyExc_ValueError, 
 				"Cone: Expected outer_radius >= inner_radius");
@@ -2401,7 +2404,7 @@ static int Cone_set_outer_radius(ConeDomainObject *self, PyObject *value, void *
 	}
 	value = PyNumber_Float(value);
 	if (value != NULL) {
-		radius = PyFloat_AS_DOUBLE(value);
+		radius = (float)PyFloat_AS_DOUBLE(value);
 		if (radius < self->inner_radius) {
 			PyErr_SetString(PyExc_ValueError, 
 				"Cone: Expected outer_radius >= inner_radius");
@@ -2649,5 +2652,5 @@ init_domain(void)
 	Py_INCREF(&ConeDomain_Type);
 	PyModule_AddObject(m, "Cone", (PyObject *)&ConeDomain_Type);
 
-	rand_seed(time(NULL));
+	rand_seed((unsigned long)time(NULL));
 }

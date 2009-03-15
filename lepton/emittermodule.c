@@ -83,7 +83,7 @@ Emitter_parse_kwargs(StaticEmitterObject *self,
 					"StaticEmitter: expected float value for rate");
 				return 0;
 			}
-			self->rate = PyFloat_AS_DOUBLE(value);
+			self->rate = (float)PyFloat_AS_DOUBLE(value);
 			Py_DECREF(value);
 			PyDict_DelItemString(kwargs, "rate");
 		}
@@ -97,7 +97,7 @@ Emitter_parse_kwargs(StaticEmitterObject *self,
 					"StaticEmitter: expected float value for time_to_live");
 				return 0;
 			}
-			self->time_to_live = PyFloat_AS_DOUBLE(value);
+			self->time_to_live = (float)PyFloat_AS_DOUBLE(value);
 			Py_DECREF(value);
 			PyDict_DelItemString(kwargs, "time_to_live");
 		}
@@ -316,7 +316,7 @@ Float_fill(float * f, PyObject *domain, PyObject *discrete_seq, float tmpl)
 	if (v != NULL) {
 		pyfloat = PyNumber_Float(v);
 		if (pyfloat != NULL) {
-			*f = PyFloat_AS_DOUBLE(pyfloat);
+			*f = (float)PyFloat_AS_DOUBLE(pyfloat);
 			result = 1;
 		}
 	} else {
@@ -701,7 +701,7 @@ PerParticleEmitter_call(PerParticleEmitterObject *self, PyObject *args)
 						return NULL;
 					remaining--;
 				}
-				total += count;
+				total += (long)count;
 			}
 			p++;
 		}
@@ -901,5 +901,5 @@ initemitter(void)
 	Py_INCREF(&PerParticleEmitter_Type);
 	PyModule_AddObject(m, "PerParticleEmitter", (PyObject *)&PerParticleEmitter_Type);
 
-	rand_seed(time(NULL));
+	rand_seed((unsigned long)time(NULL));
 }

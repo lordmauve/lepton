@@ -24,8 +24,8 @@
  */
 long
 Group_new_p(GroupObject *group) {
-	long pindex;
-	long expansion;
+	unsigned long pindex;
+	unsigned long expansion;
 	ParticleList *realloc_plist;
 
 	pindex = group->plist->pactive + group->plist->pkilled + group->plist->pnew;
@@ -140,7 +140,7 @@ get_Float(float *f, PyObject *template, const char *attrname)
 	if (attr != NULL) {
 		pyfloat = PyNumber_Float(attr);
 		if (pyfloat != NULL) {
-			*f = PyFloat_AS_DOUBLE(pyfloat);
+			*f = (float)PyFloat_AS_DOUBLE(pyfloat);
 			result = 1;
 		}
 	} else {
