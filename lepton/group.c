@@ -60,12 +60,12 @@ Group_kill_p(GroupObject *group, Particle *p) {
 	p->position.z = FLT_MAX;
 }
 
-static PyTypeObject *GroupObject_Type = NULL;
 
 /* Return true if o is a bon-a-fide GroupObject */
 int
 GroupObject_Check(GroupObject *o)
 {
+	static PyTypeObject *GroupObject_Type = NULL;
 	PyObject *m;
 	if (GroupObject_Type == NULL) {
 		m = PyImport_ImportModule("lepton.group");

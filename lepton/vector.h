@@ -268,13 +268,13 @@ Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt,
 	}
 }
 
-static inline void Color_copy(Color * __restrict__ dest, Color * __restrict__ src) 
+static inline void 
+Color_copy(Color * __restrict__ dest, Color * __restrict__ src) 
 {
 	dest->r = src->r;
 	dest->g = src->g;
 	dest->b = src->b;
 	dest->a = src->a;
 }
-
 
 #endif
