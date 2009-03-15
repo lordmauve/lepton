@@ -209,9 +209,9 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 {
 	Particle *p;
 	int GL_error;
-	unsigned long remaining, batch_size;
+	unsigned int remaining, batch_size;
 	BBData data[BILLBOARD_BATCH_SIZE*4];
-	register int i;
+	register unsigned int i;
 	float mvmatrix[16], rotcos, rotsin;
 	Vec3 vright, vright_unit, vup, vup_unit, vrot;
 
@@ -278,8 +278,8 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 				   where the z-axiz is always that of the
 				   model-view matrix
 				*/
-				rotsin = sin(p->up.z);
-				rotcos = cos(p->up.z);
+				rotsin = (float)sin(p->up.z);
+				rotcos = (float)cos(p->up.z);
 				Vec3_scalar_mul(&vright, &vright_unit, rotcos);
 				Vec3_scalar_mul(&vrot, &vup_unit, rotsin);
 				Vec3_addi(&vright, &vrot);
@@ -303,10 +303,10 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 			Vec3_addi(&data[POINT3].vert, &vup);
 
 			/* colors */
-			data[POINT0].color[0] = p->color.r * 255;
-			data[POINT0].color[1] = p->color.g * 255;
-			data[POINT0].color[2] = p->color.b * 255;
-			data[POINT0].color[3] = p->color.a * 255;
+			data[POINT0].color[0] = (unsigned char)(p->color.r * 255);
+			data[POINT0].color[1] = (unsigned char)(p->color.g * 255);
+			data[POINT0].color[2] = (unsigned char)(p->color.b * 255);
+			data[POINT0].color[3] = (unsigned char)(p->color.a * 255);
 			data[POINT1].colorl = data[POINT0].colorl;
 			data[POINT2].colorl = data[POINT0].colorl;
 			data[POINT3].colorl = data[POINT0].colorl;
