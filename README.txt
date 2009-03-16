@@ -64,3 +64,13 @@ If you find a bug, use the issue tracker above. If you'd like to discuss
 usage, new features or contribute to Lepton, join our google group at:
 
 http://groups.google.com/group/py-lepton-users
+
+Credits
+-------
+
+Casey Duncan -- Lepton creator and primary developer
+Jussi Lepistö -- Windows maintainer
+Andrew Charles -- Code contributor
+Harry Tormey -- Inspiration and code contributor
+
+And thanks to others for their contributions of ideas and bugfixes!
