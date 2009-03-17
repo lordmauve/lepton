@@ -42,7 +42,7 @@ class Domain(object):
 		vector.
 
 		Note the closest point may not in the domain, if there are
-		mulitple points in the domain that are closest. In that case
+		multiple points in the domain that are closest. In that case
 		return the average of the closest points and a null normal
 		vector.
 		"""
