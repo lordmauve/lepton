@@ -513,7 +513,7 @@ typedef struct {
 static PyObject * max_point_str;
 static PyObject * min_point_str;
 
-#ifndef _WIN32
+#ifndef _MSC_VER
 #define min(a, b) ((a) <= (b) ? (a) : (b))
 #define max(a, b) ((a) >= (b) ? (a) : (b))
 #endif
