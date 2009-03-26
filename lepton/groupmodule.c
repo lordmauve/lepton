@@ -234,11 +234,9 @@ ParticleGroup_update(GroupObject *self, PyObject *args)
 	while (head < tail) {
 		if (!Particle_IsAlive(p[head])) {
 			if (pnew > 0) {
-				if (Particle_IsAlive(p[tail - 1])) {
-					memcpy(&p[head], &p[--tail], sizeof(Particle));
+				if (Particle_IsAlive(p[--tail])) {
+					memcpy(&p[head], &p[tail], sizeof(Particle));
 					self->plist->pactive++;
-				} else {
-					tail--;
 				}
 				pnew--;
 			} else {
