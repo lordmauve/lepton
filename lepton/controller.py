@@ -26,7 +26,7 @@ __version__ = '$Id$'
 from math import sqrt
 from particle_struct import Color, Vec3
 from _controller import Gravity, Fader, Movement, Lifetime, ColorBlender, Growth, Collector, \
-	Bounce, Magnet
+	Bounce, Magnet, Drag
 import sys
 
 
