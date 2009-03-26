@@ -1500,7 +1500,7 @@ MagnetController_call(MagnetControllerObject *self, PyObject *args)
 	register Particle *p;
 	register unsigned long count;
 
-	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
+	if (!PyArg_ParseTuple(args, "fO:__call__", &td, &pgroup))
 		return NULL;
 	
 	if (!GroupObject_Check(pgroup))
@@ -1622,6 +1622,175 @@ static PyTypeObject MagnetController_Type = {
 	0,                      /*tp_is_gc*/
 };
 
+static PyTypeObject DragController_Type;
+
+typedef struct {
+	PyObject_HEAD
+	float c1;
+	float c2;
+	Vec3 fluid_velocity;
+	PyObject *domain;
+} DragControllerObject;
+
+static void
+DragController_dealloc(DragControllerObject *self) {
+	if (self->domain != NULL)
+		Py_CLEAR(self->domain);
+	PyObject_Del(self);
+}
+
+static int
+DragController_init(DragControllerObject *self, PyObject *args, PyObject *kwargs)
+{
+	static char *kwlist[] = {"c1", "c2", "fluid_velocity", "domain", NULL};
+	PyObject *fvel = NULL;
+
+	self->c2 = 0.0f;
+	self->fluid_velocity.x = self->fluid_velocity.y = self->fluid_velocity.z = 0.0f;
+	self->domain = NULL;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "f|fOO:__init__", kwlist,
+		&self->c1, &self->c2, &fvel, &self->domain))
+		return -1;
+	if (fvel != NULL) {
+		if (!Vec3_FromSequence(&self->fluid_velocity, fvel))
+			return -1;
+	}
+	if (self->domain == Py_None)
+		Py_CLEAR(self->domain); /* Avoid having to test for NULL and None */
+	return 0;
+}
+
+static PyObject *
+DragController_call(DragControllerObject *self, PyObject *args)
+{
+	float td, rmag, drag;
+	Vec3 fvel, rvel, force;
+	VectorObject *position = NULL;
+	int in_domain;
+	GroupObject *pgroup;
+	register Particle *p;
+	register unsigned long count;
+
+	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
+		return NULL;
+	
+	if (!GroupObject_Check(pgroup))
+		return NULL;
+
+	Vec3_scalar_mul(&fvel, &self->fluid_velocity, td);
+	p = pgroup->plist->p;
+	position = Vector_new(NULL, &p->position, 3);
+	if (position == NULL)
+		goto error;
+
+	count = GroupObject_ActiveCount(pgroup);
+	while (count--) {
+		position->vec = &p->position;
+		in_domain = self->domain == NULL || PySequence_Contains(
+			self->domain, (PyObject *)position);
+		if (in_domain == -1)
+			goto error;
+
+		if (Particle_IsAlive(*p) && in_domain) {
+			/* Use the last velocity so controller order doesn't matter */
+			Vec3_scalar_mul(&rvel, &p->last_velocity, td);
+			Vec3_subi(&rvel, &fvel);
+			rmag = Vec3_len_sq(&rvel);
+			if (rmag > EPSILON) {
+				Vec3_scalar_div(&force, &rvel, rmag);
+				drag = self->c1*rmag + self->c2*rmag*rmag;
+				Vec3_scalar_muli(&force, drag);
+				Vec3_scalar_div(&force, &force, p->mass);
+				Vec3_subi(&p->velocity, &force);
+			}
+		}
+		p++;
+	}
+	
+	Py_DECREF(position);
+	Py_INCREF(Py_None);
+	return Py_None;
+error:
+	Py_XDECREF(position);
+	return NULL;
+}
+
+static struct PyMemberDef DragController_members[] = {
+    {"domain", T_OBJECT, offsetof(DragControllerObject, domain), 0,
+        "Only particles contained in this domain are affected by the controller"},
+    {"c1", T_FLOAT, offsetof(DragControllerObject, c1), 0,
+        "Linear particle drag coefficient\n"},
+    {"c2", T_FLOAT, offsetof(DragControllerObject, c2), 0,
+        "Squared particle drag coefficient\n"},
+	{NULL}
+};
+
+static PyGetSetDef DragController_descriptors[] = {
+	{"fluid_velocity", (getter)Vector_get, (setter)Vector_set, 
+		"Fluid velocity vector", (void *)offsetof(DragControllerObject, fluid_velocity)},
+	{NULL}
+};
+
+PyDoc_STRVAR(DragController__doc__, 
+	"Simulate viscous drag in a fluid\n\n"
+	"Drag(c1, c2, fluid_velocity, domain)\n\n"
+	"c1 -- Linear drag coefficient\n\n"
+	"c2 -- Squared drag coefficient\n\n"
+	"fluid_velocity -- Fluid velocity vector\n"
+	"used to simulate a moving fluid\n\n"
+	"domain -- If specified, only particles\n"
+	"inside this domain are affected by the\n"
+	"fluid drag.");
+
+static PyTypeObject DragController_Type = {
+	/* The ob_type field must be initialized in the module init function
+	 * to be portable to Windows without using C++. */
+	PyObject_HEAD_INIT(NULL)
+	0,			/*ob_size*/
+	"controller.Drag",		/*tp_name*/
+	sizeof(DragControllerObject),	/*tp_basicsize*/
+	0,			/*tp_itemsize*/
+	/* methods */
+	(destructor)DragController_dealloc, /*tp_dealloc*/
+	0,			/*tp_print*/
+	0,          /*tp_getattr*/
+	0,          /*tp_setattr*/
+	0,			/*tp_compare*/
+	0,			/*tp_repr*/
+	0,			/*tp_as_number*/
+	0,	        /*tp_as_sequence*/
+	0,			/*tp_as_mapping*/
+	0,			/*tp_hash*/
+	(ternaryfunc)DragController_call, /*tp_call*/
+	0,                      /*tp_str*/
+	0,                      /*tp_getattro*/
+	0,                      /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	DragController__doc__,   /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	0,                      /*tp_methods*/
+	DragController_members,  /*tp_members*/
+	DragController_descriptors,/*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	(initproc)DragController_init, /*tp_init*/
+	0,                      /*tp_alloc*/
+	0,                      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
+
+/* --------------------------------------------------------------------- */
+
 PyMODINIT_FUNC
 init_controller(void)
 {
@@ -1682,6 +1851,12 @@ init_controller(void)
 	if (PyType_Ready(&MagnetController_Type) < 0)
 		return;
 
+	DragController_Type.tp_alloc = PyType_GenericAlloc;
+	DragController_Type.tp_new = PyType_GenericNew;
+	DragController_Type.tp_getattro = PyObject_GenericGetAttr;
+	if (PyType_Ready(&DragController_Type) < 0)
+		return;
+
 	/* Create the module and add the types */
 	m = Py_InitModule3("_controller", NULL, "Particle Controllers");
 	if (m == NULL)
@@ -1705,4 +1880,6 @@ init_controller(void)
 	PyModule_AddObject(m, "Bounce", (PyObject *)&BounceController_Type);
 	Py_INCREF(&MagnetController_Type);
 	PyModule_AddObject(m, "Magnet", (PyObject *)&MagnetController_Type);
+	Py_INCREF(&DragController_Type);
+	PyModule_AddObject(m, "Drag", (PyObject *)&DragController_Type);
 }

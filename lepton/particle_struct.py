@@ -75,6 +75,10 @@ class Vec3(ctypes.Array):
 
 	'''
 
+	def __div__(self, scalar):
+		sx, sy, sz = self
+		return self.__class__(sx/scalar, sy/scalar, sz/scalar)
+
 	def __add__(self, (ox, oy, oz)):
 		sx, sy, sz = self
 		return self.__class__(sx+ox, sy+oy, sz+oz)
