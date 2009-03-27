@@ -81,7 +81,7 @@ dust = ParticleGroup(
 		Gravity((0,-20,0)), 
 		Drag(0.0, 0.10, fluid_velocity=(80, 0, 0), domain=front),
 		Drag(0.0, 0.10, fluid_velocity=(-80, 0, 0), domain=back),
-		Magnet(charge=20, domain=vortex, exponent=0.75, inner_cutoff=1),
+		Magnet(charge=500, domain=vortex, exponent=0.75, inner_cutoff=1),
 		Movement(),
 		],
 	renderer=BillboardRenderer(),

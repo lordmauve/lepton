@@ -1508,7 +1508,7 @@ MagnetController_call(MagnetControllerObject *self, PyObject *args)
 
 	inner_co2 = self->inner_cutoff*self->inner_cutoff;
 	outer_co2 = self->outer_cutoff*self->outer_cutoff;
-	k = self->charge;
+	k = self->charge * td;
 	a_plus_1 = self->exponent + 1.0f;
 	p = pgroup->plist->p;
 	count = GroupObject_ActiveCount(pgroup);
