@@ -76,8 +76,8 @@ if __name__ == '__main__':
 		controllers=[
 			Movement(min_velocity=10),
 			Lifetime(electron_lifetime * 1.5),
-			Magnet(nucleus, charge=500.0),
-			Magnet(nucleus, charge=-500.0, exponent=3),
+			Magnet(nucleus, charge=15000.0),
+			Magnet(nucleus, charge=-15000.0, exponent=3),
 			Fader(fade_in_end=1,
 				fade_out_start=electron_lifetime * 1.4,
 				fade_out_end=electron_lifetime * 1.5),
@@ -111,8 +111,8 @@ if __name__ == '__main__':
 		controllers=[
 			Lifetime(trail_lifetime * 1.5),
 			Movement(damping=0.7, max_velocity=60),
-			Magnet(nucleus, charge=600.0),
-			Magnet(nucleus, charge=-600.0, exponent=2.5),
+			Magnet(nucleus, charge=17000.0),
+			Magnet(nucleus, charge=-17000.0, exponent=2.5),
 			Collector(Sphere((0, 0, 0), 1)),
 			Fader(fade_in_end=0.75, max_alpha=0.3, fade_out_start=0, fade_out_end=trail_lifetime),
 			trail_emitter
