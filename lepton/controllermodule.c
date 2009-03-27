@@ -1459,7 +1459,7 @@ typedef struct {
 	PyObject *domain;
 	float charge;
 	float exponent;
-	float inner_cutoff;
+	float epsilon;
 	float outer_cutoff;
 } MagnetControllerObject;
 
@@ -1473,13 +1473,13 @@ MagnetController_dealloc(MagnetControllerObject *self) {
 static int
 MagnetController_init(MagnetControllerObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"domain", "charge", "exponent", "inner_cutoff", "outer_cutoff", NULL};
+	static char *kwlist[] = {"domain", "charge", "exponent", "epsilon", "outer_cutoff", NULL};
 
-	self->inner_cutoff = 0.0f;
+	self->epsilon = EPSILON;
 	self->outer_cutoff = FLT_MAX;
 	self->exponent = 2.0f;
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Of|fff:__init__", kwlist,
-		&self->domain, &self->charge, &self->exponent, &self->inner_cutoff, &self->outer_cutoff))
+		&self->domain, &self->charge, &self->exponent, &self->epsilon, &self->outer_cutoff))
 		return -1;
 	if (!PyObject_HasAttrString(self->domain, "closest_point_to")) {
 		PyErr_Format(PyExc_TypeError, "Specified domain does not implement closest_point_to()");
@@ -1492,7 +1492,7 @@ MagnetController_init(MagnetControllerObject *self, PyObject *args, PyObject *kw
 static PyObject *
 MagnetController_call(MagnetControllerObject *self, PyObject *args)
 {
-	float k, a_plus_1, d, td, dist2, mag_over_dist, inner_co2, outer_co2;
+	float k, a_plus_1, d, td, dist2, mag_over_dist, outer_co2;
 	GroupObject *pgroup;
 	VectorObject *position = NULL;
 	PyObject *closest_pt_to = NULL, *res = NULL, *pt = NULL;
@@ -1506,7 +1506,6 @@ MagnetController_call(MagnetControllerObject *self, PyObject *args)
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
-	inner_co2 = self->inner_cutoff*self->inner_cutoff;
 	outer_co2 = self->outer_cutoff*self->outer_cutoff;
 	k = self->charge * td;
 	a_plus_1 = self->exponent + 1.0f;
@@ -1529,8 +1528,8 @@ MagnetController_call(MagnetControllerObject *self, PyObject *args)
 			Py_CLEAR(pt);
 			Vec3_subi(&vec, &p->position);
 			dist2 = Vec3_len_sq(&vec);
-			if ((dist2 >= inner_co2) & (dist2 <= outer_co2)) {
-				d = sqrtf(dist2) + EPSILON;
+			if (dist2 <= outer_co2) {
+				d = sqrtf(dist2) + self->epsilon;
 				mag_over_dist = k / powf(d, a_plus_1);
 				Vec3_scalar_muli(&vec, mag_over_dist);
 				Vec3_addi(&p->velocity, &vec);
@@ -1561,10 +1560,16 @@ static struct PyMemberDef MagnetController_members[] = {
     {"exponent", T_FLOAT, offsetof(MagnetControllerObject, exponent), 0,
 		"The magnetic force falls off proportional to the particle distance "
 		"from the domain raised to this power."},
-    {"inner_cutoff", T_FLOAT, offsetof(MagnetControllerObject, inner_cutoff), 0,
-		"No force is exerted on particles with a distance from the domain "
-		"less than this value. Good for avoiding unstable large forces at close distance "
-		"or for creating an \"orbital\" distance."},
+    {"epsilon", T_FLOAT, offsetof(MagnetControllerObject, epsilon), 0,
+		"As the distance between the particle and domain surface decreases "
+		"the magnet's force tends toward infinity. To improve stability, "
+		"the value of epsilon is always added to the distance value when "
+		"calculating the magnet force. The default value for epsilon is "
+		"very close to zero, and provides a realistic simulation while "
+		"avoiding infinite forces. Larger values may be desireable for certain "
+		"visual effects where increased stability is more desirable than "
+		"realistic physics. Using a value of zero for epsilon is not recommended "
+		"to avoid infinite particle velocities."},
     {"outer_cutoff", T_FLOAT, offsetof(MagnetControllerObject, outer_cutoff), 0,
 		"No force is exerted on particles with a distance from the domain "
 		"greater than this value. Useful as an optimization to avoid calculating "
@@ -1573,7 +1578,7 @@ static struct PyMemberDef MagnetController_members[] = {
 };
 
 PyDoc_STRVAR(MagnetController__doc__, 
-	"Magnet(domain, charge, exponent=2, inner_cutoff=0, outer_cutoff=inf)");
+	"Magnet(domain, charge, exponent=2, epsilon=0.00001, outer_cutoff=inf)");
 
 static PyTypeObject MagnetController_Type = {
 	/* The ob_type field must be initialized in the module init function

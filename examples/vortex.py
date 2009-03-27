@@ -70,7 +70,7 @@ dust_emitter = StaticEmitter(
 		age=0.5)
 )
 column = Cylinder((0, -50, 0), (0, 28, 0), 25)
-vortex = Cone((0, -30, 0), (0, 28, 0), 15, 0)
+vortex = Cone((0, -30, 0), (0, 28, 0), 16, 0)
 front = AABox((-100, -50, -50), (100, 25, 0))
 back = AABox((-100, -50, 50), (100, 25, 0))
 
@@ -81,7 +81,7 @@ dust = ParticleGroup(
 		Gravity((0,-20,0)), 
 		Drag(0.0, 0.10, fluid_velocity=(80, 0, 0), domain=front),
 		Drag(0.0, 0.10, fluid_velocity=(-80, 0, 0), domain=back),
-		Magnet(charge=500, domain=vortex, exponent=0.75, inner_cutoff=1),
+		Magnet(charge=500, domain=vortex, exponent=0.75, epsilon=0.5),
 		Movement(),
 		],
 	renderer=BillboardRenderer(),
