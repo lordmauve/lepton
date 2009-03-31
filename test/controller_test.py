@@ -371,6 +371,7 @@ class MagnetControllerTest(ControllerTestBase):
 		self.failUnless(attract.domain is sphere)
 		self.assertEqual(attract.charge, 100)
 		self.assertEqual(attract.exponent, 2)
+		self.failUnless(attract.epsilon > 0)
 		attract(1.0, group)
 		p = list(group)
 		self.assertVector(p[0].position, (10.0, 0.0, 0.0))
