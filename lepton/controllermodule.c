@@ -1661,7 +1661,9 @@ DragController_init(DragControllerObject *self, PyObject *args, PyObject *kwargs
 			return -1;
 	}
 	if (self->domain == Py_None)
-		Py_CLEAR(self->domain); /* Avoid having to test for NULL and None */
+		self->domain = NULL; /* Avoid having to test for NULL and None */
+	if (self->domain != NULL)
+		Py_INCREF(self->domain);
 	return 0;
 }
 
