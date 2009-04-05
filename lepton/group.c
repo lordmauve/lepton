@@ -60,7 +60,6 @@ Group_kill_p(GroupObject *group, Particle *p) {
 	p->position.z = FLT_MAX;
 }
 
-
 /* Return true if o is a bon-a-fide GroupObject */
 int
 GroupObject_Check(GroupObject *o)

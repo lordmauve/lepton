@@ -21,6 +21,7 @@ from pyglet.gl import *
 
 from lepton import Particle, ParticleGroup, default_system
 from lepton.renderer import BillboardRenderer
+from lepton.texturizer import SpriteTexturizer
 from lepton.emitter import StaticEmitter, PerParticleEmitter
 from lepton.domain import AABox, Cylinder, Disc, Cone
 from lepton.controller import Gravity, Lifetime, Movement, Fader, Magnet, Drag, Collector, Growth
@@ -45,13 +46,8 @@ glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
 glHint(GL_POINT_SMOOTH_HINT, GL_NICEST)
 glDisable(GL_DEPTH_TEST)
 
-texture = image.load(os.path.join(os.path.dirname(__file__), 'flare3.png')).texture
-glEnable(texture.target)
-glTexParameteri(texture.target, GL_TEXTURE_WRAP_S, GL_CLAMP)
-glTexParameteri(texture.target, GL_TEXTURE_WRAP_T, GL_CLAMP)
-glTexParameteri(texture.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-glTexParameteri(texture.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-glBindTexture(texture.target, texture.id)
+texture = image.load(os.path.join(os.path.dirname(__file__), 'flare3.png')).get_texture()
+texturizer = SpriteTexturizer(texture.id)
 
 source = Disc((0, -30, 0), (0, 1, 0), 2, 2)
 
@@ -84,7 +80,7 @@ dust = ParticleGroup(
 		Magnet(charge=500, domain=vortex, exponent=0.75, epsilon=0.5),
 		Movement(),
 		],
-	renderer=BillboardRenderer(),
+	renderer=BillboardRenderer(texturizer),
 	)
 
 
@@ -100,7 +96,7 @@ trail = ParticleGroup(
 		Lifetime(.5), 
 		Growth(-1),
 		Fader(max_alpha=0.09, fade_out_start=0, fade_out_end=0.5)],
-	renderer=BillboardRenderer(),
+	renderer=BillboardRenderer(texturizer),
 	)
 
 win.set_visible(True)

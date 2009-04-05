@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="128"
+   height="128.00002"
+   id="svg5002"
+   sodipodi:version="0.32"
+   inkscape:version="0.46"
+   sodipodi:docname="lepton-logo.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   version="1.0">
+  <defs
+     id="defs5004">
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient4216"
+       id="linearGradient4418"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0,-1,1,0,-379.89088,1048.0426)"
+       x1="117.90369"
+       y1="695.03302"
+       x2="543.36798"
+       y2="695.03302" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient4216"
+       id="linearGradient4414"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.5,-0.8660254,0.8660254,0.5,-442.59117,645.37288)"
+       x1="117.90369"
+       y1="695.03302"
+       x2="543.36798"
+       y2="695.03302" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient4216"
+       id="linearGradient4410"
+       gradientUnits="userSpaceOnUse"
+       x1="117.90369"
+       y1="695.03302"
+       x2="543.36798"
+       y2="695.03302"
+       gradientTransform="matrix(0.8660254,-0.5,0.5,0.8660254,-303.71972,264.93469)" />
+    <linearGradient
+       id="linearGradient4216">
+      <stop
+         style="stop-color:#ffd300;stop-opacity:0.77131784;"
+         offset="0"
+         id="stop4218" />
+      <stop
+         style="stop-color:#0041ff;stop-opacity:1;"
+         offset="1"
+         id="stop4220" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient4216"
+       id="linearGradient4222"
+       x1="117.90369"
+       y1="695.03302"
+       x2="543.36798"
+       y2="695.03302"
+       gradientUnits="userSpaceOnUse" />
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       id="perspective5010" />
+    <filter
+       id="filter5068"
+       inkscape:label="filter1" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="2"
+     inkscape:cx="46.103309"
+     inkscape:cy="88.182003"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1112"
+     inkscape:window-height="724"
+     inkscape:window-x="370"
+     inkscape:window-y="62" />
+  <metadata
+     id="metadata5007">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>Lepton Particle Engine Logo</dc:title>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Casey Duncan</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:rights>
+          <cc:Agent>
+            <dc:title>(cc) Attribution, Non-commercial</dc:title>
+          </cc:Agent>
+        </dc:rights>
+        <dc:description>This logo may be used in conjunction with software using the lepton particle engine</dc:description>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-311,-468.36219)">
+    <g
+       id="g4992"
+       transform="matrix(0.2694737,0,0,0.2694737,283.55579,341.50145)">
+      <path
+         inkscape:export-ydpi="24.25"
+         inkscape:export-xdpi="24.25"
+         inkscape:export-filename="/Users/casey/Desktop/logo.png"
+         style="opacity:0.5;fill:url(#linearGradient4222);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+         d="M 318.59935,641.25173 C 260.79101,642.44359 201.88401,647.71218 148.01421,668.27832 C 135.7849,673.10978 123.45682,680.45007 118.01115,692.06464 C 116.79585,702.72656 126.08824,711.22842 135.80174,715.43115 C 167.76806,732.64262 204.95257,738.2712 241.06261,743.34255 C 314.33317,752.17615 389.33823,750.68725 461.73311,736.63014 C 486.23662,731.21781 511.32827,724.78816 532.18706,711.25855 C 538.32857,706.78411 544.74473,699.92851 543.10937,692.18825 C 540.17686,681.19836 528.23788,675.70795 518.28293,670.70714 C 495.13307,659.86712 469.46357,654.8992 444.23919,649.90599 C 402.83964,642.93813 360.62195,640.92651 318.59935,641.25173 z"
+         id="path4214" />
+      <path
+         inkscape:export-ydpi="24.25"
+         inkscape:export-xdpi="24.25"
+         inkscape:export-filename="/Users/casey/Desktop/logo.png"
+         id="path4408"
+         d="M 292.82128,660.9753 C 243.35372,690.91165 194.97305,724.92789 158.60351,769.67359 C 150.42834,779.97241 143.42206,792.49333 144.51325,805.27467 C 148.79173,815.11582 161.09011,817.83245 171.60361,816.61537 C 207.89299,815.53778 242.91001,801.82002 276.7179,788.15692 C 344.58887,759.17176 408.8007,720.3798 464.46795,672.00855 C 482.98245,655.06958 501.49763,636.95551 512.79707,614.80913 C 515.87855,607.8634 518.00731,598.7182 512.72092,592.83261 C 504.68634,584.78134 491.60168,585.996 480.48003,586.64265 C 455.01166,588.82984 430.29726,597.36225 405.9557,605.65019 C 366.61871,620.31562 329.05131,639.68235 292.82128,660.9753 z"
+         style="opacity:0.5;fill:url(#linearGradient4410);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
+      <path
+         inkscape:export-ydpi="24.25"
+         inkscape:export-xdpi="24.25"
+         inkscape:export-filename="/Users/casey/Desktop/logo.png"
+         style="opacity:0.5;fill:url(#linearGradient4414);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+         d="M 272.0488,690.08361 C 244.17681,740.74303 219.28604,794.39229 210.16195,851.32797 C 208.23145,864.3346 208.4243,878.68117 215.75996,889.20454 C 224.38581,895.58799 236.39484,891.79147 244.89125,885.4807 C 275.77998,866.40279 299.24673,837.01435 321.69367,808.27781 C 365.97908,749.24044 402.19217,683.5397 426.2158,613.81535 C 433.78034,589.88852 440.75793,564.94368 439.47034,540.11464 C 438.66611,532.55872 435.93707,523.57436 428.41613,521.12049 C 417.43234,518.16517 406.70803,525.75943 397.39972,531.88027 C 376.43706,546.50862 359.29997,566.2551 342.36353,585.60345 C 315.62941,617.97258 292.77845,653.52836 272.0488,690.08361 z"
+         id="path4412" />
+      <path
+         inkscape:export-ydpi="24.25"
+         inkscape:export-xdpi="24.25"
+         inkscape:export-filename="/Users/casey/Desktop/logo.png"
+         id="path4416"
+         d="M 261.36085,729.44328 C 262.55271,787.25162 267.8213,846.15863 288.38745,900.02842 C 293.2189,912.25774 300.5592,924.58581 312.17375,930.03149 C 322.83568,931.24679 331.33755,921.95439 335.54027,912.2409 C 352.75174,880.27458 358.38032,843.09007 363.45167,806.98003 C 372.28528,733.70946 370.79636,658.70441 356.73926,586.30953 C 351.32693,561.80602 344.89728,536.71436 331.36768,515.85558 C 326.89323,509.71407 320.03763,503.29791 312.29737,504.93326 C 301.30747,507.86578 295.81708,519.80475 290.81627,529.75971 C 279.97624,552.90957 275.00833,578.57906 270.01512,603.80345 C 263.04725,645.203 261.03563,687.42068 261.36085,729.44328 z"
+         style="opacity:0.5;fill:url(#linearGradient4418);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
+      <path
+         inkscape:export-ydpi="24.25"
+         inkscape:export-xdpi="24.25"
+         inkscape:export-filename="/Users/casey/Desktop/logo.png"
+         id="path4197"
+         d="M 372.9375,642.375 C 488.14221,646.95001 576.84375,674.70458 576.84375,708.21875 C 576.84375,744.92675 470.44376,774.71876 339.34375,774.71875 C 208.24375,774.71875 101.84376,744.92676 101.84375,708.21875 C 101.84375,696.39826 112.91215,685.30986 132.25,675.6875 C 125.29135,679.67229 119.01611,684.63196 117,692.1875 C 115.36464,699.92776 121.79601,706.77557 127.9375,711.25 C 148.79629,724.77961 173.87148,731.21268 198.375,736.625 C 270.76988,750.68211 345.79193,752.17737 419.0625,743.34375 C 455.17254,738.2724 492.34617,732.64897 524.3125,715.4375 C 534.026,711.23477 543.30905,702.72442 542.09375,692.0625 C 536.64808,680.44793 524.32306,673.11271 512.09375,668.28125 C 467.96648,651.43456 420.45214,644.85985 372.9375,642.375 z"
+         style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
+      <path
+         inkscape:export-ydpi="24.25"
+         inkscape:export-xdpi="24.25"
+         inkscape:export-filename="/Users/casey/Desktop/logo.png"
+         style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+         d="M 340.85085,634.44348 C 442.90856,580.8032 533.60364,560.48859 550.36072,589.51271 C 568.71472,621.30277 491.46563,700.3034 377.92969,765.8534 C 264.39376,831.4034 157.35267,858.80277 138.99865,827.01271 C 133.08841,816.77587 137.12972,801.63883 149.06561,783.6367 C 145.03164,790.56695 142.07696,797.99977 144.10873,805.55112 C 146.56259,813.07206 155.55623,815.78675 163.11213,816.59097 C 187.94118,817.87857 212.87346,810.91217 236.80029,803.34762 C 306.52465,779.32399 372.24329,743.1079 431.28065,698.82248 C 460.01719,676.37554 489.39878,652.91869 508.4767,622.02996 C 514.78747,613.53354 518.57165,601.52183 512.18821,592.89599 C 501.66484,585.56031 487.32345,585.37033 474.31683,587.30082 C 427.67814,594.77479 383.24216,612.8381 340.85085,634.44348 z"
+         id="path4208" />
+      <path
+         inkscape:export-ydpi="24.25"
+         inkscape:export-xdpi="24.25"
+         inkscape:export-filename="/Users/casey/Desktop/logo.png"
+         id="path4210"
+         d="M 299.95472,643.74996 C 361.51915,546.26726 429.90609,483.32675 458.93021,500.08384 C 490.72027,518.43784 463.32091,625.47894 397.7709,739.01487 C 332.2209,852.5508 253.22028,929.7999 221.4302,911.44591 C 211.19337,905.53566 207.12472,890.40595 208.46044,868.8477 C 208.43205,876.86646 209.58963,884.78081 215.12487,890.30459 C 221.01044,895.59098 230.15651,893.44515 237.10222,890.36368 C 259.24861,879.06425 277.3574,860.56503 294.29636,842.05052 C 342.66762,786.38326 381.47358,722.15989 410.45873,654.28891 C 424.12183,620.48102 437.83861,585.476 438.91621,549.18661 C 440.13328,538.67311 437.40463,526.37858 427.56348,522.1001 C 414.78214,521.0089 402.26714,528.01507 391.96832,536.19023 C 355.31502,565.98222 325.86398,603.8435 299.95472,643.74996 z"
+         style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
+      <path
+         inkscape:export-ydpi="24.25"
+         inkscape:export-xdpi="24.25"
+         inkscape:export-filename="/Users/casey/Desktop/logo.png"
+         style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+         d="M 262.33837,674.6785 C 266.91338,559.47379 294.66795,470.77224 328.18212,470.77224 C 364.89012,470.77224 394.68213,577.17223 394.68212,708.27224 C 394.68212,839.37224 364.89013,945.77223 328.18212,945.77225 C 316.36164,945.77224 305.27323,934.70385 295.65087,915.366 C 299.63566,922.32464 304.59533,928.59988 312.15088,930.61599 C 319.89113,932.25136 326.73894,925.81998 331.21337,919.67849 C 344.74299,898.8197 351.17605,873.74451 356.58837,849.241 C 370.64548,776.84611 372.14074,701.82406 363.30713,628.55349 C 358.23577,592.44345 352.61234,555.26982 335.40088,523.30349 C 331.19814,513.58999 322.68779,504.30694 312.02587,505.52225 C 300.4113,510.96791 293.07608,523.29293 288.24462,535.52224 C 271.39793,579.64951 264.82322,627.16386 262.33837,674.6785 z"
+         id="path4212" />
+    </g>
+  </g>
+</svg>

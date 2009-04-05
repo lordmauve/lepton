@@ -22,8 +22,12 @@ from pyglet.gl import *
 
 from lepton import Particle, ParticleGroup, default_system, domain
 from lepton.renderer import BillboardRenderer
+from lepton.texturizer import SpriteTexturizer
 from lepton.emitter import StaticEmitter, PerParticleEmitter
 from lepton.controller import Gravity, Lifetime, Movement, Fader, ColorBlender
+
+spark_tex = image.load(os.path.join(os.path.dirname(__file__), 'flare3.png')).get_texture()
+texturizer = SpriteTexturizer(spark_tex.id)
 
 class Kaboom:
 	
@@ -37,7 +41,6 @@ class Kaboom:
 		spark_emitter = StaticEmitter(
 			template=Particle(
 				position=(uniform(-50, 50), uniform(-30, 30), uniform(-30, 30)), 
-				# velocity=(0, gauss(40, 20), 0),
 				color=color, 
 				size=(2.5,2.5,0)),
 			deviation=Particle(
@@ -51,7 +54,7 @@ class Kaboom:
 				Movement(damping=0.93),
 				Fader(fade_out_start=1.0, fade_out_end=self.lifetime * 0.5),
 			],
-			renderer=BillboardRenderer())
+			renderer=BillboardRenderer(texturizer))
 
 		spark_emitter.emit(int(gauss(60, 40)) + 50, self.sparks)
 
@@ -73,7 +76,7 @@ class Kaboom:
 				Fader(fade_out_start=0, fade_out_end=gauss(self.lifetime, self.lifetime*0.3)),
 				self.trail_emitter
 			],
-			renderer=BillboardRenderer())
+			renderer=BillboardRenderer(texturizer))
 
 		pyglet.clock.schedule_once(self.die, self.lifetime * 2)
 	
@@ -85,65 +88,55 @@ class Kaboom:
 		default_system.remove_group(self.sparks)
 		default_system.remove_group(self.trails)
 
+win = pyglet.window.Window(resizable=True, visible=False)
+win.clear()
 
+def on_resize(width, height):
+	"""Initial settings for the OpenGL state machine, clear color, window size, etc"""
+	glViewport(0, 0, width, height)
+	glMatrixMode(GL_PROJECTION)
+	glLoadIdentity()
+	gluPerspective(70, 1.0*width/height, 0.1, 1000.0)
+	glMatrixMode(GL_MODELVIEW)
+	glLoadIdentity()
+win.on_resize = on_resize
+
+yrot = 0.0
+
+@win.event
+def on_mouse_motion(x, y, dx, dy):
+	global yrot
+	yrot += dx * 0.3
+
+glEnable(GL_BLEND)
+glShadeModel(GL_SMOOTH)
+glBlendFunc(GL_SRC_ALPHA,GL_ONE)
+glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);
+glDisable(GL_DEPTH_TEST)
+
+default_system.add_global_controller(
+	Gravity((0,-15,0))
+)
+
+MEAN_FIRE_INTERVAL = 3.0
+
+def fire(dt=None):
+	Kaboom()
+	pyglet.clock.schedule_once(fire, expovariate(1.0 / (MEAN_FIRE_INTERVAL - 1)) + 1)
+
+fire()
+win.set_visible(True)
+pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
+pyglet.clock.set_fps_limit(None)
+
+@win.event
+def on_draw():
+	global yrot
+	win.clear()
+	glLoadIdentity()
+	glTranslatef(0, 0, -100)
+	glRotatef(yrot, 0.0, 1.0, 0.0)
+	default_system.draw()
 
 if __name__ == '__main__':
-	win = pyglet.window.Window(resizable=True, visible=False)
-	win.clear()
-
-	def on_resize(width, height):
-		"""Initial settings for the OpenGL state machine, clear color, window size, etc"""
-		glViewport(0, 0, width, height)
-		glMatrixMode(GL_PROJECTION)
-		glLoadIdentity()
-		gluPerspective(70, 1.0*width/height, 0.1, 1000.0)
-		glMatrixMode(GL_MODELVIEW)
-		glLoadIdentity()
-	win.on_resize = on_resize
-
-	yrot = 0.0
-
-	@win.event
-	def on_mouse_motion(x, y, dx, dy):
-		global yrot
-		yrot += dx * 0.3
-
-	glEnable(GL_BLEND)
-	glShadeModel(GL_SMOOTH)
-	glBlendFunc(GL_SRC_ALPHA,GL_ONE)
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);
-	glDisable(GL_DEPTH_TEST)
-	
-	spark_tex = image.load(os.path.join(os.path.dirname(__file__), 'flare3.png')).texture
-	glEnable(spark_tex.target)
-	glTexParameteri(spark_tex.target, GL_TEXTURE_WRAP_S, GL_CLAMP)
-	glTexParameteri(spark_tex.target, GL_TEXTURE_WRAP_T, GL_CLAMP)
-	glTexParameteri(spark_tex.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-	glTexParameteri(spark_tex.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-	glBindTexture(spark_tex.target, spark_tex.id)
-
-	default_system.add_global_controller(
-		Gravity((0,-15,0))
-	)
-
-	MEAN_FIRE_INTERVAL = 3.0
-	
-	def fire(dt=None):
-		Kaboom()
-		pyglet.clock.schedule_once(fire, expovariate(1.0 / (MEAN_FIRE_INTERVAL - 1)) + 1)
-
-	fire()
-	win.set_visible(True)
-	pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
-	pyglet.clock.set_fps_limit(None)
-
-	@win.event
-	def on_draw():
-		global yrot
-		win.clear()
-		glLoadIdentity()
-		glTranslatef(0, 0, -100)
-		glRotatef(yrot, 0.0, 1.0, 0.0)
-		default_system.draw()
-
 	pyglet.app.run()

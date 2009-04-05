@@ -21,6 +21,7 @@ from emitter_test import *
 from group_test import *
 from system_test import *
 from domain_test import *
+from texturizer_test import *
 
 if __name__ == '__main__':
 	unittest.main()

@@ -32,6 +32,7 @@
 
 #include "vector.h"
 #include "group.h"
+#include "renderer.h"
 
 typedef struct {
 	PyObject_HEAD
@@ -69,7 +70,6 @@ typedef struct {
 	Py_ssize_t size; /* Number of verts */
 	VertItem *verts;
 	ColorItem *colors;
-	float *tex_coords;
 } VertArray;
 
 /* Allocate space for vertex data for the given particle group
@@ -78,18 +78,16 @@ typedef struct {
    Return 1 on success, 0 on failure
 */
 static int
-VertArray_alloc(GroupObject *pgroup, int tex_dimension, VertArray *data)
+VertArray_alloc(GroupObject *pgroup, VertArray *data)
 {
 	data->size = GroupObject_ActiveCount(pgroup) * 4;
 	data->is_vbo = 0;
 	data->verts = (VertItem *)PyMem_Malloc(
 		data->size*sizeof(VertItem) + /* vert data */
-		data->size*sizeof(ColorItem) + /* color data */
-		data->size*sizeof(float)*tex_dimension /* tex coord data */
+		data->size*sizeof(ColorItem)  /* color data */
 		);
 	if (data->verts != NULL) {
 		data->colors = (ColorItem *)(data->verts + data->size);
-		data->tex_coords = (float *)(data->colors + data->size);
 		return 1;
 	} else {
 		PyErr_NoMemory();
@@ -114,25 +112,40 @@ VertArray_free(VertArray *data)
 */
 static PyTypeObject FloatArray_Type;
 
-typedef struct {
-	PyObject_HEAD
-	Py_ssize_t size;
-	float *data;
-} FloatArrayObject;
+int
+FloatArrayObject_Check(FloatArrayObject *o)
+{
+	if (o->ob_type != &FloatArray_Type) {
+		PyErr_SetString(PyExc_TypeError, "Expected FloatArray object");
+		return 0;
+	}
+	return 1;
+}
 
-static FloatArrayObject *
-FloatArray_new(Py_ssize_t size, float *data)
+FloatArrayObject *
+FloatArray_new(Py_ssize_t size)
 {
 	FloatArrayObject *floatarray;
+
 	floatarray = PyObject_New(FloatArrayObject, &FloatArray_Type);
-	if (floatarray == NULL) {
-		PyErr_NoMemory();
-		return NULL;
-	}
+	if (floatarray == NULL)
+		return (FloatArrayObject *)PyErr_NoMemory();
 	floatarray->size = size;
-	floatarray->data = data;
+	floatarray->data = PyMem_Malloc(sizeof(float) * size);
+	if (floatarray->data == NULL)
+		Py_CLEAR(floatarray);
 	return floatarray;
 }
+
+static void
+FloatArray_dealloc(FloatArrayObject *self)
+{
+	if (self->data != NULL) {
+		PyMem_Free(self->data);
+		self->data = NULL;
+	}
+}
+
 
 static PyObject *
 FloatArray_getitem(FloatArrayObject *self, Py_ssize_t index)
@@ -166,17 +179,6 @@ FloatArray_length(FloatArrayObject *self)
 	return (Py_ssize_t)self->size;
 }
 
-/* Clear the float array length and data when the underlying data is
- * deallocated */
-static void
-FloatArray_clear(FloatArrayObject *self)
-{
-	if (self != NULL) {
-		self->size = 0;
-		self->data = NULL;
-	}
-}
-
 static PySequenceMethods FloatArray_as_sequence = {
 	(lenfunc)FloatArray_length,	/* sq_length */
 	0,		/*sq_concat*/
@@ -197,7 +199,7 @@ static PyTypeObject FloatArray_Type = {
 	sizeof(FloatArrayObject),	/*tp_basicsize*/
 	0,			                /*tp_itemsize*/
 	/* methods */
-	(destructor)Renderer_dealloc, /*tp_dealloc*/
+	(destructor)FloatArray_dealloc, /*tp_dealloc*/
 	0,			            /*tp_print*/
 	0,                      /*tp_getattr*/
 	0,                      /*tp_setattr*/
@@ -331,7 +333,7 @@ static PyTypeObject PointRenderer_Type = {
 	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
-	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
 	PointRenderer__doc__,   /*tp_doc*/
 	0,                      /*tp_traverse*/
 	0,                      /*tp_clear*/
@@ -374,16 +376,45 @@ BillboardRenderer_init(RendererObject *self, PyObject *args, PyObject *kwargs)
 	return 0;
 }
 
-typedef struct {
-	float tex[2];
-	union {
-		unsigned char color[4];
-		unsigned long colorl;
-	};
-	struct {
-		float x; float y; float z;
-	} vert;
-} BBData;
+FloatArrayObject *
+generate_default_2D_tex_coords(GroupObject *pgroup) {
+	static FloatArrayObject *tarray = NULL;
+	float *realloc_tcoords, *tex;
+	unsigned long pcount, new_size;
+
+	if (tarray == NULL) {
+		tarray = PyObject_New(FloatArrayObject, &FloatArray_Type);
+		if (tarray == NULL)
+			return (FloatArrayObject *)PyErr_NoMemory();
+		tarray->size = 0;
+		tarray->data = NULL;
+	}
+
+	pcount = GroupObject_ActiveCount(pgroup);
+	if (tarray->data == NULL || pcount * 8 > tarray->size) {
+		new_size = pgroup->plist->palloc * 8;
+		realloc_tcoords = PyMem_Realloc(tarray->data, sizeof(float) * new_size);
+		if (realloc_tcoords == NULL)
+			return (FloatArrayObject *)PyErr_NoMemory();
+		tarray->data = realloc_tcoords;
+		tex = tarray->data + tarray->size;
+		pcount = (new_size - tarray->size) / 8;
+		while (pcount--) {
+			*tex++ = 0.0f;
+			*tex++ = 0.0f;
+			*tex++ = 1.0f;
+			*tex++ = 0.0f;
+			*tex++ = 1.0f;
+			*tex++ = 1.0f;
+			*tex++ = 0.0f;
+			*tex++ = 1.0f;
+		}
+		tarray->size = new_size;
+	}
+
+	Py_INCREF(tarray);
+	return tarray;
+}
 
 #define MIN_SHORT_INDEX_COUNT 4096
 #define MAX_SHORT_INDEX_COUNT 65536
@@ -443,9 +474,8 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 	Vec3 vright, vright_unit, vup, vup_unit, vrot;
 	long tex_dimension;
 	PyObject *r;
-	FloatArrayObject *texarray = NULL;
+	FloatArrayObject *tex_array = NULL;
 	VertArray data;
-	float *tex;
 
 	if (!GroupObject_Check(pgroup)) {
 		PyErr_SetString(PyExc_TypeError, "Expected ParticleGroup first argument");
@@ -458,6 +488,9 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
+	if (!VertArray_alloc(pgroup, &data))
+		return NULL;
+	tex_dimension = 2;
 
 	if (self->texturizer != NULL) {
 		r = PyObject_GetAttrString(self->texturizer, "tex_dimension");
@@ -467,24 +500,15 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 		Py_DECREF(r);
 		if (PyErr_Occurred() != NULL)
 			return NULL;
-		if (tex_dimension != 2 && tex_dimension != 3) {
+		if (tex_dimension < 1 && tex_dimension > 3) {
 			PyErr_Format(PyExc_ValueError, 
-				"Expected texturizer.tex_dimension value of 2 or 3, got %ld", tex_dimension);
+				"Expected texturizer.tex_dimension value of 1, 2 or 3, got %ld", tex_dimension);
 			return NULL;
 		}
-		if (!VertArray_alloc(pgroup, tex_dimension, &data))
-			return NULL;
-		texarray = FloatArray_new(data.size * tex_dimension, data.tex_coords);
-		if (texarray == NULL)
-			goto error;
 		r = PyObject_CallMethod(self->texturizer, "set_state", NULL);
 		if (r == NULL)
 			goto error;
 		Py_DECREF(r);
-	} else {
-		tex_dimension = 2;
-		if (!VertArray_alloc(pgroup, tex_dimension, &data))
-			return NULL;
 	}
 
 	/* Get the alignment vectors from the view matrix */
@@ -570,31 +594,22 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 	}
 
 	if (self->texturizer != NULL) {
-		r = PyObject_CallMethod(
-			self->texturizer, "generate_tex_coords", "OO", pgroup, texarray);
-		if (r == NULL) {
+		tex_array = (FloatArrayObject *)PyObject_CallMethod(
+			self->texturizer, "generate_tex_coords", "O", pgroup);
+		if (tex_array == NULL) {
 			r = PyObject_CallMethod(self->texturizer, "restore_state", NULL);
 			Py_XDECREF(r);
 			goto error;
 		}
 	} else {
-		/* No texturizer, map full texture to particles */
-		tex = data.tex_coords;
-		for (i = 0; i < pcount*4; i += 4) {
-			*tex++ = 0.0f;
-			*tex++ = 0.0f;
-			*tex++ = 1.0f;
-			*tex++ = 0.0f;
-			*tex++ = 1.0f;
-			*tex++ = 1.0f;
-			*tex++ = 0.0f;
-			*tex++ = 1.0f;
-		}
+		tex_array = generate_default_2D_tex_coords(pgroup);
+		if (tex_array == NULL)
+			goto error;
 	}
 
 	glVertexPointer(3, GL_FLOAT, 0, data.verts);
 	glColorPointer(4, GL_UNSIGNED_BYTE, 0, data.colors);
-	glTexCoordPointer(tex_dimension, GL_FLOAT, 0, data.tex_coords);
+	glTexCoordPointer(tex_dimension, GL_FLOAT, 0, tex_array->data);
 	if (!draw_billboards(pcount))
 		goto error;
 	glPopClientAttrib();
@@ -612,15 +627,13 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 		Py_DECREF(r);
 	}
 	
-	FloatArray_clear(texarray);
-	Py_XDECREF(texarray);
+	Py_DECREF(tex_array);
 	VertArray_free(&data);
 
 	Py_INCREF(Py_None);
 	return Py_None;
 error:
-	FloatArray_clear(texarray);
-	Py_XDECREF(texarray);
+	Py_XDECREF(tex_array);
 	VertArray_free(&data);
 	return NULL;
 }
@@ -674,7 +687,7 @@ static PyTypeObject BillboardRenderer_Type = {
 	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
-	Py_TPFLAGS_DEFAULT,     /*tp_flags*/
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,     /*tp_flags*/
 	BillboardRenderer__doc__,   /*tp_doc*/
 	0,                      /*tp_traverse*/
 	0,                      /*tp_clear*/
@@ -713,6 +726,10 @@ initrenderer(void)
 	BillboardRenderer_Type.tp_new = PyType_GenericNew;
 	BillboardRenderer_Type.tp_getattro = PyObject_GenericGetAttr;
 	if (PyType_Ready(&BillboardRenderer_Type) < 0)
+		return;
+	
+	/* FloatArray objects cannot be instantiated from Python */
+	if (PyType_Ready(&FloatArray_Type) < 0)
 		return;
 
 	/* Create the module and add the types */
