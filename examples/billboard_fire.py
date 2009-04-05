@@ -20,6 +20,7 @@ from pyglet.gl import *
 
 from lepton import Particle, ParticleGroup, default_system
 from lepton.renderer import BillboardRenderer
+from lepton.texturizer import SpriteTexturizer
 from lepton.emitter import StaticEmitter
 from lepton.controller import Gravity, Lifetime, Movement, Fader, ColorBlender
 
@@ -59,17 +60,11 @@ default_system.add_global_controller(
 		(5.0, (0.8,0.8,0.8,0.05)),
 		(6.0, (0.8,0.8,0.8,0)), ]
 	),
-	#Fader(fade_in_end=5.0, max_alpha=0.005, fade_out_start=17, fade_out_end=20),
 )
-group = ParticleGroup(controllers=[flame], renderer=BillboardRenderer())
 
-texture = image.load(os.path.join(os.path.dirname(__file__), 'Particle.bmp')).texture
-glEnable(texture.target)
-glTexParameteri(texture.target, GL_TEXTURE_WRAP_S, GL_CLAMP)
-glTexParameteri(texture.target, GL_TEXTURE_WRAP_T, GL_CLAMP)
-glTexParameteri(texture.target, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-glTexParameteri(texture.target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-glBindTexture(texture.target, texture.id)
+texture = image.load(os.path.join(os.path.dirname(__file__), 'Particle.bmp')).get_texture()
+group = ParticleGroup(controllers=[flame], 
+	renderer=BillboardRenderer(SpriteTexturizer(texture.id)))
 
 win.resize = resize
 win.set_visible(True)
