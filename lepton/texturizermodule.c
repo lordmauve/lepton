@@ -59,6 +59,8 @@ SpriteTex_dealloc(SpriteTexObject *self)
 		PyMem_Free(self->weights);
 		self->weights = NULL;
 	}
+	Py_CLEAR(self->dict);
+	Py_CLEAR(self->tex_array);
 	PyObject_Del(self);
 }
 
@@ -356,9 +358,9 @@ SpriteTex_generate_tex_coords(SpriteTexObject *self, GroupObject *pgroup)
 	} else {
 		/* Assign coords randomly according to weight */
 
-		/* use the group pointer as the random seed so the generated
-		   random sequence is repeatable for each group */
-		SHR3SEED((unsigned long)pgroup);
+		/* use our pointer as the random seed so the generated
+		   random sequence is repeatable */
+		SHR3SEED((unsigned long)self);
 		while (pcount--) {
 			w = SHR3RAND() & WEIGHT_MAX;
 			for (i = 0; i < coord_count && w > weights[i]; i++);
