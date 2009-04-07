@@ -21,13 +21,14 @@ from pyglet import image
 from pyglet.gl import *
 
 from lepton import Particle, ParticleGroup, default_system, domain
-from lepton.renderer import BillboardRenderer
-from lepton.texturizer import SpriteTexturizer
+from lepton.renderer import PointRenderer
+from lepton.texturizer import SpriteTexturizer, create_point_texture
 from lepton.emitter import StaticEmitter, PerParticleEmitter
 from lepton.controller import Gravity, Lifetime, Movement, Fader, ColorBlender
 
 spark_tex = image.load(os.path.join(os.path.dirname(__file__), 'flare3.png')).get_texture()
-texturizer = SpriteTexturizer(spark_tex.id)
+spark_texturizer = SpriteTexturizer(spark_tex.id)
+trail_texturizer = SpriteTexturizer(create_point_texture(8, 50))
 
 class Kaboom:
 	
@@ -35,14 +36,13 @@ class Kaboom:
 
 	def __init__(self):
 		color=(uniform(0,1), uniform(0,1), uniform(0,1), 1)
-		while sum(color) < 2.5:
+		while max(color[:3]) < 0.9:
 			color=(uniform(0,1), uniform(0,1), uniform(0,1), 1)
 
 		spark_emitter = StaticEmitter(
 			template=Particle(
 				position=(uniform(-50, 50), uniform(-30, 30), uniform(-30, 30)), 
-				color=color, 
-				size=(2.5,2.5,0)),
+				color=color), 
 			deviation=Particle(
 				velocity=(gauss(0, 5), gauss(0, 5), gauss(0, 5)),
 				age=1.5),
@@ -52,20 +52,19 @@ class Kaboom:
 			controllers=[
 				Lifetime(self.lifetime * 0.75),
 				Movement(damping=0.93),
+				ColorBlender([(0, (1,1,1,1)), (2, color), (self.lifetime, color)]),
 				Fader(fade_out_start=1.0, fade_out_end=self.lifetime * 0.5),
 			],
-			renderer=BillboardRenderer(texturizer))
+			renderer=PointRenderer(abs(gauss(10, 3)), spark_texturizer))
 
 		spark_emitter.emit(int(gauss(60, 40)) + 50, self.sparks)
 
-		spread = uniform(0.2, 4)
-		self.trail_emitter = PerParticleEmitter(self.sparks, rate=uniform(5,20),
+		spread = abs(gauss(0.4, 1.0))
+		self.trail_emitter = PerParticleEmitter(self.sparks, rate=uniform(5,30),
 			template=Particle(
-				color=color,
-				size=(1,1,0)),
+				color=color),
 			deviation=Particle(
 				velocity=(spread, spread, spread),
-				size=(0.05,0.05,0),
 				age=self.lifetime * 0.75))
 
 		self.trails = ParticleGroup(
@@ -73,10 +72,10 @@ class Kaboom:
 				Lifetime(self.lifetime * 1.5),
 				Movement(damping=0.83),
 				ColorBlender([(0, (1,1,1,1)), (1, color), (self.lifetime, color)]),
-				Fader(fade_out_start=0, fade_out_end=gauss(self.lifetime, self.lifetime*0.3)),
+				Fader(max_alpha=0.75, fade_out_start=0, fade_out_end=gauss(self.lifetime, self.lifetime*0.3)),
 				self.trail_emitter
 			],
-			renderer=BillboardRenderer(texturizer))
+			renderer=PointRenderer(10, trail_texturizer))
 
 		pyglet.clock.schedule_once(self.die, self.lifetime * 2)
 	
@@ -92,7 +91,7 @@ win = pyglet.window.Window(resizable=True, visible=False)
 win.clear()
 
 def on_resize(width, height):
-	"""Initial settings for the OpenGL state machine, clear color, window size, etc"""
+	"""Setup 3D projection for window"""
 	glViewport(0, 0, width, height)
 	glMatrixMode(GL_PROJECTION)
 	glLoadIdentity()
@@ -137,6 +136,24 @@ def on_draw():
 	glTranslatef(0, 0, -100)
 	glRotatef(yrot, 0.0, 1.0, 0.0)
 	default_system.draw()
+	'''
+	glBindTexture(GL_TEXTURE_2D, 1)
+	glEnable(GL_TEXTURE_2D)
+	glEnable(GL_POINT_SPRITE)
+	glPointSize(100);
+	glBegin(GL_POINTS)
+	glVertex2f(0,0)
+	glEnd()
+	glBindTexture(GL_TEXTURE_2D, 2)
+	glEnable(GL_TEXTURE_2D)
+	glEnable(GL_POINT_SPRITE)
+	glPointSize(100);
+	glBegin(GL_POINTS)
+	glVertex2f(50,0)
+	glEnd()
+	glBindTexture(GL_TEXTURE_2D, 0)
+	'''
+
 
 if __name__ == '__main__':
 	pyglet.app.run()

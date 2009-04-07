@@ -10,7 +10,7 @@
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 #
 #############################################################################
-"""Fire simulation using textured billboard quads"""
+"""Fire simulation using point sprites"""
 
 __version__ = '$Id$'
 
@@ -19,32 +19,29 @@ from pyglet import image
 from pyglet.gl import *
 
 from lepton import Particle, ParticleGroup, default_system
-from lepton.renderer import BillboardRenderer
-from lepton.texturizer import SpriteTexturizer
+from lepton.renderer import PointRenderer
+from lepton.texturizer import SpriteTexturizer, create_point_texture
 from lepton.emitter import StaticEmitter
+from lepton.domain import Line
 from lepton.controller import Gravity, Lifetime, Movement, Fader, ColorBlender
 
 win = pyglet.window.Window(resizable=True, visible=False)
 win.clear()
 
-def resize(widthWindow, heightWindow):
-	"""Initial settings for the OpenGL state machine, clear color, window size, etc"""
-	glEnable(GL_BLEND)
-	glEnable(GL_POINT_SMOOTH)
-	glShadeModel(GL_SMOOTH)# Enables Smooth Shading
-	glBlendFunc(GL_SRC_ALPHA,GL_ONE)#Type Of Blending To Perform
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);#Really Nice Perspective Calculations
-	glHint(GL_POINT_SMOOTH_HINT,GL_NICEST);#Really Nice Point Smoothing
-	glDisable(GL_DEPTH_TEST)
+glEnable(GL_BLEND)
+glShadeModel(GL_SMOOTH)
+glBlendFunc(GL_SRC_ALPHA,GL_ONE)
+glDisable(GL_DEPTH_TEST)
 
 flame = StaticEmitter(
-	rate=150,
+	rate=500,
 	template=Particle(
 		position=(300,25,0), 
 		velocity=(0,0,0), 
-		size=(85,85,0),
+		color=(1,1,1,1),
 	),
-	deviation=Particle(position=(20,0,0), velocity=(10,50,0), age=0.5)
+	position=Line((win.width/2 - 85, -15, 0), (win.width/2 + 85, -15, 0)),
+	deviation=Particle(position=(10,0,0), velocity=(7,50,0), age=0.75)
 )
 
 default_system.add_global_controller(
@@ -54,21 +51,19 @@ default_system.add_global_controller(
 	ColorBlender(
 		[(0, (0,0,0.5,0)), 
 		(0.5, (0,0,0.5,0.2)), 
-		(1.0, (0,0.5,1,0.08)), 
-		(1.5, (1,1,0,0.12)), 
-		(3.0, (1,0,0,0.12)), 
-		(5.0, (0.8,0.8,0.8,0.05)),
+		(0.75, (0,0.5,1,0.6)), 
+		(1.5, (1,1,0,0.2)), 
+		(2.7, (0.9,0.2,0,0.4)), 
+		(3.2, (0.6,0.1,0.05,0.2)), 
+		(4.0, (0.8,0.8,0.8,0.1)),
 		(6.0, (0.8,0.8,0.8,0)), ]
 	),
 )
 
-texture = image.load(os.path.join(os.path.dirname(__file__), 'Particle.bmp')).get_texture()
 group = ParticleGroup(controllers=[flame], 
-	renderer=BillboardRenderer(SpriteTexturizer(texture.id)))
+	renderer=PointRenderer(64, SpriteTexturizer(create_point_texture(64, 5))))
 
-win.resize = resize
 win.set_visible(True)
-win.resize(win.width, win.height)
 pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
 pyglet.clock.set_fps_limit(None)
 
