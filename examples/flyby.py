@@ -66,7 +66,7 @@ default_system.add_global_controller(
 images = [image.load(os.path.join(os.path.dirname(__file__), 'flare%s.png' % (i+1))) 
 	for i in range(4)]
 group = ParticleGroup(controllers=[comet], 
-	renderer=BillboardRenderer(SpriteTexturizerFromImages(images)))
+	renderer=BillboardRenderer(SpriteTexturizer.from_images(images)))
 
 pyglet.clock.schedule_interval(default_system.update, (1.0/30.0))
 pyglet.clock.set_fps_limit(None)

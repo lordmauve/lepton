@@ -20,11 +20,11 @@ from pyglet import image
 from pyglet.gl import *
 
 from lepton import Particle, ParticleGroup, default_system
-from lepton.renderer import BillboardRenderer
+from lepton.renderer import PointRenderer
 from lepton.texturizer import SpriteTexturizer
 from lepton.emitter import StaticEmitter, PerParticleEmitter
 from lepton.domain import AABox, Cylinder, Disc, Cone
-from lepton.controller import Gravity, Lifetime, Movement, Fader, Magnet, Drag, Collector, Growth
+from lepton.controller import Gravity, Lifetime, Movement, Fader, Magnet, Drag, Collector
 
 win = pyglet.window.Window(resizable=True, visible=False)
 win.clear()
@@ -43,7 +43,6 @@ glEnable(GL_BLEND)
 glShadeModel(GL_SMOOTH)
 glBlendFunc(GL_SRC_ALPHA, GL_ONE)
 glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
-glHint(GL_POINT_SMOOTH_HINT, GL_NICEST)
 glDisable(GL_DEPTH_TEST)
 
 texture = image.load(os.path.join(os.path.dirname(__file__), 'flare3.png')).get_texture()
@@ -52,17 +51,16 @@ texturizer = SpriteTexturizer(texture.id)
 source = Disc((0, -30, 0), (0, 1, 0), 2, 2)
 
 dust_emitter = StaticEmitter(
-	rate=30,
+	rate=40,
 	template=Particle(
 		velocity=(0,0,0), 
-		size=(4,4,0),
 		mass=1.0,
 		color=(1,1,1,0.25),
 	),
 	position=source,
 	deviation=Particle(
 		velocity=(20,0,20), 
-		color=(0.0, 0.1, 0.1),
+		color=(0.0, 1.0, 1.0),
 		age=0.5)
 )
 column = Cylinder((0, -50, 0), (0, 28, 0), 25)
@@ -80,23 +78,21 @@ dust = ParticleGroup(
 		Magnet(charge=500, domain=vortex, exponent=0.75, epsilon=0.5),
 		Movement(),
 		],
-	renderer=BillboardRenderer(texturizer),
+	renderer=PointRenderer(16, texturizer),
 	)
 
 
 trail_emitter = PerParticleEmitter(dust, rate=30,
 	template=Particle(
 		color=(1,1,1),
-		size=(3,3,0),
 		),
 	)
 
 trail = ParticleGroup(
 	controllers=[trail_emitter, 
 		Lifetime(.5), 
-		Growth(-1),
 		Fader(max_alpha=0.09, fade_out_start=0, fade_out_end=0.5)],
-	renderer=BillboardRenderer(texturizer),
+	renderer=PointRenderer(14, texturizer),
 	)
 
 win.set_visible(True)

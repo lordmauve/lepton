@@ -17,7 +17,8 @@ the necessary OpenGL state changes to setup texturing for rendering
 """
 
 import math
-from _texturizer import SpriteTexturizer
+import ctypes
+import _texturizer
 
 def _nearest_pow2(v):
     # From http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
@@ -30,24 +31,67 @@ def _nearest_pow2(v):
     v |= v >> 16
     return v + 1
 
-def SpriteTexturizerFromImages(images, weights=None, filter=None, wrap=None):
-	"""Create a SpriteTexturizer from a sequence of Pyglet images. 
-	
-	Note all the images must be able to fit into a single OpenGL texture, so
-	their combined size should typically be less than 1024x1024
+
+class SpriteTexturizer(_texturizer.SpriteTexturizer):
+
+	@classmethod
+	def from_images(cls, images, weights=None, filter=None, wrap=None):
+		"""Create a SpriteTexturizer from a sequence of Pyglet images. 
+		
+		Note all the images must be able to fit into a single OpenGL texture, so
+		their combined size should typically be less than 1024x1024
+		"""
+		import pyglet
+		images = sorted(images, key=lambda img: img.height, reverse=True)
+		widest = max(img.width for img in images)
+		height = sum(img.height for img in images)
+
+		atlas = pyglet.image.atlas.TextureAtlas(
+			width=_nearest_pow2(widest), height=_nearest_pow2(height))
+		textures = [atlas.add(image) for image in images]
+		texturizer = cls(
+			atlas.texture.id, [tex.tex_coords for tex in textures],
+			weights, filter or pyglet.gl.GL_LINEAR, wrap or pyglet.gl.GL_CLAMP)
+		texturizer.atlas = atlas
+		texturizer.textures = textures
+		return texturizer
+
+
+def create_point_texture(size, feather=0):
+	"""Create and load a circular grayscale image centered in a square texture
+	with a width and height of size. The radius of the circle is size / 2. 
+	Since size is used as the texture width and height, it should typically
+	be a power of two.
+
+	Feather determines the softness of the edge of the circle. The default,
+	zero, creates a hard edged circle. Larger feather values create softer
+	edges for blending. The point at the center of the texture is always
+	white.
+
+	Return the OpenGL texture name (id) for the resulting texture. This
+	value can be passed directy to a texturizer or glBindTexture
 	"""
-	import pyglet
-	images = sorted(images, key=lambda img: img.height, reverse=True)
-	widest = max(img.width for img in images)
-	height = sum(img.height for img in images)
+	from pyglet import gl
 
-	atlas = pyglet.image.atlas.TextureAtlas(
-		width=_nearest_pow2(widest), height=_nearest_pow2(height))
-	textures = [atlas.add(image) for image in images]
-	texturizer = SpriteTexturizer(
-		atlas.texture.id, [tex.tex_coords for tex in textures],
-		weights, filter or pyglet.gl.GL_LINEAR, wrap or pyglet.gl.GL_CLAMP)
-	texturizer.atlas = atlas
-	texturizer.textures = textures
-	return texturizer
+	assert feather >= 0, 'Expected feather value >= 0'
+	coords = range(size)
+	texel = (gl.GLfloat * size**2)()
+	r = size / 2.0
+	c = feather + 1.0
 
+	for y in coords:
+		col = y * size
+		for x in coords:
+			d = math.sqrt((x - r)**2 + (y - r)**2)
+			if d < r and (1.0 - 1.0 / (d / r - 1.0)) < 100:
+				texel[x + col] = c**2 / c**(1.0 - 1.0 / (d / r - 1.0))
+			else:
+				texel[x + col] = 0
+	id = gl.GLuint()
+	gl.glGenTextures(1, ctypes.byref(id))
+	gl.glBindTexture(gl.GL_TEXTURE_2D, id.value)
+	gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 4)
+	gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, size, size, 0, 
+		gl.GL_LUMINANCE, gl.GL_FLOAT, ctypes.byref(texel))
+	gl.glFlush()
+	return id.value
