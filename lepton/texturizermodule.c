@@ -51,14 +51,10 @@ typedef struct {
 static void
 SpriteTex_dealloc(SpriteTexObject *self) 
 {
-	if (self->tex_coords != NULL) {
-		PyMem_Free(self->tex_coords);
-		self->tex_coords = NULL;
-	}
-	if (self->weights != NULL) {
-		PyMem_Free(self->weights);
-		self->weights = NULL;
-	}
+	PyMem_Free(self->tex_coords);
+	self->tex_coords = NULL;
+	PyMem_Free(self->weights);
+	self->weights = NULL;
 	Py_CLEAR(self->dict);
 	Py_CLEAR(self->tex_array);
 	PyObject_Del(self);
@@ -77,16 +73,19 @@ SpriteTex_init(SpriteTexObject *self, PyObject *args, PyObject *kwargs)
 
 	static char *kwlist[] = {"texture", "coords", "weights", "filter", "wrap", NULL};
 
+	PyMem_Free(self->tex_coords);
 	self->tex_coords = NULL;
 	self->tex_filter = GL_LINEAR;
 	self->tex_wrap = GL_CLAMP;
+	PyMem_Free(self->weights);
 	self->weights = NULL;
 	self->coord_count = 0;
-	self->tex_array = NULL;
+	Py_CLEAR(self->tex_array);
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i|OOii:__init__", kwlist,
 		&self->texture, &tex_coords_seq, &weights_seq, &self->tex_filter, &self->tex_wrap))
 		return -1;
 	
+	Py_CLEAR(self->dict);
 	self->dict = PyDict_New();
 	if (self->dict == NULL)
 		goto error;
@@ -187,15 +186,11 @@ SpriteTex_init(SpriteTexObject *self, PyObject *args, PyObject *kwargs)
 error:
 	Py_XDECREF(s);
 	Py_XDECREF(t);
-	Py_XDECREF(self->dict);
-	if (self->tex_coords != NULL) {
-		PyMem_Free(self->tex_coords);
-		self->tex_coords = NULL;
-	}
-	if (self->weights != NULL) {
-		PyMem_Free(self->weights);
-		self->weights = NULL;
-	}
+	Py_CLEAR(self->dict);
+	PyMem_Free(self->tex_coords);
+	self->tex_coords = NULL;
+	PyMem_Free(self->weights);
+	self->weights = NULL;
 	return -1;
 }
 
@@ -267,7 +262,7 @@ SpriteTex_get_tex_dimension(SpriteTexObject *self, void *closure)
 static PyObject *
 SpriteTex_set_state(SpriteTexObject *self)
 {
-	glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
+	glPushAttrib(GL_ENABLE_BIT);
 	glEnable(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, self->tex_filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, self->tex_filter);
@@ -316,7 +311,7 @@ SpriteTex_generate_tex_coords(SpriteTexObject *self, GroupObject *pgroup)
 			Py_INCREF(self->tex_array);
 			return self->tex_array;
 		} else {
-			Py_DECREF(self->tex_array);
+			Py_CLEAR(self->tex_array);
 		}
 	}
 	

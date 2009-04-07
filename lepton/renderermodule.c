@@ -39,13 +39,6 @@ typedef struct {
 	PyObject *texturizer;
 } RendererObject;
 
-/* Base renderer methods */
-
-static void
-Renderer_dealloc(RendererObject *self) {
-	PyObject_Del(self);
-}
-
 /* --------------------------------------------------------------------- */
 
 /* Vertex data functions and structs */
@@ -140,10 +133,9 @@ FloatArray_new(Py_ssize_t size)
 static void
 FloatArray_dealloc(FloatArrayObject *self)
 {
-	if (self->data != NULL) {
-		PyMem_Free(self->data);
-		self->data = NULL;
-	}
+	PyMem_Free(self->data);
+	self->data = NULL;
+	PyObject_Del(self);
 }
 
 
@@ -243,17 +235,30 @@ static PyTypeObject PointRenderer_Type;
 
 typedef struct {
 	PyObject_HEAD
-	float		 point_size;
+	float	 point_size;
+	PyObject *texturizer;
 } PointRendererObject;
+
+static void
+PointRenderer_dealloc(PointRendererObject *self) 
+{
+	Py_CLEAR(self->texturizer);	
+	PyObject_Del(self);
+}
 
 static int
 PointRenderer_init(PointRendererObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"point_size", NULL};
+	static char *kwlist[] = {"point_size", "texturizer", NULL};
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "f:__init__",kwlist, 
-		&self->point_size))
+	self->texturizer = NULL;
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "f|O:__init__",kwlist, 
+		&self->point_size, &self->texturizer))
 		return -1;
+	if (self->texturizer == Py_None)
+		self->texturizer = NULL;
+	if (self->texturizer != NULL)
+		Py_INCREF(self->texturizer);
 	return 0;
 }
 
@@ -261,6 +266,7 @@ static PyObject *
 PointRenderer_draw(PointRendererObject *self, GroupObject *pgroup)
 {
 	Particle *p;
+	PyObject *r = NULL;
 	int GL_error;
 	unsigned long count_particles;
 
@@ -272,6 +278,15 @@ PointRenderer_draw(PointRendererObject *self, GroupObject *pgroup)
 	count_particles = GroupObject_ActiveCount(pgroup);
 	if (count_particles > 0){
 		p = pgroup->plist->p;
+		if (self->texturizer != NULL) {
+			r = PyObject_CallMethod(self->texturizer, "set_state", NULL);
+			if (r == NULL)
+				return NULL;
+			Py_DECREF(r);
+			glEnable(GL_POINT_SPRITE);
+			glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
+		}
+
 		glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glEnableClientState(GL_COLOR_ARRAY);
@@ -286,6 +301,13 @@ PointRenderer_draw(PointRendererObject *self, GroupObject *pgroup)
 			PyErr_Format(PyExc_RuntimeError, "GL error %d", GL_error);
 			return NULL;
 		}
+
+		if (self->texturizer != NULL) {
+			r = PyObject_CallMethod(self->texturizer, "restore_state", NULL);
+			if (r == NULL)
+				return NULL;
+			Py_DECREF(r);
+		}
 	}	
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -294,6 +316,8 @@ PointRenderer_draw(PointRendererObject *self, GroupObject *pgroup)
 static struct PyMemberDef PointRenderer_members[] = {
     {"point_size", T_FLOAT, offsetof(PointRendererObject, point_size), 0,
         "Size of GL_POINTS drawn"},
+    {"texturizer", T_OBJECT, offsetof(PointRendererObject, texturizer), 0,
+        "Texturizer used to apply texture to particles"},
 	{NULL}
 };
 
@@ -306,8 +330,13 @@ static PyMethodDef PointRenderer_methods[] = {
 PyDoc_STRVAR(PointRenderer__doc__, 
 	"Simple particle renderer using GL_POINTS. All particles in the\n"
 	"group are rendered with the same point size\n\n"
-	"PointRenderer(point_size)\n\n"
-	"point_size -- Size of GL_POINTS points (float)");
+	"PointRenderer(point_size, texturizer=None)\n\n"
+	"point_size -- Size of GL_POINTS points to draw (float)\n\n"
+	"texturizer -- Texturizer used to apply texture to particles.\n"
+	"If specified, the points are drawn using GL_POINT_SPRITES.\n"
+	"Note that point sprites have fixed texture coordinates,\n"
+	"thus they cannot use custom per-particle coordinates\n"
+	"computed by the texturizer.");
 
 static PyTypeObject PointRenderer_Type = {
 	/* The ob_type field must be initialized in the module init function
@@ -318,7 +347,7 @@ static PyTypeObject PointRenderer_Type = {
 	sizeof(PointRendererObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
 	/* methods */
-	(destructor)Renderer_dealloc, /*tp_dealloc*/
+	(destructor)PointRenderer_dealloc, /*tp_dealloc*/
 	0,			/*tp_print*/
 	0,          /*tp_getattr*/
 	0,          /*tp_setattr*/
@@ -360,10 +389,17 @@ static PyTypeObject PointRenderer_Type = {
 
 static PyTypeObject BillboardRenderer_Type;
 
+static void
+BillboardRenderer_dealloc(RendererObject *self) 
+{
+	Py_CLEAR(self->texturizer);	
+	PyObject_Del(self);
+}
+
 static int
 BillboardRenderer_init(RendererObject *self, PyObject *args, PyObject *kwargs)
 {
-	static char *kwlist[] = {"point_size", NULL};
+	static char *kwlist[] = {"texturizer", NULL};
 
 	self->texturizer = NULL;
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O:__init__", kwlist, 
@@ -672,7 +708,7 @@ static PyTypeObject BillboardRenderer_Type = {
 	sizeof(RendererObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
 	/* methods */
-	(destructor)Renderer_dealloc, /*tp_dealloc*/
+	(destructor)BillboardRenderer_dealloc, /*tp_dealloc*/
 	0,			/*tp_print*/
 	0,          /*tp_getattr*/
 	0,          /*tp_setattr*/
