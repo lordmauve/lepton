@@ -48,6 +48,33 @@ typedef struct {
 	FloatArrayObject *tex_array;
 } SpriteTexObject;
 
+static PyObject *
+SpriteTex_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    SpriteTexObject *self;
+
+    self = (SpriteTexObject *)type->tp_alloc(type, 0);
+    if (self == NULL)
+		return NULL;
+	self->dict = PyDict_New();
+    if (self->dict == NULL) {
+		Py_DECREF(self);
+		return NULL;
+	}
+	self->tex_coords = NULL;
+	self->weights = NULL;
+	self->tex_array = NULL;
+	return (PyObject *)self;
+}
+
+static int
+SpriteTex_clear(SpriteTexObject *self) 
+{
+	Py_CLEAR(self->dict);
+	Py_CLEAR(self->tex_array);
+	return 0;
+}
+
 static void
 SpriteTex_dealloc(SpriteTexObject *self) 
 {
@@ -55,9 +82,16 @@ SpriteTex_dealloc(SpriteTexObject *self)
 	self->tex_coords = NULL;
 	PyMem_Free(self->weights);
 	self->weights = NULL;
-	Py_CLEAR(self->dict);
-	Py_CLEAR(self->tex_array);
-	PyObject_Del(self);
+	SpriteTex_clear(self);
+	self->ob_type->tp_free((PyObject *)self);
+}
+
+static int
+SpriteTex_traverse(SpriteTexObject *self, visitproc visit, void *arg)
+{
+    Py_VISIT(self->dict);
+    Py_VISIT(self->tex_array);
+    return 0;
 }
 
 #define WEIGHT_MAX INT_MAX
@@ -75,20 +109,15 @@ SpriteTex_init(SpriteTexObject *self, PyObject *args, PyObject *kwargs)
 
 	PyMem_Free(self->tex_coords);
 	self->tex_coords = NULL;
-	self->tex_filter = GL_LINEAR;
-	self->tex_wrap = GL_CLAMP;
 	PyMem_Free(self->weights);
 	self->weights = NULL;
+	self->tex_filter = GL_LINEAR;
+	self->tex_wrap = GL_CLAMP;
 	self->coord_count = 0;
 	Py_CLEAR(self->tex_array);
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i|OOii:__init__", kwlist,
 		&self->texture, &tex_coords_seq, &weights_seq, &self->tex_filter, &self->tex_wrap))
 		return -1;
-	
-	Py_CLEAR(self->dict);
-	self->dict = PyDict_New();
-	if (self->dict == NULL)
-		goto error;
 	
 	if (tex_coords_seq != NULL) {
 		s = PySequence_Fast(tex_coords_seq, "SpriteTexturizer: coords not iterable");
@@ -177,16 +206,12 @@ SpriteTex_init(SpriteTexObject *self, PyObject *args, PyObject *kwargs)
 		PyErr_SetString(PyExc_TypeError,
 			"SpriteTexturizer: weights specified without coords");
 		goto error;
-	} else {
-		self->tex_coords = NULL;
-		self->coord_count = 0;
 	}
 	return 0;
 
 error:
 	Py_XDECREF(s);
 	Py_XDECREF(t);
-	Py_CLEAR(self->dict);
 	PyMem_Free(self->tex_coords);
 	self->tex_coords = NULL;
 	PyMem_Free(self->weights);
@@ -452,10 +477,10 @@ static PyTypeObject SpriteTex_Type = {
 	0, /*tp_getattro*/
 	0, /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,     /*tp_flags*/
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC, /*tp_flags*/
 	SpriteTex__doc__,       /*tp_doc*/
-	0,                      /*tp_traverse*/
-	0,                      /*tp_clear*/
+	(traverseproc)SpriteTex_traverse,  /*tp_traverse*/
+	(inquiry)SpriteTex_clear,          /*tp_clear*/
 	0,                      /*tp_richcompare*/
 	0,                      /*tp_weaklistoffset*/
 	0,                      /*tp_iter*/
@@ -470,7 +495,7 @@ static PyTypeObject SpriteTex_Type = {
 	offsetof(SpriteTexObject, dict), /*tp_dictoffset*/
 	(initproc)SpriteTex_init, /*tp_init*/
 	0,                      /*tp_alloc*/
-	0,                      /*tp_new*/
+	SpriteTex_new,          /*tp_new*/
 	0,                      /*tp_free*/
 	0,                      /*tp_is_gc*/
 };
@@ -481,8 +506,6 @@ init_texturizer(void)
 	PyObject *m;
 
 	/* Bind tp_new and tp_alloc here to appease certain compilers */
-	SpriteTex_Type.tp_alloc = PyType_GenericAlloc;
-	SpriteTex_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&SpriteTex_Type) < 0)
 		return;
 
