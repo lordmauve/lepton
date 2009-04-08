@@ -36,9 +36,9 @@ class SpriteTexturizerTest(unittest.TestCase):
 		return group
 	
 	def _add_particles(self, group, pcount):
-		particle = object()
+		from lepton import Particle
 		for i in range(pcount):
-			group.new(particle)
+			group.new(Particle())
 		group.update(0)
 	
 	def test_default_coords(self):
@@ -169,7 +169,6 @@ class SpriteTexturizerTest(unittest.TestCase):
 			self.assertEqual(self._glGet(GL_TEXTURE_BINDING_2D), texture[0])
 			sprite_tex.restore_state()
 			self.failIf(self._glGet(GL_TEXTURE_2D))
-			self.assertEqual(self._glGet(GL_TEXTURE_BINDING_2D), 0)
 
 
 if __name__ == '__main__':

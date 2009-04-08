@@ -142,8 +142,6 @@ FloatArray_dealloc(FloatArrayObject *self)
 static PyObject *
 FloatArray_getitem(FloatArrayObject *self, Py_ssize_t index)
 {
-	//if (index < 0)
-	//	index += self->size;
 	if (index >= 0 && index < self->size)
 		return PyFloat_FromDouble((double)self->data[index]);
 	PyErr_Format(PyExc_IndexError, "%d", (int)index);
@@ -478,14 +476,13 @@ draw_billboards(unsigned long count) {
 				return 0;
 			}
 
-			for (i = 0; i <= (short_alloc - 6); i += 6) {
+			for (i = 0, sv = 0; i <= (short_alloc - 6); i += 6, sv += 4) {
 				short_indices[i] = sv;
 				short_indices[i+1] = sv+1;
 				short_indices[i+2] = sv+3;
 				short_indices[i+3] = sv+1;
 				short_indices[i+4] = sv+2;
 				short_indices[i+5] = sv+3;
-				sv += 4;
 			}
 		}
 		glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, short_indices);
