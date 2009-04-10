@@ -12,7 +12,7 @@
 ****************************************************************************/
 /* Native-code renderers
  *
- * $Id $ */
+ * $Id$ */
 
 #include <Python.h>
 #include <structmember.h>

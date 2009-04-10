@@ -10,9 +10,9 @@
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 *
 ****************************************************************************/
-/* Native-code renderers
+/* Renderer texturizers
  *
- * $Id $ */
+ * $Id$ */
 
 #include <Python.h>
 #include <structmember.h>
@@ -34,6 +34,56 @@
 #include "group.h"
 #include "renderer.h"
 
+static void
+adjust_particle_widths(GroupObject *pgroup, FloatArrayObject *tex_array)
+{
+	Particle *p;
+	float *tex, min_s, min_t, max_s, max_t, t_width, t_height;
+	int i, j, t;
+
+	p = pgroup->plist->p;
+	tex = tex_array->data;
+	for (i = 0, t = 0; i < GroupObject_ActiveCount(pgroup); i++, t += 8) {
+		min_s = max_s = tex[t];
+		min_t = max_t = tex[t+1];
+		for (j = 2; j < 8; j += 2) {
+			min_s = min_s <= tex[t+j] ? min_s : tex[t+j];
+			max_s = max_s >= tex[t+j] ? max_s : tex[t+j];
+			min_t = min_t <= tex[t+j+1] ? min_t : tex[t+j+1];
+			max_t = max_t >= tex[t+j+1] ? max_t : tex[t+j+1];
+		}
+		t_width = max_s - min_s;
+		t_height = max_t - min_t + EPSILON;
+		p[i].size.x = p[i].size.y * t_width / t_height;
+	}
+}
+		
+static void
+adjust_particle_heights(GroupObject *pgroup, FloatArrayObject *tex_array)
+{
+	Particle *p;
+	float *tex, min_s, min_t, max_s, max_t, t_width, t_height;
+	int i, j, t;
+
+	p = pgroup->plist->p;
+	tex = tex_array->data;
+	for (i = 0, t = 0; i < GroupObject_ActiveCount(pgroup); i++, t += 8) {
+		min_s = max_s = tex[t];
+		min_t = max_t = tex[t+1];
+		for (j = 2; j < 8; j += 2) {
+			min_s = min_s <= tex[t+j] ? min_s : tex[t+j];
+			max_s = max_s >= tex[t+j] ? max_s : tex[t+j];
+			min_t = min_t <= tex[t+j+1] ? min_t : tex[t+j+1];
+			max_t = max_t >= tex[t+j+1] ? max_t : tex[t+j+1];
+		}
+		t_width = max_s - min_s + EPSILON;
+		t_height = max_t - min_t;
+		p[i].size.y = p[i].size.x * t_height / t_width;
+	}
+}
+
+/* --------------------------------------------------------------------- */
+
 static PyTypeObject SpriteTex_Type;
 
 typedef struct {
@@ -42,6 +92,8 @@ typedef struct {
 	GLuint texture;
 	GLint tex_filter;
 	GLint tex_wrap;
+	int adjust_width;
+	int adjust_height;
 	int coord_count;
 	float *tex_coords;
 	unsigned long *weights;
@@ -105,7 +157,8 @@ SpriteTex_init(SpriteTexObject *self, PyObject *args, PyObject *kwargs)
 	int tlen, i;
 	double total_weight, weight_scale;
 
-	static char *kwlist[] = {"texture", "coords", "weights", "filter", "wrap", NULL};
+	static char *kwlist[] = {"texture", "coords", "weights", "filter", "wrap", 
+		"aspect_adjust_width", "aspect_adjust_height", NULL};
 
 	PyMem_Free(self->tex_coords);
 	self->tex_coords = NULL;
@@ -114,11 +167,20 @@ SpriteTex_init(SpriteTexObject *self, PyObject *args, PyObject *kwargs)
 	self->tex_filter = GL_LINEAR;
 	self->tex_wrap = GL_CLAMP;
 	self->coord_count = 0;
+	self->adjust_width = 0;
+	self->adjust_height = 0;
 	Py_CLEAR(self->tex_array);
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i|OOii:__init__", kwlist,
-		&self->texture, &tex_coords_seq, &weights_seq, &self->tex_filter, &self->tex_wrap))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i|OOiiii:__init__", kwlist,
+		&self->texture, &tex_coords_seq, &weights_seq, &self->tex_filter, &self->tex_wrap,
+		&self->adjust_width, &self->adjust_height))
 		return -1;
 	
+	if (self->adjust_height && self->adjust_width) {
+		PyErr_SetString(PyExc_TypeError,
+			"SpriteTexturizer: Only one of aspect_adjust_width and aspect_adjust_height "
+			"can be enabled at once");
+		goto error;
+	}
 	if (tex_coords_seq != NULL) {
 		s = PySequence_Fast(tex_coords_seq, "SpriteTexturizer: coords not iterable");
 		if (s == NULL)
@@ -319,6 +381,7 @@ SpriteTex_generate_tex_coords(SpriteTexObject *self, GroupObject *pgroup)
 	unsigned long w, *weights;
 	int tcount, coord_count;
 	float *ptex, *ttex, *tex_coords;
+	FloatArrayObject *tex_array;
 
 	if (!GroupObject_Check(pgroup)) {
 		PyErr_SetString(PyExc_TypeError, "Expected ParticleGroup first argument");
@@ -328,80 +391,92 @@ SpriteTex_generate_tex_coords(SpriteTexObject *self, GroupObject *pgroup)
 	if (self->tex_coords == NULL) {
 		/* Special case, default texture coordinates. These can be cached
 		   and shared between texturizers, so we don't generate them here */
-		return generate_default_2D_tex_coords(pgroup);
-	}
-
-	if (self->tex_array != NULL) {
-		if (self->tex_array->size >= GroupObject_ActiveCount(pgroup) * 8) {
-			Py_INCREF(self->tex_array);
-			return self->tex_array;
+		tex_array = generate_default_2D_tex_coords(pgroup);
+	} else if (self->tex_array == NULL ||
+		       self->tex_array->size < GroupObject_ActiveCount(pgroup) * 8) {
+		/* calculate texture coordinates and cache them */
+		pcount = pgroup->plist->palloc;
+		Py_XDECREF(self->tex_array);
+		tex_array = self->tex_array = FloatArray_new(pgroup->plist->palloc * 8);
+		if (tex_array == NULL)
+			return NULL;
+		Py_INCREF(self->tex_array); /* for persistence */
+		Py_INCREF(tex_array); /* for the caller */
+		ptex = self->tex_array->data;
+		ttex = tex_coords = self->tex_coords;
+		tcount = coord_count = self->coord_count;
+		weights = self->weights;
+		if (self->coord_count == 1) {
+			/* Special case, all particles have same coords */
+			while (pcount--) {
+				*ptex++ = ttex[0];
+				*ptex++ = ttex[1];
+				*ptex++ = ttex[2];
+				*ptex++ = ttex[3];
+				*ptex++ = ttex[4];
+				*ptex++ = ttex[5];
+				*ptex++ = ttex[6];
+				*ptex++ = ttex[7];
+			}
+		} else if (self->weights == NULL) {
+			/* Assign coords in round-robin fashion */
+			while (pcount--) {
+				tcount -= 1;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				if (tcount <= 0) {
+					ttex = tex_coords;
+					tcount = coord_count;
+				}
+			}
 		} else {
-			Py_CLEAR(self->tex_array);
-		}
-	}
-	
-	pcount = pgroup->plist->palloc;
-	self->tex_array = FloatArray_new(pgroup->plist->palloc * 8);
-	ptex = self->tex_array->data;
-	ttex = tex_coords = self->tex_coords;
-	tcount = coord_count = self->coord_count;
-	weights = self->weights;
-	if (self->coord_count == 1) {
-		/* Special case, all particles have same coords */
-		while (pcount--) {
-			*ptex++ = ttex[0];
-			*ptex++ = ttex[1];
-			*ptex++ = ttex[2];
-			*ptex++ = ttex[3];
-			*ptex++ = ttex[4];
-			*ptex++ = ttex[5];
-			*ptex++ = ttex[6];
-			*ptex++ = ttex[7];
-		}
-	} else if (self->weights == NULL) {
-		/* Assign coords in round-robin fashion */
-		while (pcount--) {
-			tcount -= 1;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			if (tcount <= 0) {
-				ttex = tex_coords;
-				tcount = coord_count;
+			/* Assign coords randomly according to weight */
+
+			/* use our pointer as the random seed so the generated
+			   random sequence is repeatable */
+			SHR3SEED((unsigned long)self);
+			while (pcount--) {
+				w = SHR3RAND() & WEIGHT_MAX;
+				for (i = 0; i < coord_count && w > weights[i]; i++);
+				ttex = tex_coords + i * 8;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
 			}
 		}
 	} else {
-		/* Assign coords randomly according to weight */
-
-		/* use our pointer as the random seed so the generated
-		   random sequence is repeatable */
-		SHR3SEED((unsigned long)self);
-		while (pcount--) {
-			w = SHR3RAND() & WEIGHT_MAX;
-			for (i = 0; i < coord_count && w > weights[i]; i++);
-			ttex = tex_coords + i * 8;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-			*ptex++ = *ttex++;
-		}
+		/* use cached texture coordinates */
+		tex_array = self->tex_array;
+		Py_INCREF(tex_array);
+	}
+	if (self->adjust_width) {
+		adjust_particle_widths(pgroup, tex_array);
+	} else if (self->adjust_height) {
+		adjust_particle_heights(pgroup, tex_array);
 	}
 
-	Py_INCREF(self->tex_array);
-	return self->tex_array;
+	return tex_array;
 }
 
 static PyMemberDef SpriteTex_members[] = {
 	{"__dict__", T_OBJECT, offsetof(SpriteTexObject, dict), READONLY},
+	{"aspect_adjust_width", T_INT, offsetof(SpriteTexObject, adjust_width), 0,
+		"If true, the particle widths will be adjusted so the aspect "
+		"ratio of their size matches that of their assigned texture coordinates."},
+	{"aspect_adjust_height", T_INT, offsetof(SpriteTexObject, adjust_height), 0,
+		"If true, the particle heights will be adjusted so the aspect "
+		"ratio of their size matches that of their assigned texture coordinates."},
 	{NULL}
 };
 
@@ -435,7 +510,8 @@ static PyGetSetDef SpriteTex_descriptors[] = {
 PyDoc_STRVAR(SpriteTex__doc__, 
 	"Applies a set of static texture coordinates from a single resident\n"
 	"texture to a particle group\n\n"
-	"SpriteTexturizer(texture, coords=(), weights=(), filter=GL_LINEAR, wrap=GL_CLAMP)\n\n"
+	"SpriteTexturizer(texture, coords=(), weights=(), filter=GL_LINEAR, wrap=GL_CLAMP, "
+	"aspect_adjust_width=False, aspect_adjust_height=False)\n\n"
 	"texture -- OpenGL texture name, acquired via glGenTextures. It is up\n"
 	"to the application to load the texture's data before using the texturizer\n\n"
 	"coords -- A sequence of texture coordinate sets. Each set consists of coordinates\n"
@@ -451,14 +527,21 @@ PyDoc_STRVAR(SpriteTex__doc__,
 	"filter -- The OpenGL filter used to scale the texture when rendering.\n"
 	"One of: GL_NEAREST, GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, etc.\n\n"
 	"wrap -- The OpenGL wrapping parameter for texture application when\n"
-	"rendering. One of: GL_CLAMP, GL_REPEAT, GL_CLAMP_TO_EDGE, etc.");
+	"rendering. One of: GL_CLAMP, GL_REPEAT, GL_CLAMP_TO_EDGE, etc.\n\n"
+	"aspect_adjust_width, aspect_adjust_height -- These two flags\n"
+	"are used to match the aspect ratio of the particle's width and height\n"
+	"to the dimensions of its texture coordinates. This is useful to\n"
+	"match particles to textures of various dimensions without distortion.\n"
+	"If one flag is set, the texturizer adjusts the width or height of the\n"
+	"particle size respectively as appropriate. Only one of these flags\n"
+	"may be set at one time.");
 
 static PyTypeObject SpriteTex_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
 	PyObject_HEAD_INIT(NULL)
 	0,			/*ob_size*/
-	"texturizer.SpriteTexturizer",		/*tp_name*/
+	"_texturizer.SpriteTexturizer",		/*tp_name*/
 	sizeof(SpriteTexObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
 	/* methods */
