@@ -27,6 +27,11 @@ except ImportError:
 
 
 class SpriteTexturizerTest(unittest.TestCase):
+
+	def assertVector(self, vec3, (x,y,z), tolerance=0.0001):
+		self.failUnless(abs(vec3.x - x) <= tolerance, (vec3, (x,y,z)))
+		self.failUnless(abs(vec3.y - y) <= tolerance, (vec3, (x,y,z)))
+		self.failUnless(abs(vec3.z - z) <= tolerance, (vec3, (x,y,z)))
 	
 	def _make_group(self, pcount):
 		from lepton import ParticleGroup
@@ -148,6 +153,45 @@ class SpriteTexturizerTest(unittest.TestCase):
 		coords = [tuple(tex.generate_tex_coords(group)) for i in range(20)]
 		for cs in coords:
 			self.assertEqual(cs, coords[0])
+
+	def test_aspect_adjust(self):
+		from lepton.texturizer import SpriteTexturizer
+		coord_set1 = (0,0, 1,0, 1,0.5, 0,0.5)
+		coord_set2 = (0,0.5, 0.5,0.5, 0.5,1, 0,1)
+		tex = SpriteTexturizer(0, coords=(coord_set1, coord_set2))
+		self.failIf(tex.aspect_adjust_width)
+		self.failIf(tex.aspect_adjust_height)
+		sizes = [
+			(1, 1, 0),
+			(2, 3, 0),
+		]
+		group = self._make_group(2)
+		for size, p in zip(sizes, group):
+			p.size = size
+		self.assertEqual([tuple(p.size) for p in group], sizes)
+		tex.generate_tex_coords(group)
+		self.assertEqual([tuple(p.size) for p in group], sizes)
+		tex.aspect_adjust_width = True
+		expected = [
+			(2, 1, 0),
+			(3, 3, 0),
+		]
+		tex.generate_tex_coords(group)
+		for p, b in zip(group, expected):
+			self.assertVector(p.size, b)
+
+		for size, p in zip(sizes, group):
+			p.size = size
+		self.assertEqual([tuple(p.size) for p in group], sizes)
+		tex.aspect_adjust_width = False
+		tex.aspect_adjust_height = True
+		expected = [
+			(1, 0.5, 0),
+			(2, 2, 0),
+		]
+		tex.generate_tex_coords(group)
+		for p, b in zip(group, expected):
+			self.assertVector(p.size, b)
 
 	if pyglet is not None:
 		def _glGet(self, what):

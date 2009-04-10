@@ -33,6 +33,7 @@ def _nearest_pow2(v):
 
 
 class SpriteTexturizer(_texturizer.SpriteTexturizer):
+	__doc__ = _texturizer.SpriteTexturizer.__doc__
 
 	@classmethod
 	def from_images(cls, images, weights=None, filter=None, wrap=None):
@@ -91,7 +92,7 @@ def create_point_texture(size, feather=0):
 	gl.glGenTextures(1, ctypes.byref(id))
 	gl.glBindTexture(gl.GL_TEXTURE_2D, id.value)
 	gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 4)
-	gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, size, size, 0, 
+	gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_LUMINANCE, size, size, 0, 
 		gl.GL_LUMINANCE, gl.GL_FLOAT, ctypes.byref(texel))
 	gl.glFlush()
 	return id.value
