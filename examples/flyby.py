@@ -21,7 +21,7 @@ from pyglet.gl import *
 
 from lepton import Particle, ParticleGroup, default_system
 from lepton.renderer import BillboardRenderer
-from lepton.texturizer import SpriteTexturizerFromImages
+from lepton.texturizer import SpriteTexturizer
 from lepton.emitter import StaticEmitter
 from lepton.controller import Gravity, Lifetime, Movement, Fader, ColorBlender
 
