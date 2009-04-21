@@ -19,6 +19,7 @@ the necessary OpenGL state changes to setup texturing for rendering
 import math
 import ctypes
 import _texturizer
+from _texturizer import FlipBookTexturizer
 
 def _nearest_pow2(v):
     # From http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2

@@ -26,7 +26,7 @@ except ImportError:
 	pyglet = None
 
 
-class SpriteTexturizerTest(unittest.TestCase):
+class TexTestBase:
 
 	def assertVector(self, vec3, (x,y,z), tolerance=0.0001):
 		self.failUnless(abs(vec3.x - x) <= tolerance, (vec3, (x,y,z)))
@@ -45,6 +45,9 @@ class SpriteTexturizerTest(unittest.TestCase):
 		for i in range(pcount):
 			group.new(Particle())
 		group.update(0)
+
+
+class SpriteTexturizerTest(TexTestBase, unittest.TestCase):
 	
 	def test_default_coords(self):
 		from lepton.texturizer import SpriteTexturizer
@@ -193,6 +196,18 @@ class SpriteTexturizerTest(unittest.TestCase):
 		for p, b in zip(group, expected):
 			self.assertVector(p.size, b)
 
+	def test_invalid_args(self):
+		from lepton.texturizer import SpriteTexturizer
+		self.assertRaises(TypeError, SpriteTexturizer, 0, object())
+		self.assertRaises(TypeError, SpriteTexturizer, 0, [(0,0,0,0,0,0,0,0)], object())
+		self.assertRaises(ValueError, SpriteTexturizer, 0, [])
+		self.assertRaises(ValueError, SpriteTexturizer, 0, [(0,0)])
+		self.assertRaises(ValueError, SpriteTexturizer, 0, [(0,0,0,0,0,0,0,0)], [])
+		self.assertRaises(ValueError, SpriteTexturizer, 0, [(0,0,0,0,0,0,0,0)], [-1])
+		self.assertRaises(ValueError, SpriteTexturizer, 0, [(0,0,0,0,0,0,0,0)], [1,1])
+		self.assertRaises(ValueError, 
+			SpriteTexturizer, 0, [(0,0,0,0,0,0,0,0), (0,0,0,0,0,0,0,0)], [1,-1])
+
 	if pyglet is not None:
 		def _glGet(self, what):
 			result = (ctypes.c_int * 1)()
@@ -213,6 +228,413 @@ class SpriteTexturizerTest(unittest.TestCase):
 			self.assertEqual(self._glGet(GL_TEXTURE_BINDING_2D), texture[0])
 			sprite_tex.restore_state()
 			self.failIf(self._glGet(GL_TEXTURE_2D))
+
+
+class FlipBookTexturizerTest(TexTestBase, unittest.TestCase):
+
+	def test_2D_single_duration_loop(self):
+		from lepton.texturizer import FlipBookTexturizer
+		coord_sets = [
+			(0,0, 0.5,0, 0.5,0.5, 0,0.5),
+			(0.5,0, 1,0, 1,0.5, 0.5,0.5),
+			(0,0.5, 0.5,0.5, 0.5,1, 0,1),
+			(0.5,0.5, 1,0.5, 1,1, 0.5,1),
+			]
+		fbtex = FlipBookTexturizer(0,
+			coords=coord_sets,
+			duration=0.1,
+			)
+		self.failUnless(fbtex.loop)
+		self.assertAlmostEqual(fbtex.duration, 0.1)
+		self.assertEqual(fbtex.tex_dimension, 2)
+		group = self._make_group(10)
+		age = 0.0
+		for p in group:
+			p.age = age
+			age += 0.06
+		coords = tuple(fbtex.generate_tex_coords(group))
+		self.failUnless(len(coords) >= len(group) * 8, (len(coords), len(group)))
+		self.assertEqual(coords[:8], coord_sets[0])
+		self.assertEqual(coords[8:16], coord_sets[0])
+		self.assertEqual(coords[16:24], coord_sets[1])
+		self.assertEqual(coords[24:32], coord_sets[1])
+		self.assertEqual(coords[32:40], coord_sets[2])
+		self.assertEqual(coords[40:48], coord_sets[3])
+		self.assertEqual(coords[48:56], coord_sets[3])
+		self.assertEqual(coords[56:64], coord_sets[0])
+		self.assertEqual(coords[64:72], coord_sets[0])
+		self.assertEqual(coords[72:80], coord_sets[1])
+		# Next frame
+		group.update(0.05)
+		coords = tuple(fbtex.generate_tex_coords(group))
+		self.assertEqual(coords[:8], coord_sets[0])
+		self.assertEqual(coords[8:16], coord_sets[1])
+		self.assertEqual(coords[16:24], coord_sets[1])
+		self.assertEqual(coords[24:32], coord_sets[2])
+		self.assertEqual(coords[32:40], coord_sets[2])
+		self.assertEqual(coords[40:48], coord_sets[3])
+		self.assertEqual(coords[48:56], coord_sets[0])
+		self.assertEqual(coords[56:64], coord_sets[0])
+		self.assertEqual(coords[64:72], coord_sets[1])
+		self.assertEqual(coords[72:80], coord_sets[1])
+	
+	def test_2D_single_duration_no_loop(self):
+		from lepton.texturizer import FlipBookTexturizer
+		coord_sets = [
+			(0,0, 0.5,0, 0.5,0.5, 0,0.5),
+			(0.5,0, 1,0, 1,0.5, 0.5,0.5),
+			(0,0.5, 0.5,0.5, 0.5,1, 0,1),
+			(0.5,0.5, 1,0.5, 1,1, 0.5,1),
+			]
+		fbtex = FlipBookTexturizer(0,
+			coords=coord_sets,
+			duration=0.03,
+			loop=False,
+			)
+		self.failIf(fbtex.loop)
+		self.assertAlmostEqual(fbtex.duration, 0.03)
+		group = self._make_group(10)
+		age = 0.0
+		for p in group:
+			p.age = age
+			age += 0.016
+		coords = tuple(fbtex.generate_tex_coords(group))
+		self.failUnless(len(coords) >= len(group) * 8, (len(coords), len(group)))
+		self.assertEqual(coords[:8], coord_sets[0])
+		self.assertEqual(coords[8:16], coord_sets[0])
+		self.assertEqual(coords[16:24], coord_sets[1])
+		self.assertEqual(coords[24:32], coord_sets[1])
+		self.assertEqual(coords[32:40], coord_sets[2])
+		self.assertEqual(coords[40:48], coord_sets[2])
+		self.assertEqual(coords[48:56], coord_sets[3])
+		self.assertEqual(coords[56:64], coord_sets[3])
+		self.assertEqual(coords[64:72], coord_sets[3])
+		self.assertEqual(coords[72:80], coord_sets[3])
+		# Next frame
+		group.update(0.02)
+		coords = tuple(fbtex.generate_tex_coords(group))
+		self.assertEqual(coords[:8], coord_sets[0])
+		self.assertEqual(coords[8:16], coord_sets[1])
+		self.assertEqual(coords[16:24], coord_sets[1])
+		self.assertEqual(coords[24:32], coord_sets[2])
+		self.assertEqual(coords[32:40], coord_sets[2])
+		self.assertEqual(coords[40:48], coord_sets[3])
+		self.assertEqual(coords[48:56], coord_sets[3])
+		self.assertEqual(coords[56:64], coord_sets[3])
+		self.assertEqual(coords[64:72], coord_sets[3])
+		self.assertEqual(coords[72:80], coord_sets[3])
+	
+	def test_2D_duration_list_loop(self):
+		from lepton.texturizer import FlipBookTexturizer
+		coord_sets = [
+			(0,0, 0.5,0, 0.5,0.5, 0,0.5),
+			(0.5,0, 1,0, 1,0.5, 0.5,0.5),
+			(0,0.5, 0.5,0.5, 0.5,1, 0,1),
+			(0.5,0.5, 1,0.5, 1,1, 0.5,1),
+			]
+		durations = (0.12, 0.3, 0.2, 0.15)
+		times = []
+		t = 0
+		for d in durations:
+			t += d
+			times.append(t)
+		fbtex = FlipBookTexturizer(0,
+			coords=coord_sets,
+			duration=durations,
+			)
+		self.failUnless(fbtex.loop)
+		for d, expected in zip(fbtex.duration, durations):
+			self.assertAlmostEqual(d, expected)
+		group = self._make_group(10)
+		age = 0.0
+		for p in group:
+			p.age = age % 2.0
+			age += 0.7
+		for f in range(5):
+			coords = tuple(fbtex.generate_tex_coords(group))
+			self.failUnless(len(coords) >= len(group) * 8, (len(coords), len(group)))
+			i = 0
+			for p, t in zip(group, times):
+				age = p.age % times[-1]
+				c = 0
+				while c < 3 and age > times[c]:
+					c += 1
+				self.assertEqual(coords[i:i+8], coord_sets[c], "f=%s i=%s c=%s age=%s: %s != %s" % 
+					(f, i, c, p.age, coords[i:i+8], coord_sets[c]))
+				i += 8
+			group.update(0.2)
+		
+	def test_2D_duration_list_no_loop(self):
+		from lepton.texturizer import FlipBookTexturizer
+		coord_sets = [
+			(0,0, 0.5,0, 0.5,0.5, 0,0.5),
+			(0.5,0, 1,0, 1,0.5, 0.5,0.5),
+			(0,0.5, 0.5,0.5, 0.5,1, 0,1),
+			(0.5,0.5, 1,0.5, 1,1, 0.5,1),
+			]
+		durations = (0.5, 0.25, 0.3, 0.4)
+		times = []
+		t = 0
+		for d in durations:
+			t += d
+			times.append(t)
+		fbtex = FlipBookTexturizer(0,
+			coords=coord_sets,
+			duration=durations,
+			loop=False,
+			)
+		self.failIf(fbtex.loop)
+		for d, expected in zip(fbtex.duration, durations):
+			self.assertAlmostEqual(d, expected, 6)
+		group = self._make_group(10)
+		age = 0.0
+		for p in group:
+			p.age = age % 2.0
+			age += 0.7
+		for f in range(5):
+			coords = tuple(fbtex.generate_tex_coords(group))
+			self.failUnless(len(coords) >= len(group) * 8, (len(coords), len(group)))
+			i = 0
+			for p, t in zip(group, times):
+				c = 0
+				while c < 3 and p.age > times[c]:
+					c += 1
+				self.assertEqual(coords[i:i+8], coord_sets[c], "f=%s i=%s c=%s age=%s: %s != %s" % 
+					(f, i, c, p.age, coords[i:i+8], coord_sets[c]))
+				i += 8
+			group.update(0.2)
+	
+	def test_default_r_coords(self):
+		from lepton.texturizer import FlipBookTexturizer
+		fbtex = FlipBookTexturizer(0,
+			coords=[(0,0, 0.5,0, 0.5,0.5, 0,0.5)],
+			duration=1,
+			dimension=3)
+		self.assertEqual(fbtex.tex_dimension, 3)
+		coords = fbtex.tex_coords
+		self.assertEqual(coords, ((0,0,0, 0.5,0,0, 0.5,0.5,0, 0,0.5,0),))
+		fbtex = FlipBookTexturizer(0,
+			coords=[((0.5,0), (1,0), (1,0.5), (0.5,0.5))],
+			duration=1,
+			dimension=3)
+		self.assertEqual(fbtex.tex_dimension, 3)
+		coords = fbtex.tex_coords
+		self.assertEqual(coords, ((0.5,0,0, 1,0,0, 1,0.5,0, 0.5,0.5,0),))
+	
+	def test_3D_single_duration_loop(self):
+		from lepton.texturizer import FlipBookTexturizer
+		coord_sets = [
+			(0,0,0, 1,0,0, 1,1,0, 0,1,0),
+			(0,0,0.5, 1,0,0.5, 1,1,0.5, 0,1,0.5),
+			(0,0,1, 1,0,1, 1,1,1, 0,1,1),
+			]
+		fbtex = FlipBookTexturizer(0,
+			coords=coord_sets,
+			duration=0.1,
+			dimension=3,
+			)
+		self.assertEqual(fbtex.tex_dimension, 3)
+		self.assertAlmostEqual(fbtex.duration, 0.1)
+		self.failUnless(fbtex.loop)
+		group = self._make_group(10)
+		age = 0.0
+		for p in group:
+			p.age = age % 0.4
+			age += 0.07
+		times = [0.1, 0.2, 0.3]
+		for f in range(5):
+			coords = tuple(fbtex.generate_tex_coords(group))
+			self.failUnless(len(coords) >= len(group) * 12, (len(coords), len(group)))
+			i = 0
+			for p, t in zip(group, times):
+				age = p.age % times[-1]
+				c = 0
+				while c < 2 and age > times[c]:
+					c += 1
+				self.assertEqual(coords[i:i+12], coord_sets[c], "f=%s i=%s c=%s age=%s: %s != %s" % 
+					(f, i, c, age, coords[i:i+12], coord_sets[c]))
+				i += 12
+			group.update(0.04)
+
+	def test_3D_single_duration_no_loop(self):
+		from lepton.texturizer import FlipBookTexturizer
+		coord_sets = [
+			(0,0,0, 1,0,0, 1,1,0, 0,1,0),
+			(0,0,0.5, 1,0,0.5, 1,1,0.5, 0,1,0.5),
+			(0,0,1, 1,0,1, 1,1,1, 0,1,1),
+			]
+		fbtex = FlipBookTexturizer(0,
+			coords=coord_sets,
+			duration=0.12,
+			dimension=3,
+			loop=False,
+			)
+		self.assertEqual(fbtex.tex_dimension, 3)
+		self.assertAlmostEqual(fbtex.duration, 0.12)
+		self.failIf(fbtex.loop)
+		group = self._make_group(10)
+		age = 0.0
+		for p in group:
+			p.age = age % 0.4
+			age += 0.07
+		times = [0.12, 0.24, 0.36]
+		for f in range(5):
+			coords = tuple(fbtex.generate_tex_coords(group))
+			self.failUnless(len(coords) >= len(group) * 12, (len(coords), len(group)))
+			i = 0
+			for p, t in zip(group, times):
+				c = 0
+				while c < 2 and p.age > times[c]:
+					c += 1
+				self.assertEqual(coords[i:i+12], coord_sets[c], "f=%s i=%s c=%s age=%s: %s != %s" % 
+					(f, i, c, p.age, coords[i:i+12], coord_sets[c]))
+				i += 12
+			group.update(0.055)
+
+	def test_3D_duration_list_loop(self):
+		from lepton.texturizer import FlipBookTexturizer
+		coord_sets = [
+			(0,0,0, 1,0,0, 1,1,0, 0,1,0),
+			(0,0,0.5, 1,0,0.5, 1,1,0.5, 0,1,0.5),
+			(0,0,1, 1,0,1, 1,1,1, 0,1,1),
+			]
+		durations = [0.7, 0.3, 0.5]
+		times = []
+		t = 0
+		for d in durations:
+			t += d
+			times.append(t)
+		fbtex = FlipBookTexturizer(0,
+			coords=coord_sets,
+			duration=durations,
+			dimension=3,
+			)
+		self.assertEqual(fbtex.tex_dimension, 3)
+		self.failUnless(fbtex.loop)
+		for d, expected in zip(fbtex.duration, durations):
+			self.assertAlmostEqual(d, expected, 6)
+		group = self._make_group(10)
+		age = 0.0
+		for p in group:
+			p.age = age % 0.4
+			age += 0.07
+		for f in range(5):
+			coords = tuple(fbtex.generate_tex_coords(group))
+			self.failUnless(len(coords) >= len(group) * 12, (len(coords), len(group)))
+			i = 0
+			for p, t in zip(group, times):
+				age = p.age % times[-1]
+				c = 0
+				while c < 2 and age > times[c]:
+					c += 1
+				self.assertEqual(coords[i:i+12], coord_sets[c], "f=%s i=%s c=%s age=%s: %s != %s" % 
+					(f, i, c, age, coords[i:i+12], coord_sets[c]))
+				i += 12
+			group.update(0.11)
+
+	def test_3D_duration_list_no_loop(self):
+		from lepton.texturizer import FlipBookTexturizer
+		coord_sets = [
+			(0,0,0, 1,0,0, 1,1,0, 0,1,0),
+			(0,0,0.5, 1,0,0.5, 1,1,0.5, 0,1,0.5),
+			(0,0,1, 1,0,1, 1,1,1, 0,1,1),
+			]
+		durations = [0.4, 0.4, 0.5]
+		times = []
+		t = 0
+		for d in durations:
+			t += d
+			times.append(t)
+		fbtex = FlipBookTexturizer(0,
+			coords=coord_sets,
+			duration=durations,
+			dimension=3,
+			loop=False,
+			)
+		self.assertEqual(fbtex.tex_dimension, 3)
+		self.failIf(fbtex.loop)
+		for d, expected in zip(fbtex.duration, durations):
+			self.assertAlmostEqual(d, expected, 6)
+		group = self._make_group(10)
+		age = 0.0
+		for p in group:
+			p.age = age % 0.5
+			age += 0.07
+		for f in range(5):
+			coords = tuple(fbtex.generate_tex_coords(group))
+			self.failUnless(len(coords) >= len(group) * 12, (len(coords), len(group)))
+			i = 0
+			for p, t in zip(group, times):
+				c = 0
+				while c < 2 and p.age > times[c]:
+					c += 1
+				self.assertEqual(coords[i:i+12], coord_sets[c], "f=%s i=%s c=%s age=%s: %s != %s" % 
+					(f, i, c, p.age, coords[i:i+12], coord_sets[c]))
+				i += 12
+			group.update(0.17)
+
+	def test_invalid_args(self):
+		from lepton.texturizer import FlipBookTexturizer
+		self.assertRaises(TypeError, FlipBookTexturizer, 0, object(), 1)
+		self.assertRaises(TypeError, FlipBookTexturizer, 0, [(0,0,0,0,0,0,0,0)], object())
+		self.assertRaises(ValueError, FlipBookTexturizer, 0, [], 1)
+		self.assertRaises(ValueError, FlipBookTexturizer, 0, [(0,0)], 1)
+		self.assertRaises(ValueError, FlipBookTexturizer, 0, [(0,0,0,0,0,0,0,0)], 0)
+		self.assertRaises(ValueError, FlipBookTexturizer, 0, [(0,0,0,0,0,0,0,0)], -1)
+		self.assertRaises(ValueError, FlipBookTexturizer, 0, [(0,0,0,0,0,0,0,0)], [])
+		self.assertRaises(ValueError, 
+			FlipBookTexturizer, 0, [(0,0,0,0,0,0,0,0), (0,0,0,0,0,0,0,0)], [1,-1])
+		self.assertRaises(ValueError, 
+			FlipBookTexturizer, 0, [(0,0,0,0,0,0,0,0), (0,0,0,0,0,0,0,0)], [1,1], dimension=0)
+		self.assertRaises(ValueError, 
+			FlipBookTexturizer, 0, [(0,0,0,0,0,0,0,0), (0,0,0,0,0,0,0,0)], [1,1], dimension=4)
+
+	if pyglet is not None:
+		def _glGet(self, what):
+			result = (ctypes.c_int * 1)()
+			glGetIntegerv(what, result)
+			return result[0]
+
+		def test_2D_set_state_restore_state(self):
+			from lepton.texturizer import FlipBookTexturizer
+			texture = (ctypes.c_ulong * 1)()
+			glGenTextures(1, texture)
+			glDisable(GL_TEXTURE_2D)
+			glDisable(GL_TEXTURE_3D)
+			glBindTexture(GL_TEXTURE_2D, 0)
+			sprite_tex = FlipBookTexturizer(texture[0], [(0,0,0,0,0,0,0,0)], 1)
+			self.assertEqual(sprite_tex.tex_dimension, 2)
+			self.failIf(self._glGet(GL_TEXTURE_2D))
+			self.failIf(self._glGet(GL_TEXTURE_3D))
+			self.assertEqual(self._glGet(GL_TEXTURE_BINDING_2D), 0)
+			sprite_tex.set_state()
+			self.failUnless(self._glGet(GL_TEXTURE_2D))
+			self.failIf(self._glGet(GL_TEXTURE_3D))
+			self.assertEqual(self._glGet(GL_TEXTURE_BINDING_2D), texture[0])
+			sprite_tex.restore_state()
+			self.failIf(self._glGet(GL_TEXTURE_2D))
+			self.failIf(self._glGet(GL_TEXTURE_3D))
+
+		def test_3D_set_state_restore_state(self):
+			from lepton.texturizer import FlipBookTexturizer
+			texture = (ctypes.c_ulong * 1)()
+			glGenTextures(1, texture)
+			glDisable(GL_TEXTURE_2D)
+			glDisable(GL_TEXTURE_3D)
+			glBindTexture(GL_TEXTURE_3D, 0)
+			sprite_tex = FlipBookTexturizer(texture[0], [(0,0,0,0,0,0,0,0)], 1, dimension=3)
+			self.assertEqual(sprite_tex.tex_dimension, 3)
+			self.failIf(self._glGet(GL_TEXTURE_2D))
+			self.failIf(self._glGet(GL_TEXTURE_3D))
+			self.assertEqual(self._glGet(GL_TEXTURE_BINDING_3D), 0)
+			sprite_tex.set_state()
+			self.failUnless(self._glGet(GL_TEXTURE_3D))
+			self.failIf(self._glGet(GL_TEXTURE_2D))
+			self.assertEqual(self._glGet(GL_TEXTURE_BINDING_3D), texture[0])
+			sprite_tex.restore_state()
+			self.failIf(self._glGet(GL_TEXTURE_2D))
+			self.failIf(self._glGet(GL_TEXTURE_3D))
+
 
 
 if __name__ == '__main__':
