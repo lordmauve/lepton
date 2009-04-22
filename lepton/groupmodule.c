@@ -112,28 +112,38 @@ ParticleRefObject_New(PyObject *parent, Particle *p);
 
 /* Create a new particle in the group from a template */
 static ParticleRefObject *
-ParticleGroup_new(GroupObject *self, PyObject *ptemplate)
+ParticleGroup_new(GroupObject *self, PyObject *args, PyObject *kwargs)
 {
 	long pindex;
 	Particle *pnew;
-	int success;
+	int success, arg_count;
+	PyObject *ptemplate = NULL;
 	
 	pindex = Group_new_p(self);
 	if (pindex < 0) {
 		PyErr_NoMemory();
 		return NULL;
 	}
+	arg_count = PyTuple_Size(args);
+	if (arg_count == 1) {
+		ptemplate = PyTuple_GetItem(args, 0);
+		if (ptemplate == NULL)
+			return NULL;
+	} else if (arg_count > 1) {
+		PyErr_SetString(PyExc_TypeError, "Too many positional arguments");
+		return NULL;
+	}
 
 	pnew = self->plist->p + pindex;
 	success = (
-		get_Vec3(&pnew->position, ptemplate, "position") &&
-		get_Vec3(&pnew->velocity, ptemplate, "velocity") &&
-		get_Vec3(&pnew->size, ptemplate, "size") &&
-		get_Vec3(&pnew->up, ptemplate, "up") &&
-		get_Vec3(&pnew->rotation, ptemplate, "rotation") &&
-		get_Color(&pnew->color, ptemplate, "color") &&
-		get_Float(&pnew->age, ptemplate, "age") &&
-		get_Float(&pnew->mass, ptemplate, "mass"));
+		get_Vec3(&pnew->position, kwargs, ptemplate, "position") &&
+		get_Vec3(&pnew->velocity, kwargs, ptemplate, "velocity") &&
+		get_Vec3(&pnew->size, kwargs, ptemplate, "size") &&
+		get_Vec3(&pnew->up, kwargs, ptemplate, "up") &&
+		get_Vec3(&pnew->rotation, kwargs, ptemplate, "rotation") &&
+		get_Color(&pnew->color, kwargs, ptemplate, "color") &&
+		get_Float(&pnew->age, kwargs, ptemplate, "age") &&
+		get_Float(&pnew->mass, kwargs, ptemplate, "mass"));
 	if (!success)
 		return NULL;
 
@@ -379,10 +389,11 @@ static struct PyMemberDef ParticleGroup_members[] = {
 };
 
 static PyMethodDef ParticleGroup_methods[] = {
-	{"new", (PyCFunction)ParticleGroup_new, METH_O,
+	{"new", (PyCFunction)ParticleGroup_new, METH_VARARGS | METH_KEYWORDS,
 		PyDoc_STR("new(template) -> particle reference\n"
 			"Create a new particle in the group with attributes\n"
-			"copied from the specified template particle.\n"
+			"copied from the specified template particle\n"
+			"or specified via keyword arguments.\n"
 			"Note new particles are not visible until\n"
 			"they are incorporated by calling the update()\n"
 			"method.")},

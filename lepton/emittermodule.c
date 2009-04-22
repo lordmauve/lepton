@@ -173,14 +173,14 @@ static int
 Emitter_fill_particle_from(Particle *p, PyObject *ptemplate)
 {
 	return (
-		get_Vec3(&p->position, ptemplate, "position") &&
-		get_Vec3(&p->velocity, ptemplate, "velocity") &&
-		get_Vec3(&p->size, ptemplate, "size") &&
-		get_Vec3(&p->up, ptemplate, "up") &&
-		get_Vec3(&p->rotation, ptemplate, "rotation") &&
-		get_Color(&p->color, ptemplate, "color") &&
-		get_Float(&p->age, ptemplate, "age") &&
-		get_Float(&p->mass, ptemplate, "mass"));
+		get_Vec3(&p->position, NULL, ptemplate, "position") &&
+		get_Vec3(&p->velocity, NULL, ptemplate, "velocity") &&
+		get_Vec3(&p->size, NULL, ptemplate, "size") &&
+		get_Vec3(&p->up, NULL, ptemplate, "up") &&
+		get_Vec3(&p->rotation, NULL, ptemplate, "rotation") &&
+		get_Color(&p->color, NULL, ptemplate, "color") &&
+		get_Float(&p->age, NULL, ptemplate, "age") &&
+		get_Float(&p->mass, NULL, ptemplate, "mass"));
 }
 
 static int
