@@ -10,7 +10,9 @@
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 #
 #############################################################################
-"""Raining letters"""
+"""Raining letters demonstrates using texture atlases
+with a SpriteTexturizer
+"""
 
 __version__ = '$Id$'
 
