@@ -82,12 +82,17 @@ GroupObject_Check(GroupObject *o)
 
 /* Get a vector from an attrbute of the template and store it in vec */
 int
-get_Vec3(Vec3 *vec, PyObject *template, const char *attrname)
+get_Vec3(Vec3 *vec, PyObject *dict, PyObject *template, const char *attrname)
 {
 	int result = 0;
 	PyObject *attr = NULL;
 	PyObject *tuple = NULL;
-	attr = PyObject_GetAttrString(template, attrname);
+	if (dict != NULL) {
+		attr = PyDict_GetItemString(dict, attrname);
+		Py_XINCREF(attr);
+	}
+	if (attr == NULL && template != NULL)
+		attr = PyObject_GetAttrString(template, attrname);
 	if (attr != NULL) {
 		tuple = PySequence_Tuple(attr);
 		if (tuple != NULL)
@@ -105,12 +110,17 @@ get_Vec3(Vec3 *vec, PyObject *template, const char *attrname)
 
 /* Get a color from an attrbute of the template and store it in vec */
 int
-get_Color(Color *color, PyObject *template, const char *attrname)
+get_Color(Color *color, PyObject *dict, PyObject *template, const char *attrname)
 {
 	int result = 0;
 	PyObject *attr = NULL;
 	PyObject *tuple = NULL;
-	attr = PyObject_GetAttrString(template, attrname);
+	if (dict != NULL) {
+		attr = PyDict_GetItemString(dict, attrname);
+		Py_XINCREF(attr);
+	}
+	if (attr == NULL && template != NULL)
+		attr = PyObject_GetAttrString(template, attrname);
 	if (attr != NULL) {
 		tuple = PySequence_Tuple(attr);
 		if (tuple != NULL) {
@@ -130,12 +140,17 @@ get_Color(Color *color, PyObject *template, const char *attrname)
 
 /* Get a number from an attrbute of the template and store it in f */
 int
-get_Float(float *f, PyObject *template, const char *attrname)
+get_Float(float *f, PyObject *dict, PyObject *template, const char *attrname)
 {
 	int result = 0;
 	PyObject *attr = NULL;
 	PyObject *pyfloat = NULL;
-	attr = PyObject_GetAttrString(template, attrname);
+	if (dict != NULL) {
+		attr = PyDict_GetItemString(dict, attrname);
+		Py_XINCREF(attr);
+	}
+	if (attr == NULL && template != NULL)
+		attr = PyObject_GetAttrString(template, attrname);
 	if (attr != NULL) {
 		pyfloat = PyNumber_Float(attr);
 		if (pyfloat != NULL) {

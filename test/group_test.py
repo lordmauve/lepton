@@ -198,6 +198,25 @@ class GroupTest(unittest.TestCase):
 		self.assertEqual(particles[1].age, 2)
 		return group, particles
 	
+	def test_new_particle_kwargs(self):
+		from lepton import ParticleGroup, Particle
+		group = ParticleGroup()
+		self.assertEqual(len(group), 0)
+		self.assertEqual(group.new_count(), 0)
+		p = group.new(position=(1,-1,2), age=2)
+		self.assertEqual(tuple(p.position), (1, -1, 2))
+		self.assertEqual(p.age, 2)
+		tmpl_p = Particle(age=3, velocity=(-1,2,3))
+		p = group.new(tmpl_p, age=5)
+		self.assertEqual(tuple(p.velocity), (-1,2,3))
+		self.assertEqual(p.age, 5)
+		self.assertEqual(len(group), 0)
+		self.assertEqual(group.new_count(), 2)
+		self.failIf(list(group))
+		group.update(0) # incorporate new particles
+		self.assertEqual(len(group), 2)
+		self.assertEqual(group.new_count(), 0)
+	
 	def test_particle_attrs(self):
 		from lepton import ParticleGroup
 		p = TestParticle()
