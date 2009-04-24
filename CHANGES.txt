@@ -1,3 +1,19 @@
+2009-4-23 -- 0.10a
+
+- Add Drag controller to simulate viscous drag (i.e., wind, water)
+- Add vortex example to show off drag controller
+- Improve numeric stability of Magnet controller (changes charge value scale)
+- Replace inner_cutoff parameter of magnet controller with variable epsilon
+- Implement SpriteTexturizer, refactor examples to use it
+- Add letters example to show off texture atlas support
+- Add texture support to PointRenderer via point sprites
+- Add create_point_texture() function for generating blended
+  point textures. Refactor fire, smoke, and other examples to use them.
+- Implement FlipBookTexturizer for particle texture animation
+- Add animated logo example to show off FlipBookTexturizer
+- ParticleGroup.new() now accepts keyword args for particle attributes.
+- Add generate example
+
 2009-3-15 -- 0.9a
 
 - Fix reference leaks in particle emission and domain generate methods
