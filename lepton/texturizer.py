@@ -19,7 +19,6 @@ the necessary OpenGL state changes to setup texturing for rendering
 import math
 import ctypes
 import _texturizer
-from _texturizer import FlipBookTexturizer
 
 def _nearest_pow2(v):
     # From http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
@@ -32,28 +31,60 @@ def _nearest_pow2(v):
     v |= v >> 16
     return v + 1
 
+def _atlas_from_images(images):
+	"""Create a pyglet texture atlas from a sequence of images.
+	Return a tuple of (atlas, textures)
+	"""
+	import pyglet
+	widest = max(img.width for img in images)
+	height = sum(img.height for img in images)
+
+	atlas = pyglet.image.atlas.TextureAtlas(
+		width=_nearest_pow2(widest), height=_nearest_pow2(height))
+	textures = [atlas.add(image) for image in images]
+	return atlas, textures
+
 
 class SpriteTexturizer(_texturizer.SpriteTexturizer):
 	__doc__ = _texturizer.SpriteTexturizer.__doc__
 
 	@classmethod
-	def from_images(cls, images, weights=None, filter=None, wrap=None):
+	def from_images(cls, images, weights=None, filter=None, wrap=None,
+		aspect_adjust_width=False, aspect_adjust_height=False):
 		"""Create a SpriteTexturizer from a sequence of Pyglet images. 
 		
 		Note all the images must be able to fit into a single OpenGL texture, so
 		their combined size should typically be less than 1024x1024
 		"""
 		import pyglet
-		images = sorted(images, key=lambda img: img.height, reverse=True)
-		widest = max(img.width for img in images)
-		height = sum(img.height for img in images)
-
-		atlas = pyglet.image.atlas.TextureAtlas(
-			width=_nearest_pow2(widest), height=_nearest_pow2(height))
-		textures = [atlas.add(image) for image in images]
+		atlas, textures = _atlas_from_images(images)
 		texturizer = cls(
 			atlas.texture.id, [tex.tex_coords for tex in textures],
-			weights, filter or pyglet.gl.GL_LINEAR, wrap or pyglet.gl.GL_CLAMP)
+			weights, filter or pyglet.gl.GL_LINEAR, wrap or pyglet.gl.GL_CLAMP,
+			aspect_adjust_width, aspect_adjust_height)
+		texturizer.atlas = atlas
+		texturizer.textures = textures
+		return texturizer
+
+
+class FlipBookTexturizer(_texturizer.FlipBookTexturizer):
+	__doc__ = _texturizer.FlipBookTexturizer.__doc__
+
+	@classmethod
+	def from_images(cls, images, duration, loop=True, dimension=2, filter=None, wrap=None,
+		aspect_adjust_width=False, aspect_adjust_height=False):
+		"""Create a FlipBookTexturizer from a sequence of Pyglet images
+
+		Note all the images must be able to fit into a single OpenGL texture, so
+		their combined size should typically be less than 1024x1024
+		"""
+		import pyglet
+		atlas, textures = _atlas_from_images(images)
+		texturizer = cls(
+			atlas.texture.id, [tex.tex_coords for tex in textures],
+			duration, loop, dimension,
+			filter or pyglet.gl.GL_LINEAR, wrap or pyglet.gl.GL_CLAMP,
+			aspect_adjust_width, aspect_adjust_height)
 		texturizer.atlas = atlas
 		texturizer.textures = textures
 		return texturizer
