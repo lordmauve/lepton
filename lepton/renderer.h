@@ -33,4 +33,9 @@ FloatArray_new(Py_ssize_t size);
 FloatArrayObject *
 generate_default_2D_tex_coords(GroupObject *pgroup);
 
+/* Initialize the glew OpenGL extension manager
+   If glew has already been initialized, do nothing */
+int
+glew_initialize(void);
+
 #endif

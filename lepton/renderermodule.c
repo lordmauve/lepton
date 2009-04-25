@@ -18,6 +18,8 @@
 #include <structmember.h>
 #include <math.h>
 
+#define GLEW_STATIC
+#include <GL/glew.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -38,6 +40,21 @@ typedef struct {
 	PyObject_HEAD
 	PyObject *texturizer;
 } RendererObject;
+
+int
+glew_initialize(void)
+{
+	static int glew_initd = 0;
+
+	if (!glew_initd) {
+		if (glewInit() != GLEW_OK) {
+			PyErr_SetString(PyExc_RuntimeError, "GLEW initialization failed");
+			return 0;
+		}
+		glew_initd = 1;
+	}
+	return 1;
+}
 
 /* --------------------------------------------------------------------- */
 
@@ -272,6 +289,9 @@ PointRenderer_draw(PointRendererObject *self, GroupObject *pgroup)
 		PyErr_SetString(PyExc_TypeError, "Expected ParticleGroup first argument");
 		return NULL;
 	}
+
+	if (!glew_initialize())
+		return NULL;
 
 	count_particles = GroupObject_ActiveCount(pgroup);
 	if (count_particles > 0){
@@ -514,6 +534,9 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 		PyErr_SetString(PyExc_TypeError, "Expected ParticleGroup first argument");
 		return NULL;
 	}
+
+	if (!glew_initialize())
+		return NULL;
 
 	p = pgroup->plist->p;
 	pcount = GroupObject_ActiveCount(pgroup);
