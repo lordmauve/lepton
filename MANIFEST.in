@@ -1,6 +1,7 @@
 include *.txt
 include MANIFEST.in MANIFEST
 
+recursive-include glew *
 recursive-include lepton *
 recursive-include test *
 recursive-include examples *
