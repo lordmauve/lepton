@@ -9,27 +9,27 @@ extra_link_args = []
 
 if sys.platform.startswith('linux'):
 	include_dirs = ['/usr/include', '/usr/local/include/', 
-		'/usr/X11/include', '/usr/X11R6/include']
+		'/usr/X11/include', '/usr/X11R6/include', 'glew/include']
 	library_dirs = ['/usr/lib', '/usr/local/lib', 
 		'/usr/X11/lib', '/usr/X11R6/lib']
 	libraries = ['GL', 'X11', 'Xext']
 elif sys.platform == 'cygwin':
-	include_dirs = ['/usr/include',  '/usr/include/win32api/']
+	include_dirs = ['/usr/include', '/usr/include/win32api/', 'glew/include']
 	library_dirs = ['/usr/lib']
 	libraries = ['opengl32']
 elif sys.platform == 'win32':
-	include_dirs = ['../include']
+	include_dirs = ['../include', 'glew/include']
 	library_dirs = ['../lib']
 	libraries = ['opengl32']
 elif sys.platform == 'darwin':
 	include_dirs = ['/System/Library/Frameworks/OpenGL.framework/Headers', 
-		'/System/Library/Frameworks/GLUT.framework/Headers']
+		'/System/Library/Frameworks/GLUT.framework/Headers', 'glew/include']
 	library_dirs = []
 	libraries = []
 	extra_link_args = ['-framework:OpenGL']
 else:
 	print >>sys.stderr, "Platform", sys.platform, "not really supported just yet"
-	include_dirs = []
+	include_dirs = ['glew/include']
 	library_dirs = []
 	libraries = []
 
@@ -85,7 +85,8 @@ You can download binary releases or browse the source code at our Google code si
 		),
 		Extension('lepton.renderer', 
 			['lepton/group.c', 'lepton/renderermodule.c',
-			 'lepton/controllermodule.c', 'lepton/groupmodule.c'], 
+			 'lepton/controllermodule.c', 'lepton/groupmodule.c',
+			 'glew/src/glew.c'], 
 			include_dirs=include_dirs,
 			library_dirs=library_dirs,
 			libraries=libraries,
@@ -95,7 +96,7 @@ You can download binary releases or browse the source code at our Google code si
 		Extension('lepton._texturizer', 
 			['lepton/group.c', 'lepton/texturizermodule.c', 
 			 'lepton/renderermodule.c', 'lepton/controllermodule.c', 
-			 'lepton/groupmodule.c'], 
+			 'lepton/groupmodule.c', 'glew/src/glew.c'], 
 			include_dirs=include_dirs,
 			library_dirs=library_dirs,
 			libraries=libraries,
