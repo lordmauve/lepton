@@ -74,4 +74,5 @@ def on_draw():
 	default_system.draw()
 
 if __name__ == '__main__':
+	default_system.run_ahead(2, 30)
 	pyglet.app.run()
