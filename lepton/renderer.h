@@ -39,3 +39,8 @@ int
 glew_initialize(void);
 
 #endif
+
+// Windows lacks fminf
+#ifndef fminf
+#define fminf(x, y) (((x) < (y)) ? (x) : (y))
+#endif
