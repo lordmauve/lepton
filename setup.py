@@ -6,6 +6,7 @@ import sys
 from distutils.core import setup, Extension
 
 extra_link_args = []
+macros = [('GLEW_STATIC', None)]
 
 if sys.platform.startswith('linux'):
 	include_dirs = ['/usr/include', '/usr/local/include/', 
@@ -82,6 +83,7 @@ You can download binary releases or browse the source code at our Google code si
 			libraries=libraries,
 			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
+			define_macros=macros,
 		),
 		Extension('lepton.renderer', 
 			['lepton/group.c', 'lepton/renderermodule.c',
@@ -92,6 +94,7 @@ You can download binary releases or browse the source code at our Google code si
 			libraries=libraries,
 			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
+			define_macros=macros,
 		),
 		Extension('lepton._texturizer', 
 			['lepton/group.c', 'lepton/texturizermodule.c', 
@@ -102,6 +105,7 @@ You can download binary releases or browse the source code at our Google code si
 			libraries=libraries,
 			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
+			define_macros=macros,
 		),
 		Extension('lepton._controller', 
 			['lepton/group.c', 'lepton/groupmodule.c', 
@@ -111,6 +115,7 @@ You can download binary releases or browse the source code at our Google code si
 			libraries=libraries,
 			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
+			define_macros=macros,
 		),
 		Extension('lepton.emitter', 
 			['lepton/group.c', 'lepton/groupmodule.c',
@@ -120,6 +125,7 @@ You can download binary releases or browse the source code at our Google code si
 			libraries=libraries,
 			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
+			define_macros=macros,
 		),
 		Extension('lepton._domain', 
 			['lepton/group.c', 'lepton/groupmodule.c',
@@ -129,6 +135,7 @@ You can download binary releases or browse the source code at our Google code si
 			libraries=libraries,
 			extra_link_args=extra_link_args,
 			extra_compile_args=compile_args,
+			define_macros=macros,
 		),
 	],
 )
