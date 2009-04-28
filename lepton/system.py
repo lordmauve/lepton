@@ -18,11 +18,11 @@ class ParticleSystem(object):
 
 	def __init__(self, global_controllers=()):
 		"""Initialize the particle system, adding the specified global
-		controllers and renderers, if any
+		controllers, if any
 		"""
-		# Tuples are used for global controllers and renders to prevent
+		# Tuples are used for global controllers to prevent
 		# unpleasant side-affects if they are added during update or draw
-		self.controllers = tuple(controller for controller in global_controllers)
+		self.controllers = tuple(global_controllers)
 		self.groups = []
 
 	def add_global_controller(self, *controllers):
@@ -87,7 +87,7 @@ class ParticleSystem(object):
 	def draw(self):
 		"""Draw all particle groups in the system using their renderers.
 		
-		This method is convenient to call from you Pyglet window's
+		This method is convenient to call from your Pyglet window's
 		on_draw handler to redraw particles when needed.
 		"""
 		for group in self:
