@@ -95,7 +95,7 @@ typedef struct {
 	GLint tex_wrap;
 	int adjust_width;
 	int adjust_height;
-	int coord_count;
+	Py_ssize_t coord_count;
 	float *tex_coords;
 	FloatArrayObject *tex_array;
 	unsigned long *weights;
@@ -150,11 +150,11 @@ SpriteTex_traverse(SpriteTexObject *self, visitproc visit, void *arg)
 #define WEIGHT_MAX INT_MAX
 
 static float *
-get_tex_coords_2d(PyObject *tex_coords_seq, int *count_out)
+get_tex_coords_2d(PyObject *tex_coords_seq, Py_ssize_t *count_out)
 {
 	PyObject *s = NULL, *t = NULL, **item;
 	float ignore, *tex, *tex_coords = NULL;
-	int i, count, tlen;
+	Py_ssize_t i, count, tlen;
 
 	s = PySequence_Fast(tex_coords_seq, "coords not iterable");
 	if (s == NULL)
@@ -211,11 +211,11 @@ error:
 }
 
 static float *
-get_tex_coords_3d(PyObject *tex_coords_seq, int *count_out)
+get_tex_coords_3d(PyObject *tex_coords_seq, Py_ssize_t *count_out)
 {
 	PyObject *s = NULL, *t = NULL, **item;
 	float *tex, *tex_coords = NULL;
-	int i, count, tlen;
+	Py_ssize_t i, count, tlen;
 
 	s = PySequence_Fast(tex_coords_seq, "coords not iterable");
 	if (s == NULL)
@@ -466,7 +466,7 @@ SpriteTex_generate_tex_coords(SpriteTexObject *self, GroupObject *pgroup)
 {
 	register unsigned long pcount, i;
 	unsigned long w, *weights;
-	int tcount, coord_count;
+	Py_ssize_t tcount, coord_count;
 	float *ptex, *ttex, *tex_coords;
 	FloatArrayObject *tex_array;
 
@@ -508,19 +508,18 @@ SpriteTex_generate_tex_coords(SpriteTexObject *self, GroupObject *pgroup)
 		} else if (self->weights == NULL) {
 			/* Assign coords in round-robin fashion */
 			while (pcount--) {
-				tcount -= 1;
-				*ptex++ = *ttex++;
-				*ptex++ = *ttex++;
-				*ptex++ = *ttex++;
-				*ptex++ = *ttex++;
-				*ptex++ = *ttex++;
-				*ptex++ = *ttex++;
-				*ptex++ = *ttex++;
-				*ptex++ = *ttex++;
-				if (tcount <= 0) {
-					ttex = tex_coords;
-					tcount = coord_count;
+				while (tcount--) {
+					*ptex++ = *ttex++;
+					*ptex++ = *ttex++;
+					*ptex++ = *ttex++;
+					*ptex++ = *ttex++;
+					*ptex++ = *ttex++;
+					*ptex++ = *ttex++;
+					*ptex++ = *ttex++;
+					*ptex++ = *ttex++;
 				}
+				ttex = tex_coords;
+				tcount = coord_count;
 			}
 		} else {
 			/* Assign coords randomly according to weight */
@@ -682,7 +681,7 @@ typedef struct {
 	GLint tex_wrap;
 	int adjust_width;
 	int adjust_height;
-	int coord_count;
+	Py_ssize_t coord_count;
 	float *tex_coords;
 	FloatArrayObject *tex_array;
 	int dimension;
