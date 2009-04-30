@@ -508,18 +508,18 @@ SpriteTex_generate_tex_coords(SpriteTexObject *self, GroupObject *pgroup)
 		} else if (self->weights == NULL) {
 			/* Assign coords in round-robin fashion */
 			while (pcount--) {
-				while (tcount--) {
-					*ptex++ = *ttex++;
-					*ptex++ = *ttex++;
-					*ptex++ = *ttex++;
-					*ptex++ = *ttex++;
-					*ptex++ = *ttex++;
-					*ptex++ = *ttex++;
-					*ptex++ = *ttex++;
-					*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				*ptex++ = *ttex++;
+				if (--tcount <= 0) {
+					ttex = tex_coords;
+					tcount = coord_count;
 				}
-				ttex = tex_coords;
-				tcount = coord_count;
 			}
 		} else {
 			/* Assign coords randomly according to weight */
