@@ -297,7 +297,7 @@ class FlipBookTexturizerTest(TexTestBase, unittest.TestCase):
 		age = 0.0
 		for p in group:
 			p.age = age
-			age += 0.016
+			age += 0.017
 		coords = tuple(fbtex.generate_tex_coords(group))
 		self.failUnless(len(coords) >= len(group) * 8, (len(coords), len(group)))
 		self.assertEqual(coords[:8], coord_sets[0])
