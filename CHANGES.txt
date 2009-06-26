@@ -1,4 +1,4 @@
-2009-4-23 -- 0.10a
+2009-6-26 -- 1.0b1
 
 - Add Drag controller to simulate viscous drag (i.e., wind, water)
 - Add vortex example to show off drag controller
