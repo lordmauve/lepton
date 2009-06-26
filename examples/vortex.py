@@ -63,7 +63,6 @@ dust_emitter = StaticEmitter(
 		color=(0.0, 1.0, 1.0),
 		age=0.5)
 )
-column = Cylinder((0, -50, 0), (0, 28, 0), 25)
 vortex = Cone((0, -30, 0), (0, 28, 0), 16, 0)
 front = AABox((-100, -50, -50), (100, 25, 0))
 back = AABox((-100, -50, 50), (100, 25, 0))
