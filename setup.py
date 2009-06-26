@@ -44,12 +44,13 @@ setup(
 Lepton is designed to make complex and beautiful particle effects possible,
 and even easy from Python programs.
 
-Lepton is under development, but even now it has some useful features:
+Lepton provides the following core features:
 
 - Native-code core for high-performance particle dynamics and rendering
 - Pluggable particle controllers for specifying particle behavior
 - Two pluggable OpenGL renderers, and two pygame renderers
 - Spacial domains, used to control particle emission and behavior
+- Easy to use and powerful texture support, including animation
 - Modular architecture that lets you easily configure and customize the engine
 
 The code includes several examples of how you can use the engine (using
