@@ -74,8 +74,8 @@ You can download binary releases or browse the source code at our Google code si
         'Operating System :: POSIX',
     ],
 
-    package_dir={'lepton': 'lepton'},
-    packages=['lepton'],
+    package_dir={'lepton': 'lepton', 'lepton.examples': 'examples'},
+    packages=['lepton', 'lepton.examples'],
 	ext_modules=[
 		Extension('lepton.group', 
 			['lepton/group.c', 'lepton/groupmodule.c'], 
