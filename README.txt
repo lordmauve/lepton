@@ -21,7 +21,12 @@ The following are required to build and install Lepton:
 To build on Linux (and possibly other unix-like OSes) You will need to have
 the Python and libxext headers installed. On systems using the apt packaging
 system, this means you need to have the python-dev-all and libxext-dev
-packages installed.
+packages installed. Specifically on Debian and Ubuntu, you will likely
+need the following packages installed:
+
+xorg-dev
+libgl1-mesa-dev
+libglu1-mesa-dev
 
 Binary releases for Windows are available for download from the google code
 site above.  If you'd like to help out by contributing a binary distribution
