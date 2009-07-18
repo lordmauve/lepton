@@ -1,3 +1,9 @@
+2009-7-18 -- 1.0b2
+
+- Examples are now installed as a subpackage and importable, thus may be
+  run using: python -m lepton.examples.vortex
+- Add notes about ubuntu/debian package dependancies to readme
+
 2009-6-26 -- 1.0b1
 
 - Add Drag controller to simulate viscous drag (i.e., wind, water)
