@@ -38,7 +38,7 @@ compile_args = [] # disable compile args for now
 
 setup(
 	name='lepton',
-    version='1.0b1', # *** REMEMBER TO UPDATE __init__.py ***
+    version='1.0b2', # *** REMEMBER TO UPDATE __init__.py ***
 	description='Lepton: A high-performance, pluggable particle engine and API for Python',
 	long_description='''\
 Lepton is designed to make complex and beautiful particle effects possible,
@@ -75,6 +75,7 @@ You can download binary releases or browse the source code at our Google code si
     ],
 
     package_dir={'lepton': 'lepton', 'lepton.examples': 'examples'},
+	package_data={'lepton.examples': ['*.png', '*.bmp', 'logo_frames/*.png']},
     packages=['lepton', 'lepton.examples'],
 	ext_modules=[
 		Extension('lepton.group', 
