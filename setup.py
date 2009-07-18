@@ -65,7 +65,7 @@ You can download binary releases or browse the source code at our Google code si
 	url='http://code.google.com/p/py-lepton/',
 	license='MIT',
     classifiers = [
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Topic :: Multimedia :: Graphics',
         'License :: OSI Approved :: MIT License',
 		'Intended Audience :: Developers',
