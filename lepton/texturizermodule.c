@@ -602,7 +602,7 @@ PyDoc_STRVAR(SpriteTex__doc__,
 	"to the application to load the texture's data before using the texturizer\n\n"
 	"coords -- A sequence of texture coordinate sets. Each set consists of coordinates\n"
 	"for the four corners of the quad drawn for a particle (8 floats). Sets may\n"
-	"consist of 4 coodinate pairs (tuples) or simply 8 floats corresponding to the\n"
+	"consist of 4 coordinate pairs (tuples) or simply 8 floats corresponding to the\n"
 	"bottom left, bottom right, top right and top left texture coordinates respectively.\n"
 	"if omitted, coords defaults to a single set of coordinates: (0,0, 1,0, 1,1, 0,1)\n\n"
 	"weights -- An optional list of weight values applied to the coordinate sets\n"
