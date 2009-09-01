@@ -576,7 +576,7 @@ static PyMethodDef SpriteTex_methods[] = {
 			"Restore the OpenGL texture state after rendering.\n"
 			"Called by the renderer after particles are drawn.")},
 	{"generate_tex_coords", (PyCFunction)SpriteTex_generate_tex_coords, METH_O,
-		PyDoc_STR("generate_tex_coords(group, coord_array) -> None\n"
+		PyDoc_STR("generate_tex_coords(group) -> FloatArray\n"
 			"Generate texture coordinates for the given particle\n"
 			"group and return them as a FloatArray ovject\n"
 			"Called by the renderer when particles are drawn.")},
@@ -1114,7 +1114,7 @@ static PyMethodDef FlipBookTex_methods[] = {
 			"Restore the OpenGL texture state after rendering.\n"
 			"Called by the renderer after particles are drawn.")},
 	{"generate_tex_coords", (PyCFunction)FlipBookTex_generate_tex_coords, METH_O,
-		PyDoc_STR("generate_tex_coords(group, coord_array) -> None\n"
+		PyDoc_STR("generate_tex_coords(group) -> FloatArray\n"
 			"Generate texture coordinates for the given particle\n"
 			"group and return them as a FloatArray ovject\n"
 			"Called by the renderer when particles are drawn.")},
