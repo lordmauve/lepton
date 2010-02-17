@@ -438,11 +438,11 @@ SpriteTex_set_state(SpriteTexObject *self)
 {
 	glPushAttrib(GL_ENABLE_BIT);
 	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, self->texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, self->tex_filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, self->tex_filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, self->tex_wrap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, self->tex_wrap);
-	glBindTexture(GL_TEXTURE_2D, self->texture);
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -926,11 +926,11 @@ FlipBookTex_set_state(FlipBookTexObject *self)
 	}
 	glPushAttrib(GL_ENABLE_BIT);
 	glEnable(tex_target);
+	glBindTexture(tex_target, self->texture);
 	glTexParameteri(tex_target, GL_TEXTURE_MIN_FILTER, self->tex_filter);
 	glTexParameteri(tex_target, GL_TEXTURE_MAG_FILTER, self->tex_filter);
 	glTexParameteri(tex_target, GL_TEXTURE_WRAP_S, self->tex_wrap);
 	glTexParameteri(tex_target, GL_TEXTURE_WRAP_T, self->tex_wrap);
-	glBindTexture(tex_target, self->texture);
 
 	Py_INCREF(Py_None);
 	return Py_None;
