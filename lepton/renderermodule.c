@@ -59,6 +59,9 @@ glew_initialize(void)
 
 /* Vertex data functions and structs */
 
+#pragma pack(push)
+#pragma pack(4)
+
 typedef struct {
 	float x, y, z;
 } VertItem;
@@ -73,6 +76,8 @@ typedef struct {
 		unsigned long colorl;
 	};
 } ColorItem;
+
+#pragma pack(pop)
 
 typedef struct {
 	int is_vbo;
@@ -662,8 +667,8 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 			goto error;
 	}
 
-	glVertexPointer(3, GL_FLOAT, 0, data.verts);
-	glColorPointer(4, GL_UNSIGNED_BYTE, 0, data.colors);
+	glVertexPointer(3, GL_FLOAT, sizeof(VertItem), data.verts);
+	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(ColorItem), data.colors);
 	glTexCoordPointer(tex_dimension, GL_FLOAT, 0, tex_array->data);
 	if (!draw_billboards(pcount))
 		goto error;
