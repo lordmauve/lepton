@@ -34,7 +34,7 @@
    integers, viewed as binary vectors, will be linearly
    independent only about 29% of the time.
 */
-static unsigned long jz, jsr=123456789;
+static uint32_t jz, jsr=123456789;
 #define SHR3 (jz=jsr, jsr^=(jsr<<13), jsr^=(jsr>>17), jsr^=(jsr<<5),jz+jsr)
 
 /*
@@ -43,7 +43,7 @@ static unsigned long jz, jsr=123456789;
    y(n)=18000y(n-1)+carry mod 2^16, has period about
    2^60 and seems to pass all tests of randomness
 */
-static unsigned long z=362436069, w=521288629;
+static uint32_t z=362436069, w=521288629;
 #define znew (z=36969*(z&65535)+(z>>16))
 #define wnew (w=18000*(w&65535)+(w>>16))
 #define MWC ((znew<<16)+wnew )
@@ -54,17 +54,17 @@ static unsigned long z=362436069, w=521288629;
    2^32. The leading half of its 32 bits seem to pass
    tests, but bits in the last half are too regular.
 */
-static unsigned long jcong=380116160;
+static uint32_t jcong=380116160;
 #define CONG (jcong=69069*jcong+1234567)
 
-static unsigned long kn[128], ke[256];
+static uint32_t kn[128], ke[256];
 static float wn[128], fn[128], we[256], fe[256];
 
 /*
 	Set the random number seed and initialize the ziggurat tables
 */
 void
-rand_seed(unsigned long s) 
+rand_seed(uint32_t s) 
 {
 	const double m1 = 2147483648.0, m2 = 4294967296.;
 	double dn = 3.442619855899, tn=dn, vn = 9.91256303526217e-3;
@@ -80,7 +80,7 @@ rand_seed(unsigned long s)
 
 	/* Setup ziggurat tables for rand_norm() */
 	q = vn / exp(-.5 * dn*dn);
-	kn[0] = (unsigned long)((dn / q)*m1);
+	kn[0] = (uint32_t)((dn / q)*m1);
 	kn[1] = 0;
 
 	wn[0] = (float)(q / m1);
@@ -91,7 +91,7 @@ rand_seed(unsigned long s)
 
     for (i = 126; i >= 1; i--) {
 		dn = sqrt(-2. * log(vn / dn + exp(-.5 * dn*dn)));
-		kn[i+1] = (unsigned long)((dn / tn)*m1);
+		kn[i+1] = (uint32_t)((dn / tn)*m1);
 		tn = dn;
 		fn[i] = (float)exp(-.5 * dn*dn);
 		wn[i] = (float)(dn / m1);
@@ -99,7 +99,7 @@ rand_seed(unsigned long s)
 
 	/* Setup tables for rand_expo() */
 	q = ve / exp(-de);
-	ke[0] = (unsigned long)((de / q)*m2);
+	ke[0] = (uint32_t)((de / q)*m2);
 	ke[1] = 0;
 
 	we[0] = (float)(q / m2);
@@ -110,7 +110,7 @@ rand_seed(unsigned long s)
 
 	for (i=254; i>=1; i--) {
 		de = -log(ve / de + exp(-de));
-		ke[i+1] = (unsigned long)((de / te)*m2);
+		ke[i+1] = (uint32_t)((de / te)*m2);
 		te = de;
 		fe[i] = (float)exp(-de);
 		we[i] = (float)(de / m2);
@@ -125,7 +125,7 @@ rand_seed(unsigned long s)
    the congruential generator CONG, using addition and
    exclusive-or. Period about 2^123.
 */
-inline unsigned long 
+inline uint32_t 
 rand_int32(void) 
 {
 	return (MWC ^ CONG) + SHR3;
@@ -151,7 +151,7 @@ rand_uni(void)
 	expected from the theory, but performance is still excellent.
 */
 static float
-norm_outlier(long hz, long iz)
+norm_outlier(int32_t hz, int32_t iz)
 {
 	float x, y;
 
@@ -175,7 +175,7 @@ norm_outlier(long hz, long iz)
 		/* Try again from the top and see if we can exit */
 		hz = rand_int32();
 		iz = hz & 127;
-		if ((unsigned long)labs(hz) < kn[iz]) 
+		if ((uint32_t)labs(hz) < kn[iz]) 
 			return hz * wn[iz];
 	}
 }
@@ -189,9 +189,9 @@ norm_outlier(long hz, long iz)
 inline float
 rand_norm(const float mu, const float sigma)
 {
-	long hz = rand_int32();
-	long iz = hz & 127;
-	return mu + (((unsigned long)labs(hz) < kn[iz]) ? hz * wn[iz] : norm_outlier(hz, iz)) * sigma;
+	int32_t hz = rand_int32();
+	int32_t iz = hz & 127;
+	return mu + (((uint32_t)labs(hz) < kn[iz]) ? hz * wn[iz] : norm_outlier(hz, iz)) * sigma;
 }
 
 /*
@@ -202,7 +202,7 @@ rand_norm(const float mu, const float sigma)
 	expected from the theory
 */
 static float
-expo_outlier(unsigned long hz, unsigned long iz)
+expo_outlier(uint32_t hz, uint32_t iz)
 {
 	float x;
 
@@ -232,8 +232,8 @@ expo_outlier(unsigned long hz, unsigned long iz)
 inline float
 rand_expo(const float mu)
 {
-	unsigned long hz = rand_int32();
-	unsigned long iz = hz & 255;
+	uint32_t hz = rand_int32();
+	uint32_t iz = hz & 255;
 	return ((hz < ke[iz]) ? hz * we[iz] : expo_outlier(hz, iz)) * mu;
 }
 
