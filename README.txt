@@ -14,7 +14,7 @@ and run Lepton on an unusual platform.
 
 The following are required to build and install Lepton:
 
-* Python2.5 or 2.6
+* Python 2.5 - 2.7
 * OpenGL
 * A C compiler (GCC or Visual C++)
 
