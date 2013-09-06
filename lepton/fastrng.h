@@ -11,6 +11,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #ifndef _FASTRNG_H_
 #define _FASTRNG_H_
@@ -22,12 +23,12 @@
 
 /* Seed the random number generators and initialize tables for rand_norm */
 void
-rand_seed(unsigned long s);
+rand_seed(uint32_t s);
 
 /*
    Generate a 32-bit random number in with the interval [0,0xffffffff]
 */
-inline unsigned long 
+inline uint32_t
 rand_int32(void);
 
 /*
