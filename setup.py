@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys
-from distutils.core import Extension, setup
+from setuptools import setup, Extension
 
 extra_link_args = []
 macros = [('GLEW_STATIC', None)]

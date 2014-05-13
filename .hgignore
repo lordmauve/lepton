@@ -1,0 +1,7 @@
+wasabi_lepton.egg-info
+build
+dist
+
+syntax: glob
+*.so
+
