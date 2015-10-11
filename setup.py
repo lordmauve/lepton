@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys
 from setuptools import setup, Extension
 
@@ -26,18 +27,31 @@ elif sys.platform == 'darwin':
     libraries = []
     extra_link_args = ['-framework:OpenGL']
 else:
-    print >>sys.stderr, "Platform", sys.platform, "not really supported just yet"
+    print("Platform", sys.platform, "not really supported just yet", file=sys.stderr)
     include_dirs = ['glew/include']
     library_dirs = []
     libraries = []
 
 compile_args = [
     '-Werror-implicit-function-declaration'
-]  # disable compile args for now
+]
+
+
+def make_ext(name, files):
+    return Extension(
+        name,
+        files,
+        include_dirs=include_dirs,
+        library_dirs=library_dirs,
+        libraries=libraries,
+        extra_link_args=extra_link_args,
+        extra_compile_args=compile_args,
+        define_macros=macros,
+    )
 
 setup(
     name='wasabi-lepton',
-    version='1.0b2',  # *** REMEMBER TO UPDATE __init__.py ***
+    version='1.0b3',  # *** REMEMBER TO UPDATE __init__.py ***
     description='Wasabi-Lepton: A fork of Lepton, A high-performance, pluggable particle engine and API for Python',
     long_description='''\
 Lepton is designed to make complex and beautiful particle effects possible,
@@ -71,72 +85,45 @@ You can download binary releases or browse the source code at our Google code si
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
     ],
 
     package_dir={'lepton': 'lepton', 'lepton.examples': 'examples'},
     package_data={'lepton.examples': ['*.png', '*.bmp', 'logo_frames/*.png']},
     packages=['lepton', 'lepton.examples'],
     ext_modules=[
-        Extension('lepton.group',
-                  ['lepton/group.c', 'lepton/groupmodule.c'],
-                  include_dirs=include_dirs,
-                  library_dirs=library_dirs,
-                  libraries=libraries,
-                  extra_link_args=extra_link_args,
-                  extra_compile_args=compile_args,
-                  define_macros=macros,
-                  ),
-        Extension('lepton.renderer',
-                  ['lepton/group.c', 'lepton/renderermodule.c',
-                   'lepton/controllermodule.c', 'lepton/groupmodule.c',
-                   'glew/src/glew.c'],
-                  include_dirs=include_dirs,
-                  library_dirs=library_dirs,
-                  libraries=libraries,
-                  extra_link_args=extra_link_args,
-                  extra_compile_args=compile_args,
-                  define_macros=macros,
-                  ),
-        Extension('lepton._texturizer',
-                  ['lepton/group.c', 'lepton/texturizermodule.c',
-                   'lepton/renderermodule.c', 'lepton/controllermodule.c',
-                   'lepton/groupmodule.c', 'glew/src/glew.c'],
-                  include_dirs=include_dirs,
-                  library_dirs=library_dirs,
-                  libraries=libraries,
-                  extra_link_args=extra_link_args,
-                  extra_compile_args=compile_args,
-                  define_macros=macros,
-                  ),
-        Extension('lepton._controller',
-                  ['lepton/group.c', 'lepton/groupmodule.c',
-                   'lepton/controllermodule.c'],
-                  include_dirs=include_dirs,
-                  library_dirs=library_dirs,
-                  libraries=libraries,
-                  extra_link_args=extra_link_args,
-                  extra_compile_args=compile_args,
-                  define_macros=macros,
-                  ),
-        Extension('lepton.emitter',
-                  ['lepton/group.c', 'lepton/groupmodule.c',
-                   'lepton/fastrng.c', 'lepton/emittermodule.c'],
-                  include_dirs=include_dirs,
-                  library_dirs=library_dirs,
-                  libraries=libraries,
-                  extra_link_args=extra_link_args,
-                  extra_compile_args=compile_args,
-                  define_macros=macros,
-                  ),
-        Extension('lepton._domain',
-                  ['lepton/group.c', 'lepton/groupmodule.c',
-                   'lepton/fastrng.c', 'lepton/domainmodule.c'],
-                  include_dirs=include_dirs,
-                  library_dirs=library_dirs,
-                  libraries=libraries,
-                  extra_link_args=extra_link_args,
-                  extra_compile_args=compile_args,
-                  define_macros=macros,
-                  ),
+        make_ext(
+            'lepton.group',
+            ['lepton/group.c', 'lepton/groupmodule.c'],
+        ),
+        make_ext(
+            'lepton.renderer',
+            ['lepton/group.c', 'lepton/renderermodule.c',
+             'lepton/controllermodule.c', 'lepton/groupmodule.c',
+             'glew/src/glew.c'],
+        ),
+        make_ext(
+            'lepton._texturizer',
+            ['lepton/group.c', 'lepton/texturizermodule.c',
+             'lepton/renderermodule.c', 'lepton/controllermodule.c',
+             'lepton/groupmodule.c', 'glew/src/glew.c'],
+        ),
+        make_ext(
+            'lepton._controller',
+            ['lepton/group.c', 'lepton/groupmodule.c',
+             'lepton/controllermodule.c'],
+        ),
+        make_ext(
+            'lepton.emitter',
+            ['lepton/group.c', 'lepton/groupmodule.c',
+             'lepton/fastrng.c', 'lepton/emittermodule.c'],
+        ),
+        make_ext(
+            'lepton._domain',
+            ['lepton/group.c', 'lepton/groupmodule.c',
+             'lepton/fastrng.c', 'lepton/domainmodule.c'],
+        ),
     ],
 )
