@@ -63,7 +63,7 @@ emitter = StaticEmitter(
 )
 
 default_system.add_global_controller(
-	Movement(), 
+	Movement(),
 	Collector(Plane((0, 0, 0), (0, 0, -1))),
 	Fader(fade_in_end=15.0),
 )
@@ -71,13 +71,13 @@ default_system.add_global_controller(
 font = pyglet.font.load(size=72)
 # Try to force all glyphs into a single texture
 font.texture_width = font.texture_height = 1024
-letter_textures = font.get_glyphs(string.letters)
+letter_textures = font.get_glyphs(string.ascii_lowercase)
 texturizer = SpriteTexturizer(
-	letter_textures[0].texture.id, 
+	letter_textures[0].texture.id,
 	coords=[tex.tex_coords for tex in letter_textures],
 	aspect_adjust_width=True)
 
-group = ParticleGroup(controllers=[emitter], 
+group = ParticleGroup(controllers=[emitter],
 	renderer=BillboardRenderer(texturizer))
 
 win.set_visible(True)
