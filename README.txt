@@ -1,7 +1,7 @@
 Lepton
 ======
 
-http://code.google.com/p/py-lepton/
+https://bitbucket.org/lordmauve/lepton/
 
 Lepton: A high-performance, pluggable particle engine and API for Python
 
@@ -14,7 +14,7 @@ and run Lepton on an unusual platform.
 
 The following are required to build and install Lepton:
 
-* Python 2.5 - 2.7
+* Python 2.6+, 3.3+
 * OpenGL
 * A C compiler (GCC or Visual C++)
 
@@ -33,7 +33,7 @@ site above.  If you'd like to help out by contributing a binary distribution
 for your platform, you're more than welcome to!
 
 The examples provided with Lepton require either pyglet
-(http://www.pyglet.com), or pygame (http://www.pygame.org),
+(http://www.pyglet.org), or pygame (http://www.pygame.org),
 but neither are required to use the library.
 
 Alpha Software
@@ -46,7 +46,8 @@ documentation for new versions.
 
 If you find a bug, or desire a feature, please use the issue tracker at:
 
-http://code.google.com/p/py-lepton/issues/list
+https://bitbucket.org/lordmauve/lepton/issues?status=new&status=open
+
 
 Installation
 ------------
