@@ -444,7 +444,7 @@ Emitter_emit(StaticEmitterObject *self, PyObject *args)
 	GroupObject *pgroup;
 	long pindex;
 
-	if (!PyArg_ParseTuple(args, "iO:emit", &count, &pgroup))
+	if (!PyArg_ParseTuple(args, "lO:emit", &count, &pgroup))
 		return NULL;
 
 	if (!GroupObject_Check(pgroup))
@@ -455,7 +455,7 @@ Emitter_emit(StaticEmitterObject *self, PyObject *args)
 	if (count < 0)
 		count = 0;
 
-	while (count--) {
+	for (; count > 0; count--) {
 		pindex = Group_new_p(pgroup);
 		if (pindex < 0) {
 			PyErr_NoMemory();
@@ -723,7 +723,7 @@ PerParticleEmitter_emit(PerParticleEmitterObject *self, PyObject *args)
 	Particle *p;
 	long pindex;
 
-	if (!PyArg_ParseTuple(args, "iO:__init__", &count, &pgroup))
+	if (!PyArg_ParseTuple(args, "lO:emit", &count, &pgroup))
 		return NULL;
 
 	if (!GroupObject_Check(pgroup))
@@ -731,18 +731,16 @@ PerParticleEmitter_emit(PerParticleEmitterObject *self, PyObject *args)
 
 	/* Clamp to zero to gracefully handle random input values that
 	 * occasionally go negative */
-	if (count < 0)
-		count = 0;
+	if (count <= 0)
+		return NULL;
 
 	p = self->source_group->plist->p;
 	pcount = GroupObject_ActiveCount(self->source_group);
 
-	while (pcount--) {
+	for (; pcount > 0; pcount--, p++) {
 		if (Particle_IsAlive(*p)) {
-			remaining = count;
 			Vec3_copy(&self->ptemplate.position, &p->position);
-
-			while (remaining--) {
+			for (remaining = count; remaining > 0; remaining--) {
 				pindex = Group_new_p(pgroup);
 				if (pindex < 0) {
 					PyErr_NoMemory();
@@ -754,7 +752,6 @@ PerParticleEmitter_emit(PerParticleEmitterObject *self, PyObject *args)
 				}
 			}
 		}
-		p++;
 	}
 
 	Py_INCREF(Py_None);
