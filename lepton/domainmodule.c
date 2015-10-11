@@ -18,6 +18,7 @@
 #include <structmember.h>
 #include <math.h>
 #include <float.h>
+#include "compat.h"
 #include "vector.h"
 #include "fastrng.h"
 #include "group.h"
@@ -25,13 +26,13 @@
 /* Base domain methods and helper functions */
 
 static void
-Domain_dealloc(PyObject *self) 
+Domain_dealloc(PyObject *self)
 {
 	PyObject_Del(self);
 }
 
 static int
-Domain_never_contains(PyObject *self, PyObject *o) 
+Domain_never_contains(PyObject *self, PyObject *o)
 {
 	return 0;
 }
@@ -39,7 +40,7 @@ Domain_never_contains(PyObject *self, PyObject *o)
 static PyObject *NO_INTERSECTION = NULL;
 
 static PyObject *
-Domain_never_intersects(PyObject *self, PyObject *args) 
+Domain_never_intersects(PyObject *self, PyObject *args)
 {
 	Py_INCREF(NO_INTERSECTION);
 	return NO_INTERSECTION;
@@ -77,7 +78,7 @@ LineDomain_init(LineDomainObject *self, PyObject *args)
 }
 
 static PyObject *
-LineDomain_generate(LineDomainObject *self) 
+LineDomain_generate(LineDomainObject *self)
 {
 	float d;
 	PyObject *x, *y, *z, *pt;
@@ -103,7 +104,7 @@ LineDomain_generate(LineDomainObject *self)
 }
 
 static PyObject *
-LineDomain_closest_point_to(LineDomainObject *self, PyObject *args) 
+LineDomain_closest_point_to(LineDomainObject *self, PyObject *args)
 {
 	Vec3 point, closest, norm, tp, lv;
 	float mag2;
@@ -152,12 +153,11 @@ static PyObject *
 LineDomain_getattr(LineDomainObject *self, PyObject *name_str)
 {
 	if (name_str == start_point_str) {
-		return (PyObject *)Vector_new((PyObject *)self, &self->start_point, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->start_point, 3);
 	} else if (name_str == end_point_str) {
-		return (PyObject *)Vector_new((PyObject *)self, &self->end_point, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->end_point, 3);
 	} else {
-		return Py_FindMethod(LineDomain_methods, 
-			(PyObject *)self, PyString_AS_STRING(name_str));
+		return PY_FIND_METHOD(LineDomain_methods, self, name_str);
 	}
 }
 
@@ -194,7 +194,7 @@ static PySequenceMethods LineDomain_as_sequence = {
 	(objobjproc)Domain_never_contains,	/* sq_contains */
 };
 
-PyDoc_STRVAR(LineDomain__doc__, 
+PyDoc_STRVAR(LineDomain__doc__,
 	"line segment domain\n\n"
 	"Line(start_point, endpoint)\n\n"
 	"Define the line segment domain between the specified start and\n"
@@ -203,8 +203,7 @@ PyDoc_STRVAR(LineDomain__doc__,
 static PyTypeObject LineDomain_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"domain.Line",		/*tp_name*/
 	sizeof(LineDomainObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -270,13 +269,13 @@ PlaneDomain_init(PlaneDomainObject *self, PyObject *args)
 		&self->point.x, &self->point.y, &self->point.z,
 		&self->normal.x, &self->normal.y, &self->normal.z))
 		return -1;
-	
+
 	len = Vec3_len_sq(&self->normal);
 	if (len != 1.0f) {
 		if (len > EPSILON) {
 			Vec3_normalize(&self->normal, &self->normal);
 		} else {
-			PyErr_SetString(PyExc_ValueError, 
+			PyErr_SetString(PyExc_ValueError,
 				"PlaneDomain: zero-length normal vector");
 			return -1;
 		}
@@ -286,7 +285,7 @@ PlaneDomain_init(PlaneDomainObject *self, PyObject *args)
 }
 
 static PyObject *
-PlaneDomain_generate(PlaneDomainObject *self) 
+PlaneDomain_generate(PlaneDomainObject *self)
 {
 	PyObject *x, *y, *z, *pt;
 
@@ -299,7 +298,7 @@ PlaneDomain_generate(PlaneDomainObject *self)
 		Py_XDECREF(z);
 		return NULL;
 	}
-	
+
 	pt = PyTuple_Pack(3, x, y, z);
 	Py_DECREF(x);
 	Py_DECREF(y);
@@ -308,7 +307,7 @@ PlaneDomain_generate(PlaneDomainObject *self)
 }
 
 static PyObject *
-PlaneDomain_intersect(PlaneDomainObject *self, PyObject *args) 
+PlaneDomain_intersect(PlaneDomainObject *self, PyObject *args)
 {
 	Vec3 norm, start, end, vec;
 	float ndotv, t, dist;
@@ -317,7 +316,7 @@ PlaneDomain_intersect(PlaneDomainObject *self, PyObject *args)
 		&start.x, &start.y, &start.z,
 		&end.x, &end.y, &end.z))
 		return NULL;
-	
+
 	Vec3_copy(&norm, &self->normal);
 	Vec3_sub(&vec, &end, &start);
 	ndotv = Vec3_dot(&norm, &vec);
@@ -341,7 +340,7 @@ PlaneDomain_intersect(PlaneDomainObject *self, PyObject *args)
 }
 
 static PyObject *
-PlaneDomain_closest_point_to(PlaneDomainObject *self, PyObject *args) 
+PlaneDomain_closest_point_to(PlaneDomainObject *self, PyObject *args)
 {
 	Vec3 point, closest, norm, tp;
 	float t;
@@ -349,7 +348,7 @@ PlaneDomain_closest_point_to(PlaneDomainObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
 		&point.x, &point.y, &point.z))
 		return NULL;
-	
+
 	Vec3_sub(&tp, &point, &self->point);
 	t = Vec3_dot(&tp, &self->normal);
 	Vec3_scalar_mul(&tp, &self->normal, t);
@@ -384,12 +383,11 @@ static PyObject *
 PlaneDomain_getattr(PlaneDomainObject *self, PyObject *name_str)
 {
 	if (name_str == point_str) {
-		return (PyObject *)Vector_new((PyObject *)self, &self->point, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->point, 3);
 	} else if (name_str == normal_str) {
-		return (PyObject *)Vector_new((PyObject *)self, &self->normal, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->normal, 3);
 	} else {
-		return Py_FindMethod(PlaneDomain_methods, 
-			(PyObject *)self, PyString_AS_STRING(name_str));
+        return PY_FIND_METHOD(PlaneDomain_methods, self, name_str);
 	}
 }
 
@@ -445,7 +443,7 @@ static PySequenceMethods PlaneDomain_as_sequence = {
 	(objobjproc)PlaneDomain_contains,	/* sq_contains */
 };
 
-PyDoc_STRVAR(PlaneDomain__doc__, 
+PyDoc_STRVAR(PlaneDomain__doc__,
 	"Infinite planar domain\n\n"
 	"Plane(point, normal, half_space=False)\n\n"
 	"point -- Any point in the plane (3-number sequence)\n"
@@ -456,8 +454,7 @@ PyDoc_STRVAR(PlaneDomain__doc__,
 static PyTypeObject PlaneDomain_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"domain.Plane",		/*tp_name*/
 	sizeof(PlaneDomainObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -526,7 +523,7 @@ AABoxDomain_init(AABoxDomainObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "(fff)(fff):__init__",
 		&x1, &y1, &z1, &x2, &y2, &z2))
 		return -1;
-	
+
 	self->min.x = min(x1, x2);
 	self->min.y = min(y1, y2);
 	self->min.z = min(z1, z2);
@@ -537,7 +534,7 @@ AABoxDomain_init(AABoxDomainObject *self, PyObject *args)
 }
 
 static PyObject *
-AABoxDomain_generate(AABoxDomainObject *self) 
+AABoxDomain_generate(AABoxDomainObject *self)
 {
 	PyObject *x, *y, *z, *pt;
 	Vec3 size;
@@ -553,7 +550,7 @@ AABoxDomain_generate(AABoxDomainObject *self)
 		Py_XDECREF(z);
 		return NULL;
 	}
-	
+
 	pt = PyTuple_Pack(3, x, y, z);
 	Py_DECREF(x);
 	Py_DECREF(y);
@@ -582,9 +579,9 @@ AABoxDomain_contains(AABoxDomainObject *self, PyObject *pt)
 
 	return pt_in_box(self, x, y, z);
 }
-	
+
 static PyObject *
-AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args) 
+AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 {
 	Vec3 start, end;
 	float t, ix, iy, iz;
@@ -621,7 +618,7 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 		iz = (end.z - start.z) * t + start.z;
 		// printf("top (%f, %f, %f) (%f, %f, %f)\n", start.x, start.y, start.z, ix, iy, iz);
 		if (pt_in_box(self, ix, iy, iz))
-			return Py_BuildValue("((fff)(fff))", 
+			return Py_BuildValue("((fff)(fff))",
 				ix, iy, iz, 0.0, (start.y > self->max.y) ? 1.0 : -1.0, 0.0);
 	}
 	/* right face */
@@ -632,7 +629,7 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 		iz = (end.z - start.z) * t + start.z;
 		// printf("right (%f, %f, %f) (%f, %f, %f)\n", start.x, start.y, start.z, ix, iy, iz);
 		if (pt_in_box(self, ix, iy, iz))
-			return Py_BuildValue("((fff)(fff))", 
+			return Py_BuildValue("((fff)(fff))",
 				ix, iy, iz, (start.x > self->max.x) ? 1.0 : -1.0, 0.0, 0.0);
 	}
 	/* bottom face */
@@ -643,7 +640,7 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 		iz = (end.z - start.z) * t + start.z;
 		// printf("bottom (%f, %f, %f) (%f, %f, %f)\n", start.x, start.y, start.z, ix, iy, iz);
 		if (pt_in_box(self, ix, iy, iz))
-			return Py_BuildValue("((fff)(fff))", 
+			return Py_BuildValue("((fff)(fff))",
 				ix, iy, iz, 0.0, (start.y < self->min.y) ? -1.0 : 1.0, 0.0);
 	}
 	/* left face */
@@ -654,7 +651,7 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 		iz = (end.z - start.z) * t + start.z;
 		// printf("left (%f, %f, %f) (%f, %f, %f)\n", start.x, start.y, start.z, ix, iy, iz);
 		if (pt_in_box(self, ix, iy, iz))
-			return Py_BuildValue("((fff)(fff))", 
+			return Py_BuildValue("((fff)(fff))",
 				ix, iy, iz, (start.x < self->min.x) ? -1.0 : 1.0, 0.0, 0.0);
 	}
 	/* far face */
@@ -665,7 +662,7 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 		iz = self->min.z;
 		// printf("far (%f, %f, %f) (%f, %f, %f)\n", start.x, start.y, start.z, ix, iy, iz);
 		if (pt_in_box(self, ix, iy, iz))
-			return Py_BuildValue("((fff)(fff))", 
+			return Py_BuildValue("((fff)(fff))",
 				ix, iy, iz, 0.0, 0.0, (start.z < self->min.z) ? -1.0 : 1.0);
 	}
 	/* near face */
@@ -676,7 +673,7 @@ AABoxDomain_intersect(AABoxDomainObject *self, PyObject *args)
 		iz = self->max.z;
 		// printf("near (%f, %f, %f) (%f, %f, %f)\n", start.x, start.y, start.z, ix, iy, iz);
 		if (pt_in_box(self, ix, iy, iz))
-			return Py_BuildValue("((fff)(fff))", 
+			return Py_BuildValue("((fff)(fff))",
 				ix, iy, iz, 0.0, 0.0, (start.z > self->max.z) ? 1.0 : -1.0);
 	}
 
@@ -709,12 +706,11 @@ static PyObject *
 AABoxDomain_getattr(AABoxDomainObject *self, PyObject *name_str)
 {
 	if (name_str == min_point_str) {
-		return (PyObject *)Vector_new((PyObject *)self, &self->min, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->min, 3);
 	} else if (name_str == max_point_str) {
-		return (PyObject *)Vector_new((PyObject *)self, &self->max, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->max, 3);
 	} else {
-		return Py_FindMethod(AABoxDomain_methods, 
-			(PyObject *)self, PyString_AS_STRING(name_str));
+		return PY_FIND_METHOD(AABoxDomain_methods, self, name_str);
 	}
 }
 
@@ -751,7 +747,7 @@ static PySequenceMethods AABoxDomain_as_sequence = {
 	(objobjproc)AABoxDomain_contains,	/* sq_contains */
 };
 
-PyDoc_STRVAR(AABoxDomain__doc__, 
+PyDoc_STRVAR(AABoxDomain__doc__,
 	"Axis aligned rectangular prism\n\n"
 	"AABox(point1, point2)\n\n"
 	"point1 and point2 define any two opposite corners of the box");
@@ -759,8 +755,7 @@ PyDoc_STRVAR(AABoxDomain__doc__,
 static PyTypeObject AABoxDomain_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"domain.AABox",		/*tp_name*/
 	sizeof(AABoxDomainObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -827,9 +822,9 @@ SphereDomain_init(SphereDomainObject *self, PyObject *args)
 		&self->center.x, &self->center.y, &self->center.z,
 		&self->outer_radius, &self->inner_radius))
 		return -1;
-	
+
 	if (self->outer_radius < self->inner_radius) {
-		PyErr_SetString(PyExc_ValueError, 
+		PyErr_SetString(PyExc_ValueError,
 			"Sphere: Expected outer_radius >= inner_radius");
 		return -1;
 	}
@@ -838,7 +833,7 @@ SphereDomain_init(SphereDomainObject *self, PyObject *args)
 }
 
 static PyObject *
-SphereDomain_generate(SphereDomainObject *self) 
+SphereDomain_generate(SphereDomainObject *self)
 {
 	PyObject *x, *y, *z, *pt;
 	float dist, mag2;
@@ -852,7 +847,7 @@ SphereDomain_generate(SphereDomainObject *self)
 		mag2 = Vec3_len_sq(&point);
 	} while (mag2 < EPSILON);
 	Vec3_normalize(&point, &point);
-	
+
 	dist = self->inner_radius + sqrtf(rand_uni()) * (
 		self->outer_radius - self->inner_radius);
 	Vec3_scalar_muli(&point, dist);
@@ -866,7 +861,7 @@ SphereDomain_generate(SphereDomainObject *self)
 		Py_XDECREF(z);
 		return NULL;
 	}
-	
+
 	pt = PyTuple_Pack(3, x, y, z);
 	Py_DECREF(x);
 	Py_DECREF(y);
@@ -883,7 +878,7 @@ SphereDomain_contains(SphereDomainObject *self, PyObject *pt)
 	pt = PySequence_Tuple(pt);
 	if (pt == NULL)
 		return -1;
-	if (!PyArg_ParseTuple(pt, "fff:__contains__", 
+	if (!PyArg_ParseTuple(pt, "fff:__contains__",
 		&point.x, &point.y, &point.z)) {
 		Py_DECREF(pt);
 		return -1;
@@ -892,12 +887,12 @@ SphereDomain_contains(SphereDomainObject *self, PyObject *pt)
 
 	Vec3_sub(&from_center, &point, &self->center);
 	dist2 = Vec3_len_sq(&from_center);
-	return ((dist2 <= self->outer_radius*self->outer_radius) 
+	return ((dist2 <= self->outer_radius*self->outer_radius)
 		& (dist2 >= self->inner_radius*self->inner_radius));
 }
-	
+
 static PyObject *
-SphereDomain_intersect(SphereDomainObject *self, PyObject *args) 
+SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 {
 	Vec3 start, end, seg, vec, norm;
 	float start_dist2, end_dist2, cmag2, r2, a, b, c, bb4ac, t1, t2, t;
@@ -908,24 +903,24 @@ SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 		&start.x, &start.y, &start.z,
 		&end.x, &end.y, &end.z))
 		return NULL;
-	
+
 	Vec3_sub(&vec, &start, &self->center);
 	start_dist2 = Vec3_len_sq(&vec);
 	Vec3_sub(&vec, &end, &self->center);
 	end_dist2 = Vec3_len_sq(&vec);
 
-	r2 = ((start_dist2 > outer_r2) 
-	      | ((start_dist2 > inner_r2) & (end_dist2 > inner_r2)) 
-		  | (!inner_r2)) 
+	r2 = ((start_dist2 > outer_r2)
+	      | ((start_dist2 > inner_r2) & (end_dist2 > inner_r2))
+		  | (!inner_r2))
 		? outer_r2 : inner_r2;
 	if ((start_dist2 > r2) & (end_dist2 > r2)) {
 		Vec3_closest_pt_to_line(&end, &self->center, &start, &end);
 		// printf("closest = (%f, %f, %f)\n", end.x, end.y, end.z);
 		Vec3_sub(&vec, &end, &self->center);
 		end_dist2 = Vec3_len_sq(&vec);
-		r2 = ((start_dist2 > outer_r2) 
-			  | ((start_dist2 > inner_r2) & (end_dist2 > inner_r2)) 
-			  | (!inner_r2)) 
+		r2 = ((start_dist2 > outer_r2)
+			  | ((start_dist2 > inner_r2) & (end_dist2 > inner_r2))
+			  | (!inner_r2))
 			? outer_r2 : inner_r2;
 	}
 
@@ -939,7 +934,7 @@ SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 	cmag2 = Vec3_len_sq(&self->center);
 	Vec3_sub(&seg, &end, &start);
 	a = Vec3_len_sq(&seg);
-	b = 2.0f * ((end.x - start.x)*(start.x - self->center.x) 
+	b = 2.0f * ((end.x - start.x)*(start.x - self->center.x)
 		+ (end.y - start.y)*(start.y - self->center.y)
 		+ (end.z - start.z)*(start.z - self->center.z));
 	c = cmag2 + Vec3_len_sq(&start) - 2.0f * (
@@ -955,7 +950,7 @@ SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 		bb4ac = sqrtf(bb4ac);
 		t1 = (-b - bb4ac) / (2.0f * a);
 		t2 = (-b + bb4ac) / (2.0f * a);
-		t = ((t2 < 0.0f) | (t2 > 1.0f)) ? t1 : 
+		t = ((t2 < 0.0f) | (t2 > 1.0f)) ? t1 :
 			((t1 < 0.0f) | (t1 > 1.0f)) ? t2 :
 			min(t1, t2);
 		// printf("t1 = %f, t2 = %f\n", t1, t2);
@@ -975,12 +970,12 @@ SphereDomain_intersect(SphereDomainObject *self, PyObject *args)
 }
 
 static PyObject *
-SphereDomain_closest_point_to(SphereDomainObject *self, PyObject *args) 
+SphereDomain_closest_point_to(SphereDomainObject *self, PyObject *args)
 {
-	
+
 	Vec3 point, norm, vec;
 	float dist2, inner_r2, outer_r2;
-	
+
 	/* point: input point transformed to closest point on the sphere
 	   dist2: squared distance between point and line
 	   vec: vector between point and center
@@ -989,7 +984,7 @@ SphereDomain_closest_point_to(SphereDomainObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
 		&point.x, &point.y, &point.z))
 		return NULL;
-	
+
 	inner_r2 = self->inner_radius*self->inner_radius;
 	outer_r2 = self->outer_radius*self->outer_radius;
 	Vec3_sub(&vec, &point, &self->center);
@@ -1037,14 +1032,13 @@ static PyObject *
 SphereDomain_getattr(SphereDomainObject *self, PyObject *name_str)
 {
 	if (name_str == center_str) {
-		return (PyObject *)Vector_new((PyObject *)self, &self->center, 3);	
+		return (PyObject *)Vector_new((PyObject *)self, &self->center, 3);
 	} else if (name_str == outer_radius_str || name_str == radius_str) {
 		return (PyObject *)PyFloat_FromDouble(self->outer_radius);
 	} else if (name_str == inner_radius_str) {
 		return (PyObject *)PyFloat_FromDouble(self->inner_radius);
 	} else {
-		return Py_FindMethod(SphereDomain_methods, 
-			(PyObject *)self, PyString_AS_STRING(name_str));
+        return PY_FIND_METHOD(SphereDomain_methods, self, name_str);
 	}
 }
 
@@ -1091,7 +1085,7 @@ static PySequenceMethods SphereDomain_as_sequence = {
 	(objobjproc)SphereDomain_contains,	/* sq_contains */
 };
 
-PyDoc_STRVAR(SphereDomain__doc__, 
+PyDoc_STRVAR(SphereDomain__doc__,
 	"Sphere or spherical shell domain\n\n"
 	"Sphere(center, outer_radius, inner_radius=0)\n\n"
 	"center -- Center point of sphere (3-number sequence)\n\n"
@@ -1102,8 +1096,7 @@ PyDoc_STRVAR(SphereDomain__doc__,
 static PyTypeObject SphereDomain_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"domain.Sphere",		/*tp_name*/
 	sizeof(SphereDomainObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -1170,10 +1163,10 @@ DiscDomain_set_normal(DiscDomainObject *self, PyObject *normal_in, void *closure
 		PyErr_SetString(PyExc_TypeError, "Cannot delete normal attribute");
 		return -1;
 	}
-	
+
 	if (!Vec3_FromSequence(&axis, normal_in))
 		return -1;
-	
+
 	if (!Vec3_create_rot_vectors(&axis, &self->normal, &self->up, &self->right)) {
 		PyErr_SetString(PyExc_ValueError, "Disc: invalid normal vector");
 		return -1;
@@ -1200,21 +1193,21 @@ DiscDomain_init(DiscDomainObject *self, PyObject *args)
 		return -1;
 
 	if (self->outer_radius < self->inner_radius) {
-		PyErr_SetString(PyExc_ValueError, 
+		PyErr_SetString(PyExc_ValueError,
 			"Disc: Expected outer_radius >= inner_radius");
 		return -1;
 	}
-	
+
 	return DiscDomain_set_normal(self, normal, NULL);
 }
 
 /* Generate a random point in the disk specified */
 static inline void
-generate_point_in_disc(Vec3 *point, Vec3 *center, 
+generate_point_in_disc(Vec3 *point, Vec3 *center,
 	float inner_radius, float outer_radius, Vec3 *up, Vec3 *right)
 {
 	float x, y, mag, outer_diam, range;
-	
+
 	if (inner_radius == 0.0f) {
 		/* solid circle */
 		outer_diam = outer_radius * 2.0f;
@@ -1242,7 +1235,7 @@ generate_point_in_disc(Vec3 *point, Vec3 *center,
 }
 
 static PyObject *
-DiscDomain_generate(DiscDomainObject *self) 
+DiscDomain_generate(DiscDomainObject *self)
 {
 	PyObject *x, *y, *z, *pt;
 	Vec3 point;
@@ -1259,7 +1252,7 @@ DiscDomain_generate(DiscDomainObject *self)
 		Py_XDECREF(z);
 		return NULL;
 	}
-	
+
 	pt = PyTuple_Pack(3, x, y, z);
 	Py_DECREF(x);
 	Py_DECREF(y);
@@ -1268,7 +1261,7 @@ DiscDomain_generate(DiscDomainObject *self)
 }
 
 static inline int
-disc_intersect(Vec3 *sect_pt, Vec3 *sect_norm, 
+disc_intersect(Vec3 *sect_pt, Vec3 *sect_norm,
 	Vec3 *disc_center, Vec3 *disc_norm, float disc_cdotn,
 	float disc_inner_r2, float disc_outer_r2,
 	Vec3 *seg_start, Vec3 *seg_vec)
@@ -1278,7 +1271,7 @@ disc_intersect(Vec3 *sect_pt, Vec3 *sect_norm,
 
 	ndotv = Vec3_dot(disc_norm, seg_vec);
 	if (ndotv) {
-		t = (disc_cdotn - disc_norm->x*seg_start->x - disc_norm->y*seg_start->y 
+		t = (disc_cdotn - disc_norm->x*seg_start->x - disc_norm->y*seg_start->y
 			- disc_norm->z*seg_start->z) / ndotv;
 		if (t >= 0.0f && t <= 1.0f) {
 			/* calculate intersection point */
@@ -1302,7 +1295,7 @@ disc_intersect(Vec3 *sect_pt, Vec3 *sect_norm,
 }
 
 static PyObject *
-DiscDomain_intersect(DiscDomainObject *self, PyObject *args) 
+DiscDomain_intersect(DiscDomainObject *self, PyObject *args)
 {
 	Vec3 start, end, vec, point, normal;
 
@@ -1324,7 +1317,7 @@ DiscDomain_intersect(DiscDomainObject *self, PyObject *args)
 
 static inline void
 disc_closest_pt_to(Vec3 *closest, Vec3 *norm,
-	Vec3 *disc_center, Vec3 *disc_norm, 
+	Vec3 *disc_center, Vec3 *disc_norm,
 	float disc_inner_r, float disc_outer_r,
 	Vec3 *point)
 {
@@ -1364,14 +1357,14 @@ disc_closest_pt_to(Vec3 *closest, Vec3 *norm,
 }
 
 static PyObject *
-DiscDomain_closest_point_to(DiscDomainObject *self, PyObject *args) 
+DiscDomain_closest_point_to(DiscDomainObject *self, PyObject *args)
 {
 	Vec3 point, closest, norm;
 
 	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
 		&point.x, &point.y, &point.z))
 		return NULL;
-	
+
 	disc_closest_pt_to(&closest, &norm, &self->center, &self->normal,
 		self->inner_radius, self->outer_radius, &point);
 	return pack_vectors(&closest, &norm);
@@ -1404,7 +1397,7 @@ static PyMemberDef DiscDomain_members[] = {
 };
 
 static PyGetSetDef DiscDomain_descriptors[] = {
-	{"center", (getter)Vector_get, (setter)Vector_set, 
+	{"center", (getter)Vector_get, (setter)Vector_set,
 		"Center point of disc", (void *)offsetof(DiscDomainObject, center)},
 	{"normal", (getter)DiscDomain_get_normal, (setter)DiscDomain_set_normal,
 		"Normal vector that determines disc orientation", NULL},
@@ -1448,7 +1441,7 @@ static PySequenceMethods DiscDomain_as_sequence = {
 	(objobjproc)DiscDomain_contains,	/* sq_contains */
 };
 
-PyDoc_STRVAR(DiscDomain__doc__, 
+PyDoc_STRVAR(DiscDomain__doc__,
 	"Circular disc domain with arbitrary orientation\n\n"
 	"Disc(center, normal, outer_radius, inner_radius=0)\n\n"
 	"center -- The center point of the disc (3-number sequence)\n"
@@ -1461,8 +1454,7 @@ PyDoc_STRVAR(DiscDomain__doc__,
 static PyTypeObject DiscDomain_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"domain.Disc",		/*tp_name*/
 	sizeof(DiscDomainObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -1530,7 +1522,7 @@ CylinderDomain_setup_rot(CylinderDomainObject *self)
 	Vec3_sub(&self->axis, &self->end_point1, &self->end_point0);
 	self->len_sq = Vec3_len_sq(&self->axis);
 	self->len = sqrtf(self->len_sq);
-	if (self->len_sq < EPSILON || 
+	if (self->len_sq < EPSILON ||
 		!Vec3_create_rot_vectors(&self->axis, &self->axis_norm, &self->up, &self->right)) {
 		PyErr_SetString(PyExc_ValueError, "Cylinder: End points too close");
 		return -1;
@@ -1549,16 +1541,16 @@ CylinderDomain_init(CylinderDomainObject *self, PyObject *args)
 		return -1;
 
 	if (self->outer_radius < self->inner_radius) {
-		PyErr_SetString(PyExc_ValueError, 
+		PyErr_SetString(PyExc_ValueError,
 			"Cylinder: Expected outer_radius >= inner_radius");
 		return -1;
 	}
-	
+
 	return CylinderDomain_setup_rot(self);
 }
 
 static PyObject *
-CylinderDomain_generate(CylinderDomainObject *self) 
+CylinderDomain_generate(CylinderDomainObject *self)
 {
 	PyObject *x, *y, *z, *pt;
 	Vec3 center, point;
@@ -1580,7 +1572,7 @@ CylinderDomain_generate(CylinderDomainObject *self)
 		Py_XDECREF(z);
 		return NULL;
 	}
-	
+
 	pt = PyTuple_Pack(3, x, y, z);
 	Py_DECREF(x);
 	Py_DECREF(y);
@@ -1589,7 +1581,7 @@ CylinderDomain_generate(CylinderDomainObject *self)
 }
 
 static PyObject *
-CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args) 
+CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 {
 	Vec3 start, end, to_start, seg, tmp, xa, xb, norm, tp, tn;
 	float inner_r2, outer_r2, r2, d2, dir, a, b, c, bb4ac, t, t1, t2;
@@ -1599,7 +1591,7 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 		&start.x, &start.y, &start.z,
 		&end.x, &end.y, &end.z))
 		return NULL;
-	
+
 	/* The assumed common-case here is no intersection, so we are
 	   optimizing for that case. The idea is to cheaply see if
 	   the start and end point could possibly intersect and bail
@@ -1630,7 +1622,7 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 		return NO_INTERSECTION;
 	} else if (a >= self->outer_radius) {
 		r2 = outer_r2;
-		dir = 1.0f;	
+		dir = 1.0f;
 	} else if (!self->inner_radius) {
 		/* start point potentially contained in solid cylinder volume */
 		r2 = outer_r2;
@@ -1658,7 +1650,7 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 	d2 = FLT_MAX;
 
 	/* Check for end cap collision at end point 0 */
-	if (disc_intersect(&end, &norm, 
+	if (disc_intersect(&end, &norm,
 		&self->end_point0, &self->axis_norm, Vec3_dot(&self->end_point0, &self->axis_norm),
 		inner_r2, outer_r2, &start, &seg)) {
 		Vec3_sub(&tmp, &end, &start);
@@ -1667,7 +1659,7 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 	}
 
 	/* Check for end cap collision at end point 1 */
-	if (disc_intersect(&tp, &tn, 
+	if (disc_intersect(&tp, &tn,
 		&self->end_point1, &self->axis_norm, Vec3_dot(&self->end_point1, &self->axis_norm),
 		inner_r2, outer_r2, &start, &seg)) {
 		Vec3_sub(&tmp, &tp, &start);
@@ -1697,7 +1689,7 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 		bb4ac = sqrtf(bb4ac);
 		t1 = (-b - bb4ac) / (2.0f * a);
 		t2 = (-b + bb4ac) / (2.0f * a);
-		t = ((t2 < 0.0f) | (t2 > 1.0f)) ? t1 : 
+		t = ((t2 < 0.0f) | (t2 > 1.0f)) ? t1 :
 			((t1 < 0.0f) | (t1 > 1.0f)) ? t2 :
 			min(t1, t2);
 		// printf("t1 = %f, t2 = %f\n", t1, t2);
@@ -1716,7 +1708,7 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 	// printf("t = %f\n", t);
 	Vec3_scalar_muli(&seg, t);
 	Vec3_add(&tp, &start, &seg);
-	/* Project the intersection point of the infinite cylinder 
+	/* Project the intersection point of the infinite cylinder
 	   onto the axis to determine if it truly intersects
 	   and allow us to compute the normal */
 	Vec3_sub(&tmp, &tp, &self->end_point0);
@@ -1746,7 +1738,7 @@ CylinderDomain_intersect(CylinderDomainObject *self, PyObject *args)
 }
 
 static PyObject *
-CylinderDomain_closest_point_to(CylinderDomainObject *self, PyObject *args) 
+CylinderDomain_closest_point_to(CylinderDomainObject *self, PyObject *args)
 {
 	Vec3 point, closest, norm, tp, vec;
 	float inner_r2, outer_r2, dist2;
@@ -1762,13 +1754,13 @@ CylinderDomain_closest_point_to(CylinderDomainObject *self, PyObject *args)
 	if (t < 0.0f) {
 		/* closest to cap at end point 0 */
 		disc_closest_pt_to(&point, &norm,
-			&self->end_point0,  &self->axis_norm, 
+			&self->end_point0,  &self->axis_norm,
 			self->inner_radius, self->outer_radius,
 			&point);
 	} else if (t > 1.0f) {
 		/* closest to cap at end point 1 */
 		disc_closest_pt_to(&point, &norm,
-			&self->end_point1,  &self->axis_norm, 
+			&self->end_point1,  &self->axis_norm,
 			self->inner_radius, self->outer_radius,
 			&point);
 	} else {
@@ -1847,15 +1839,15 @@ static PyMemberDef CylinderDomain_members[] = {
         "Inner radius of disc. Set to zero for a solid circle"},
     {"outer_radius", T_FLOAT, offsetof(CylinderDomainObject, outer_radius), 0,
         "Outer radius of disc. Must be >= inner_radius"},
-	{"length", T_FLOAT, offsetof(CylinderDomainObject, len), RO,
+	{"length", T_FLOAT, offsetof(CylinderDomainObject, len), READONLY,
 		"Length of cylinder axis"},
 	{NULL}
 };
 
 static PyGetSetDef CylinderDomain_descriptors[] = {
-	{"end_point0", (getter)Vector_get, (setter)Cylinder_set_end_point0, 
+	{"end_point0", (getter)Vector_get, (setter)Cylinder_set_end_point0,
 		"End point of cylinder axis", (void *)offsetof(CylinderDomainObject, end_point0)},
-	{"end_point1", (getter)Vector_get, (setter)Cylinder_set_end_point1, 
+	{"end_point1", (getter)Vector_get, (setter)Cylinder_set_end_point1,
 		"End point of cylinder axis", (void *)offsetof(CylinderDomainObject, end_point1)},
 	{NULL}
 };
@@ -1881,7 +1873,7 @@ CylinderDomain_contains(CylinderDomainObject *self, PyObject *pt)
 	Vec3_cross(&tmp, &self->axis, &from_end);
 	dist2 = Vec3_len_sq(&tmp) / self->len_sq; /* sq distance from point to axis */
 	c = Vec3_dot(&self->axis_norm, &from_end);
-	return ((inner_r2 - dist2) < EPSILON) & ((dist2 - outer_r2) < EPSILON) 
+	return ((inner_r2 - dist2) < EPSILON) & ((dist2 - outer_r2) < EPSILON)
 		& (c >= 0.0f) & (c <= self->len);
 }
 
@@ -1896,7 +1888,7 @@ static PySequenceMethods CylinderDomain_as_sequence = {
 	(objobjproc)CylinderDomain_contains,	/* sq_contains */
 };
 
-PyDoc_STRVAR(CylinderDomain__doc__, 
+PyDoc_STRVAR(CylinderDomain__doc__,
 	"Capped right-cylinder domain with arbitrary orientation\n\n"
 	"Cylinder(end_point0, end_point1, outer_radius, inner_radius=0)\n\n"
 	"end_point0 -- End point of cylinder axis\n"
@@ -1908,8 +1900,7 @@ PyDoc_STRVAR(CylinderDomain__doc__,
 static PyTypeObject CylinderDomain_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"domain.Cylinder",		/*tp_name*/
 	sizeof(CylinderDomainObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -1999,7 +1990,7 @@ ConeDomain_setup_rot(ConeDomainObject *self)
 	Vec3_sub(&self->axis, &self->base, &self->apex);
 	self->len_sq = Vec3_len_sq(&self->axis);
 	self->len = sqrtf(self->len_sq);
-	if (self->len_sq < EPSILON || 
+	if (self->len_sq < EPSILON ||
 		!Vec3_create_rot_vectors(&self->axis, &self->axis_norm, &self->up, &self->right)) {
 		PyErr_SetString(PyExc_ValueError, "Cone: Apex and end point too close");
 		return -1;
@@ -2019,16 +2010,16 @@ ConeDomain_init(ConeDomainObject *self, PyObject *args)
 		return -1;
 
 	if (self->outer_radius < self->inner_radius) {
-		PyErr_SetString(PyExc_ValueError, 
+		PyErr_SetString(PyExc_ValueError,
 			"Cone: Expected outer_radius >= inner_radius");
 		return -1;
 	}
-	
+
 	return ConeDomain_setup_rot(self);
 }
 
 static PyObject *
-ConeDomain_generate(ConeDomainObject *self) 
+ConeDomain_generate(ConeDomainObject *self)
 {
 	PyObject *x, *y, *z, *pt;
 	Vec3 center, point;
@@ -2050,7 +2041,7 @@ ConeDomain_generate(ConeDomainObject *self)
 		Py_XDECREF(z);
 		return NULL;
 	}
-	
+
 	pt = PyTuple_Pack(3, x, y, z);
 	Py_DECREF(x);
 	Py_DECREF(y);
@@ -2061,7 +2052,7 @@ ConeDomain_generate(ConeDomainObject *self)
 /* Set point to the point on the segment at t
    Return true if the point is in the segment and on the "right" side of the cone */
 static inline int
-cone_sect_point(Vec3 *point, Vec3 *seg_start, Vec3 *seg_norm, float seg_len, float t, 
+cone_sect_point(Vec3 *point, Vec3 *seg_start, Vec3 *seg_norm, float seg_len, float t,
 	Vec3 *cone_apex, Vec3 *cone_axis, float cone_len)
 {
 	Vec3 to_pt;
@@ -2076,7 +2067,7 @@ cone_sect_point(Vec3 *point, Vec3 *seg_start, Vec3 *seg_norm, float seg_len, flo
 }
 
 static int
-cone_intersect(Vec3 *sect_pt, Vec3 *sect_norm, 
+cone_intersect(Vec3 *sect_pt, Vec3 *sect_norm,
 	Vec3 *cone_apex, Vec3 *cone_axis, float cone_cosa, float cone_len,
 	Vec3 *seg_start, Vec3 *seg_norm, float seg_len)
 {
@@ -2095,7 +2086,7 @@ cone_intersect(Vec3 *sect_pt, Vec3 *sect_norm,
 	c = d2*d2 - cosa2 * Vec3_len_sq(&to_start);
 	pt2.x = pt2.y = pt2.z = 0.0f; /* shutup compiler warning */
 	// printf("a=%f, b=%f, c=%f\n", a, b, c);
-	
+
 	if ((a > EPSILON) | (a < -EPSILON)) {
 		bbac = b*b - a*c;
 		// printf("bbac=%f\n", bbac);
@@ -2103,7 +2094,7 @@ cone_intersect(Vec3 *sect_pt, Vec3 *sect_norm,
 			return 0; /* no intersection */
 		} else if (bbac < EPSILON) { /* desr == 0 */
 			t1 = -b / a; /* intersects at single point */
-			pt1_valid = cone_sect_point(&pt1, seg_start, seg_norm, seg_len, 
+			pt1_valid = cone_sect_point(&pt1, seg_start, seg_norm, seg_len,
 				t1, cone_apex, cone_axis, cone_len);
 			pt2_valid = 0;
 		} else {
@@ -2139,7 +2130,7 @@ cone_intersect(Vec3 *sect_pt, Vec3 *sect_norm,
 	} else {
 		return 0;
 	}
-	/* calculate the normal by projecting the point onto the axis 
+	/* calculate the normal by projecting the point onto the axis
 	   perpendicular to the cone surface */
 	Vec3_sub(&to_sect, sect_pt, cone_apex);
 	t1 = Vec3_dot(&to_sect, cone_axis) / cosa2;
@@ -2153,9 +2144,9 @@ cone_intersect(Vec3 *sect_pt, Vec3 *sect_norm,
 	}
 	return 1;
 }
-		
+
 static PyObject *
-ConeDomain_intersect(ConeDomainObject *self, PyObject *args) 
+ConeDomain_intersect(ConeDomainObject *self, PyObject *args)
 {
 	Vec3 start, end, to_start, seg, seg_norm, tmp, norm, tp, tn;
 	float d2, a, b, t2, seg_len;
@@ -2166,8 +2157,8 @@ ConeDomain_intersect(ConeDomainObject *self, PyObject *args)
 		&start.x, &start.y, &start.z,
 		&end.x, &end.y, &end.z))
 		return NULL;
-	
-	/* figure out where the start point is in relation to the 
+
+	/* figure out where the start point is in relation to the
 	   cone volume. It's either outside the outer cone, inside the
 	   inner cone or inside the cone volume
 	*/
@@ -2184,7 +2175,7 @@ ConeDomain_intersect(ConeDomainObject *self, PyObject *args)
 		if (a <= self->inner_cosa) {
 			// printf("start outside\n");
 			/* start outside inner cone */
-			if (cone_intersect(&end, &norm,	
+			if (cone_intersect(&end, &norm,
 				&self->apex, &self->axis_norm, self->outer_cosa, self->len,
 				&start, &seg_norm, seg_len)) {
 				Vec3_sub(&tmp, &end, &start);
@@ -2198,7 +2189,7 @@ ConeDomain_intersect(ConeDomainObject *self, PyObject *args)
 		if ((b > 0.0f) | (a > self->inner_cosa)) {
 			/* start is "below" base plane or inside inner cone */
 			// printf("start below\n");
-			if (self->inner_cosa < 1.0f && cone_intersect(&tp, &tn, 
+			if (self->inner_cosa < 1.0f && cone_intersect(&tp, &tn,
 				&self->apex, &self->axis_norm, self->inner_cosa, self->len,
 				&start, &seg_norm, seg_len)) {
 				Vec3_sub(&tmp, &tp, &start);
@@ -2239,7 +2230,7 @@ ConeDomain_intersect(ConeDomainObject *self, PyObject *args)
 }
 
 static PyObject *
-ConeDomain_closest_point_to(ConeDomainObject *self, PyObject *args) 
+ConeDomain_closest_point_to(ConeDomainObject *self, PyObject *args)
 {
 	Vec3 point, closest, norm, tp, vec, vec_norm;
 	float d, t, r, c, dir, h;
@@ -2247,7 +2238,7 @@ ConeDomain_closest_point_to(ConeDomainObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "(fff):closest_point_to",
 		&point.x, &point.y, &point.z))
 		return NULL;
-	
+
 	/* General algorithm:
 
 	Find the closest point on the axis line of the cone and
@@ -2290,7 +2281,7 @@ ConeDomain_closest_point_to(ConeDomainObject *self, PyObject *args)
 	} else {
 		/* point beyond base between inner and outer radii */
 		disc_closest_pt_to(&point, &norm,
-			&self->base,  &self->axis_norm, 
+			&self->base,  &self->axis_norm,
 			self->inner_radius, self->outer_radius,
 			&point);
 		return pack_vectors(&point, &norm);
@@ -2306,7 +2297,7 @@ ConeDomain_closest_point_to(ConeDomainObject *self, PyObject *args)
 		Vec3_scalar_mul(&vec, &vec_norm, r * t);
 		Vec3_addi(&closest, &vec);
 	} else {
-		/* closest point along axis is the apex, 
+		/* closest point along axis is the apex,
 		   So instead find the point on the cone surface
 		   around the base that is coplanar to the axis
 		   and point provided. Since we know the line
@@ -2333,7 +2324,7 @@ ConeDomain_closest_point_to(ConeDomainObject *self, PyObject *args)
 	}
 	/* point beyond base */
 	disc_closest_pt_to(&point, &norm,
-		&self->base,  &self->axis_norm, 
+		&self->base,  &self->axis_norm,
 		self->inner_radius, self->outer_radius,
 		&point);
 	return pack_vectors(&point, &norm);
@@ -2376,7 +2367,7 @@ static int Cone_set_inner_radius(ConeDomainObject *self, PyObject *value, void *
 	if (value != NULL) {
 		radius = (float)PyFloat_AS_DOUBLE(value);
 		if (radius > self->outer_radius) {
-			PyErr_SetString(PyExc_ValueError, 
+			PyErr_SetString(PyExc_ValueError,
 				"Cone: Expected outer_radius >= inner_radius");
 			return -1;
 		}
@@ -2406,7 +2397,7 @@ static int Cone_set_outer_radius(ConeDomainObject *self, PyObject *value, void *
 	if (value != NULL) {
 		radius = (float)PyFloat_AS_DOUBLE(value);
 		if (radius < self->inner_radius) {
-			PyErr_SetString(PyExc_ValueError, 
+			PyErr_SetString(PyExc_ValueError,
 				"Cone: Expected outer_radius >= inner_radius");
 			return -1;
 		}
@@ -2443,19 +2434,19 @@ static PyMethodDef ConeDomain_methods[] = {
 };
 
 static PyMemberDef ConeDomain_members[] = {
-	{"length", T_FLOAT, offsetof(ConeDomainObject, len), RO,
+	{"length", T_FLOAT, offsetof(ConeDomainObject, len), READONLY,
 		"Length of cylinder axis"},
 	{NULL}
 };
 
 static PyGetSetDef ConeDomain_descriptors[] = {
-	{"apex", (getter)Vector_get, (setter)Cone_set_apex, 
+	{"apex", (getter)Vector_get, (setter)Cone_set_apex,
 		"End point of cylinder axis", (void *)offsetof(ConeDomainObject, apex)},
-	{"base", (getter)Vector_get, (setter)Cone_set_base, 
+	{"base", (getter)Vector_get, (setter)Cone_set_base,
 		"End point of cylinder axis", (void *)offsetof(ConeDomainObject, base)},
-	{"inner_radius", (getter)Cone_get_inner_radius, (setter)Cone_set_inner_radius, 
+	{"inner_radius", (getter)Cone_get_inner_radius, (setter)Cone_set_inner_radius,
 		"Inner radius of cone base. Set to zero for a solid volume", NULL},
-	{"outer_radius", (getter)Cone_get_outer_radius, (setter)Cone_set_outer_radius, 
+	{"outer_radius", (getter)Cone_get_outer_radius, (setter)Cone_set_outer_radius,
 		"Outer radius of cone base. Must be >= inner_radius", NULL},
 	{NULL}
 };
@@ -2481,7 +2472,7 @@ ConeDomain_contains(ConeDomainObject *self, PyObject *pt)
 	axis_cos = Vec3_dot(&from_apex, &self->axis_norm);
 	Vec3_sub(&from_base, &point, &self->base);
 	base_cos = Vec3_dot(&from_base, &self->axis_norm);
-	return at_apex | ((axis_cos - self->inner_cosa < EPSILON) 
+	return at_apex | ((axis_cos - self->inner_cosa < EPSILON)
 		& (self->outer_cosa - axis_cos < EPSILON)
 		& (base_cos <= 0.0f));
 }
@@ -2497,7 +2488,7 @@ static PySequenceMethods ConeDomain_as_sequence = {
 	(objobjproc)ConeDomain_contains,	/* sq_contains */
 };
 
-PyDoc_STRVAR(ConeDomain__doc__, 
+PyDoc_STRVAR(ConeDomain__doc__,
 	"Right-cone domain with arbitrary orientation\n\n"
 	"Cone(apex, base, outer_radius, inner_radius=0)\n\n"
 	"apex -- End point of cone axis at the apex where it tapers to zero radius.\n"
@@ -2510,8 +2501,7 @@ PyDoc_STRVAR(ConeDomain__doc__,
 static PyTypeObject ConeDomain_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"domain.Cone",		/*tp_name*/
 	sizeof(ConeDomainObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -2554,8 +2544,7 @@ static PyTypeObject ConeDomain_Type = {
 	0,                      /*tp_is_gc*/
 };
 
-PyMODINIT_FUNC
-init_domain(void)
+MOD_INIT(_domain)
 {
 	PyObject *m;
 
@@ -2563,79 +2552,79 @@ init_domain(void)
 	LineDomain_Type.tp_alloc = PyType_GenericAlloc;
 	LineDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&LineDomain_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	PlaneDomain_Type.tp_alloc = PyType_GenericAlloc;
 	PlaneDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&PlaneDomain_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	AABoxDomain_Type.tp_alloc = PyType_GenericAlloc;
 	AABoxDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&AABoxDomain_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	SphereDomain_Type.tp_alloc = PyType_GenericAlloc;
 	SphereDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&SphereDomain_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	DiscDomain_Type.tp_alloc = PyType_GenericAlloc;
 	DiscDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&DiscDomain_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	CylinderDomain_Type.tp_alloc = PyType_GenericAlloc;
 	CylinderDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&CylinderDomain_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	ConeDomain_Type.tp_alloc = PyType_GenericAlloc;
 	ConeDomain_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&ConeDomain_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	/* Create the module and add the types */
-	m = Py_InitModule3("_domain", NULL, "Spacial domains");
+	MOD_DEF(m, "_domain", "Spacial domains", NULL);
 	if (m == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 	/* initialize singleton marker for no intersection */
 	NO_INTERSECTION = PyTuple_Pack(2, Py_None, Py_None);
 	if (NO_INTERSECTION == NULL)
-		return;
-	
+		return MOD_ERROR_VAL;
+
 	/* Intern attribute name strings for fast access */
 	point_str = PyString_InternFromString("point");
 	if (point_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	normal_str = PyString_InternFromString("normal");
 	if (normal_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	start_point_str = PyString_InternFromString("start_point");
 	if (start_point_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	end_point_str = PyString_InternFromString("end_point");
 	if (end_point_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	min_point_str = PyString_InternFromString("min_point");
 	if (min_point_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	max_point_str = PyString_InternFromString("max_point");
 	if (max_point_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	inner_radius_str = PyString_InternFromString("inner_radius");
 	if (inner_radius_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	outer_radius_str = PyString_InternFromString("outer_radius");
 	if (outer_radius_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	radius_str = PyString_InternFromString("radius");
 	if (radius_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	center_str = PyString_InternFromString("center");
 	if (center_str == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 	Py_INCREF(&LineDomain_Type);
 	PyModule_AddObject(m, "Line", (PyObject *)&LineDomain_Type);
@@ -2653,4 +2642,6 @@ init_domain(void)
 	PyModule_AddObject(m, "Cone", (PyObject *)&ConeDomain_Type);
 
 	rand_seed((unsigned long)time(NULL));
+
+    return MOD_SUCCESS_VAL(m);
 }
