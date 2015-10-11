@@ -453,7 +453,7 @@ Emitter_emit(StaticEmitterObject *self, PyObject *args)
 	/* Clamp to zero to gracefully handle random input values that
 	 * occasionally go negative */
 	if (count < 0)
-		count = 0;
+        count = 0;
 
 	for (; count > 0; count--) {
 		pindex = Group_new_p(pgroup);
@@ -732,7 +732,7 @@ PerParticleEmitter_emit(PerParticleEmitterObject *self, PyObject *args)
 	/* Clamp to zero to gracefully handle random input values that
 	 * occasionally go negative */
 	if (count <= 0)
-		return NULL;
+        count = 0;
 
 	p = self->source_group->plist->p;
 	pcount = GroupObject_ActiveCount(self->source_group);
