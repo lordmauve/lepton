@@ -217,7 +217,7 @@ class SpriteTexturizerTest(TexTestBase, unittest.TestCase):
 
         def test_set_state_restore_state(self):
             from lepton.texturizer import SpriteTexturizer
-            texture = (ctypes.c_ulong * 1)()
+            texture = (ctypes.c_uint * 1)()
             glGenTextures(1, texture)
             glDisable(GL_TEXTURE_2D)
             glBindTexture(GL_TEXTURE_2D, 0)
@@ -597,7 +597,7 @@ class FlipBookTexturizerTest(TexTestBase, unittest.TestCase):
 
         def test_2D_set_state_restore_state(self):
             from lepton.texturizer import FlipBookTexturizer
-            texture = (ctypes.c_ulong * 1)()
+            texture = (ctypes.c_uint * 1)()
             glGenTextures(1, texture)
             glDisable(GL_TEXTURE_2D)
             glDisable(GL_TEXTURE_3D)
@@ -617,7 +617,7 @@ class FlipBookTexturizerTest(TexTestBase, unittest.TestCase):
 
         def test_3D_set_state_restore_state(self):
             from lepton.texturizer import FlipBookTexturizer
-            texture = (ctypes.c_ulong * 1)()
+            texture = (ctypes.c_uint * 1)()
             glGenTextures(1, texture)
             glDisable(GL_TEXTURE_2D)
             glDisable(GL_TEXTURE_3D)

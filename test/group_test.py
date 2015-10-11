@@ -116,14 +116,14 @@ class GroupTest(unittest.TestCase):
         self.assertEqual(tuple(group.controllers), (ctrl1, ctrl2, ctrl3, ctrl4))
 
         '''
-		# Can bind controllers at the class level and after
-		class MyGroup(ParticleGroup):
-			controllers = (ctrl1, ctrl2)
-		group = MyGroup(controllers=[ctrl3])
-		self.assertEqual(tuple(group.controllers), (ctrl1, ctrl2, ctrl3))
-		group.bind_controller(ctrl4)
-		self.assertEqual(tuple(group.controllers), (ctrl1, ctrl2, ctrl3, ctrl4))
-		'''
+        # Can bind controllers at the class level and after
+        class MyGroup(ParticleGroup):
+            controllers = (ctrl1, ctrl2)
+        group = MyGroup(controllers=[ctrl3])
+        self.assertEqual(tuple(group.controllers), (ctrl1, ctrl2, ctrl3))
+        group.bind_controller(ctrl4)
+        self.assertEqual(tuple(group.controllers), (ctrl1, ctrl2, ctrl3, ctrl4))
+        '''
 
     def test_unbind_controllers(self):
         from lepton import ParticleGroup
@@ -312,30 +312,32 @@ class GroupTest(unittest.TestCase):
         count = 12345
         group = ParticleGroup()
         p = TestParticle()
-        for i in xrange(count):
+        for i in range(count):
             p.mass = i
             newp = group.new(p)
             self.assertEqual(newp.mass, p.mass)
 
         group.update(0)
         piter = iter(group)
-        for i in xrange(count):
-            newp = piter.next()
+        for i in range(count):
+            newp = next(piter)
             self.assertEqual(newp.mass, i)
 
         self.assertEqual(len(group), count)
         self.assertEqual(group.killed_count(), 0)
-        self.assertRaises(StopIteration, piter.next)
+        with self.assertRaises(StopIteration):
+            next(piter)
 
     def test_particle_ref_invalidation(self):
         from lepton.group import InvalidParticleRefError
         group, particles = self.test_new_particle()
         piter = iter(group)
-        self.assertEqual(piter.next().age, particles[0].age)
+        self.assertEqual(next(piter).age, particles[0].age)
         group.update(0)  # Invalidates particle references and iter
         self.assertRaises(InvalidParticleRefError, getattr, particles[0], 'age')
         self.assertRaises(InvalidParticleRefError, getattr, particles[1], 'age')
-        self.assertRaises(InvalidParticleRefError, piter.next)
+        with self.assertRaises(InvalidParticleRefError):
+            next(piter)
 
     def test_kill_particle(self):
         group, particles = self.test_new_particle()
