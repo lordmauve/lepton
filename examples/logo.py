@@ -12,9 +12,8 @@
 #############################################################################
 """Particles animated using a flip book texture"""
 
-__version__ = '$Id$'
-
 import os
+import sys
 import glob
 import random
 import pyglet
@@ -26,6 +25,10 @@ from lepton.texturizer import FlipBookTexturizer
 from lepton.emitter import StaticEmitter
 from lepton.domain import AABox, Plane
 from lepton.controller import Gravity, Movement, Bounce, Fader
+
+
+if sys.version_info < (3,):
+    range = xrange
 
 win = pyglet.window.Window(resizable=True, visible=False)
 win.clear()
@@ -48,23 +51,23 @@ glDisable(GL_DEPTH_TEST)
 
 logo_files = glob.glob(os.path.join(os.path.dirname(__file__), 'logo_frames/logo*.png'))
 images = [pyglet.image.load(f) for f in sorted(logo_files)]
-texturizer = FlipBookTexturizer.from_images(images + images[-1::-1], 0.075) 
+texturizer = FlipBookTexturizer.from_images(images + images[-1::-1], 0.075)
 
 group = ParticleGroup(
 	controllers=[
 		Fader(fade_out_start=50.0, fade_out_end=58.5)
-		], 
+		],
 	renderer=BillboardRenderer(texturizer))
 template = Particle(
-	size=(1,1,0), 
-	color=(1,1,1,1), 
+	size=(1,1,0),
+	color=(1,1,1,1),
 	)
-positions = set([((x - 25) * 1.4 + (y % 2.0) * 0.7, 
-                 (y - 25) * 1.4, 
-				 (z - 25) * 1.4 + (y % 2.0) * 0.7) 
+positions = set([((x - 25) * 1.4 + (y % 2.0) * 0.7,
+                 (y - 25) * 1.4,
+				 (z - 25) * 1.4 + (y % 2.0) * 0.7)
 	for x in range(50) for y in range(50) for z in range(50)])
 group.new(template)
-for i in xrange(12000):
+for i in range(12000):
 	group.new(template, position=positions.pop(), age=49.35)
 
 win.set_visible(True)
