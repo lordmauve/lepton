@@ -4,4 +4,4 @@ dist
 
 syntax: glob
 *.so
-
+__pycache__

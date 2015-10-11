@@ -12,7 +12,7 @@
 ****************************************************************************/
 /* Vector and color support
  *
- * $Id$ 
+ * $Id$
  */
 
 #include <Python.h>
@@ -41,15 +41,15 @@ typedef struct {
 
 #define EPSILON 0.00001f
 
-/* The illustrious fast inverse sqrt of Quake 3 fame 
+/* The illustrious fast inverse sqrt of Quake 3 fame
  * This algorithm is very fast, but at the cost of accuracy
  */
 static inline float InvSqrt (float x) {
     float xhalf = 0.5f*x;
-    int i = *(int*)&x;
+    uint32_t i = *(uint32_t*)&x;
     i = 0x5f3759df - (i>>1);
     x = *(float*)&i;
-	/* run two iterations of newton's method for 
+	/* run two iterations of newton's method for
 	   increased accuracy */
     x = x*(1.5f - xhalf*x*x);
     x = x*(1.5f - xhalf*x*x);
@@ -59,7 +59,7 @@ static inline float InvSqrt (float x) {
 #define clamp(n, min, max) \
 	((n) < (min) ? (min) : ((n) > (max) ? (max) : (n)))
 
-/* vector math routines 
+/* vector math routines
  *
  * Use these instead of coding arithmetic by hand to allow for
  * optimized versions later on.
@@ -140,7 +140,7 @@ static inline int Vec3_normalize_fast(Vec3 *result, Vec3 *v)
 	return len > EPSILON;
 }
 
-/* Slower but more precise normalize 
+/* Slower but more precise normalize
    Return true if the vector was non-zero and could be normalized
 */
 static inline int Vec3_normalize(Vec3 *result, Vec3 *v)
@@ -167,7 +167,7 @@ static inline int Vec3_normalize(Vec3 *result, Vec3 *v)
 /* Populate a color from a Python sequence of 3 or 4 numbers */
 static inline int Color_FromSequence(Color *dest, PyObject *sequence);
 
-static inline float Vec3_len(Vec3 *v) 
+static inline float Vec3_len(Vec3 *v)
 {
 	return sqrtf(Vec3_len_sq(v));
 }
@@ -180,7 +180,7 @@ static inline void Vec3_lerp(Vec3 *result, float t, const Vec3 *v0, const Vec3 *
 	Vec3_add(result, v0, &tmp1);
 }
 
-/* Populate a vector from a Python sequence of 3 numbers 
+/* Populate a vector from a Python sequence of 3 numbers
  * Return true on success, false on failure with exception set
  */
 static inline int Vec3_FromSequence(Vec3 *dest, PyObject *sequence)
@@ -259,8 +259,8 @@ Vec3_create_rot_vectors(Vec3 * __restrict__ los, Vec3 * __restrict__ out,
 }
 
 /* Return the closest point along a line segment to the given point */
-static inline void 
-Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt, 
+static inline void
+Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt,
 	Vec3 * __restrict__ lstart, Vec3 * __restrict__ lend)
 {
 	Vec3 tp, lv;
@@ -280,8 +280,8 @@ Vec3_closest_pt_to_line(Vec3 * __restrict__ dest, Vec3 * __restrict__ pt,
 	}
 }
 
-static inline void 
-Color_copy(Color * __restrict__ dest, Color * __restrict__ src) 
+static inline void
+Color_copy(Color * __restrict__ dest, Color * __restrict__ src)
 {
 	dest->r = src->r;
 	dest->g = src->g;

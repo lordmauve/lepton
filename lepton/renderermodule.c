@@ -31,6 +31,7 @@
 #include <GL/glu.h>
 #endif
 
+#include "compat.h"
 #include "vector.h"
 #include "group.h"
 #include "renderer.h"
@@ -115,7 +116,7 @@ VertArray_free(VertArray *data)
 	if (!data->is_vbo)
 		PyMem_Free((void *)data->verts);
 }
-	
+
 /* --------------------------------------------------------------------- */
 
 /* A float array provides a simple interface from python to
@@ -129,7 +130,7 @@ static PyTypeObject FloatArray_Type;
 int
 FloatArrayObject_Check(FloatArrayObject *o)
 {
-	if (o->ob_type != &FloatArray_Type) {
+	if (Py_TYPE(o) != &FloatArray_Type) {
 		PyErr_SetString(PyExc_TypeError, "Expected FloatArray object");
 		return 0;
 	}
@@ -204,8 +205,7 @@ PyDoc_STRVAR(FloatArray__doc__, "Fixed length float array");
 static PyTypeObject FloatArray_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			                /*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"renderer.FloatArray",		/*tp_name*/
 	sizeof(FloatArrayObject),	/*tp_basicsize*/
 	0,			                /*tp_itemsize*/
@@ -259,9 +259,9 @@ typedef struct {
 } PointRendererObject;
 
 static void
-PointRenderer_dealloc(PointRendererObject *self) 
+PointRenderer_dealloc(PointRendererObject *self)
 {
-	Py_CLEAR(self->texturizer);	
+	Py_CLEAR(self->texturizer);
 	PyObject_Del(self);
 }
 
@@ -271,7 +271,7 @@ PointRenderer_init(PointRendererObject *self, PyObject *args, PyObject *kwargs)
 	static char *kwlist[] = {"point_size", "texturizer", NULL};
 
 	self->texturizer = NULL;
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "f|O:__init__",kwlist, 
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "f|O:__init__",kwlist,
 		&self->point_size, &self->texturizer))
 		return -1;
 	if (self->texturizer == Py_None)
@@ -330,7 +330,7 @@ PointRenderer_draw(PointRendererObject *self, GroupObject *pgroup)
 				return NULL;
 			Py_DECREF(r);
 		}
-	}	
+	}
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -349,7 +349,7 @@ static PyMethodDef PointRenderer_methods[] = {
 	{NULL,		NULL}		/* sentinel */
 };
 
-PyDoc_STRVAR(PointRenderer__doc__, 
+PyDoc_STRVAR(PointRenderer__doc__,
 	"Simple particle renderer using GL_POINTS. All particles in the\n"
 	"group are rendered with the same point size\n\n"
 	"PointRenderer(point_size, texturizer=None)\n\n"
@@ -363,8 +363,7 @@ PyDoc_STRVAR(PointRenderer__doc__,
 static PyTypeObject PointRenderer_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"renderer.PointRenderer",		/*tp_name*/
 	sizeof(PointRendererObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -412,9 +411,9 @@ static PyTypeObject PointRenderer_Type = {
 static PyTypeObject BillboardRenderer_Type;
 
 static void
-BillboardRenderer_dealloc(RendererObject *self) 
+BillboardRenderer_dealloc(RendererObject *self)
 {
-	Py_CLEAR(self->texturizer);	
+	Py_CLEAR(self->texturizer);
 	PyObject_Del(self);
 }
 
@@ -424,7 +423,7 @@ BillboardRenderer_init(RendererObject *self, PyObject *args, PyObject *kwargs)
 	static char *kwlist[] = {"texturizer", NULL};
 
 	self->texturizer = NULL;
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O:__init__", kwlist, 
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O:__init__", kwlist,
 		&self->texturizer))
 		return -1;
 	if (self->texturizer == Py_None)
@@ -561,7 +560,7 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 		if (PyErr_Occurred() != NULL)
 			return NULL;
 		if (tex_dimension < 1 && tex_dimension > 3) {
-			PyErr_Format(PyExc_ValueError, 
+			PyErr_Format(PyExc_ValueError,
 				"Expected texturizer.tex_dimension value of 1, 2 or 3, got %ld", tex_dimension);
 			return NULL;
 		}
@@ -608,7 +607,7 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 		POINT0                POINT1
 
 		*/
-		
+
 
 		/* vertex coords */
 
@@ -686,7 +685,7 @@ BillboardRenderer_draw(RendererObject *self, GroupObject *pgroup)
 			goto error;
 		Py_DECREF(r);
 	}
-	
+
 	Py_DECREF(tex_array);
 	VertArray_free(&data);
 
@@ -711,7 +710,7 @@ static struct PyMemberDef BillboardRenderer_members[] = {
 	{NULL}
 };
 
-PyDoc_STRVAR(BillboardRenderer__doc__, 
+PyDoc_STRVAR(BillboardRenderer__doc__,
 	"Particle renderer using textured billboard-aligned quads\n"
 	"quads are aligned orthogonal to the model-view matrix\n\n"
 	"BillboardRenderer(texturizer=None)\n\n"
@@ -726,8 +725,7 @@ PyDoc_STRVAR(BillboardRenderer__doc__,
 static PyTypeObject BillboardRenderer_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"renderer.BillboardRenderer",		/*tp_name*/
 	sizeof(RendererObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -770,35 +768,30 @@ static PyTypeObject BillboardRenderer_Type = {
 	0,                      /*tp_is_gc*/
 };
 
-PyMODINIT_FUNC
-initrenderer(void)
+MOD_INIT(renderer)
 {
 	PyObject *m;
 
 	/* Bind external consts here to appease certain compilers */
-	PointRenderer_Type.tp_alloc = PyType_GenericAlloc;
-	PointRenderer_Type.tp_new = PyType_GenericNew;
-	PointRenderer_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&PointRenderer_Type) < 0)
-		return;
+    if (!prepare_type(&PointRenderer_Type))
+        return MOD_ERROR_VAL;
 
-	BillboardRenderer_Type.tp_alloc = PyType_GenericAlloc;
-	BillboardRenderer_Type.tp_new = PyType_GenericNew;
-	BillboardRenderer_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&BillboardRenderer_Type) < 0)
-		return;
-	
+    if (!prepare_type(&BillboardRenderer_Type))
+        return MOD_ERROR_VAL;
+
 	/* FloatArray objects cannot be instantiated from Python */
 	if (PyType_Ready(&FloatArray_Type) < 0)
 		return;
 
 	/* Create the module and add the types */
-	m = Py_InitModule3("renderer", NULL, "Particle Renderers");
+	MOD_DEF(m, "renderer", "Particle Renderers", NULL);
 	if (m == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 	Py_INCREF(&PointRenderer_Type);
 	PyModule_AddObject(m, "PointRenderer", (PyObject *)&PointRenderer_Type);
 	Py_INCREF(&BillboardRenderer_Type);
 	PyModule_AddObject(m, "BillboardRenderer", (PyObject *)&BillboardRenderer_Type);
+
+    return MOD_SUCCESS_VAL(m);
 }
