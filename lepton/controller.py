@@ -24,9 +24,11 @@ particles to the group.
 __version__ = '$Id$'
 
 from math import sqrt
-from particle_struct import Color, Vec3
-from _controller import Gravity, Fader, Movement, Lifetime, ColorBlender, Growth, Collector, \
+from .particle_struct import Color, Vec3
+from ._controller import (
+    Gravity, Fader, Movement, Lifetime, ColorBlender, Growth, Collector,
 	Bounce, Magnet, Drag
+)
 import sys
 
 
@@ -36,9 +38,9 @@ def NoopController(time_delta, group):
 
 class Clumper(object):
     """EXPERMENTAL: SUBJECT TO CHANGE
-    
+
     Clumps objects in a group together or keeps them apart
-    
+
     The center of the group is calculated by averaging all of the
     particle positions, and all particles are accelerated toward
     (or away) from this center point.
@@ -51,7 +53,7 @@ class Clumper(object):
         away from the center.
         """
         self.magnitude = magnitude
-    
+
     def __call__(self, td, group):
         if group:
             avgx = 0
@@ -84,4 +86,3 @@ class Clumper(object):
                 p.velocity.x += (dx / dmag) * mag
                 p.velocity.y += (dy / dmag) * mag
                 p.velocity.z += (dz / dmag) * mag
-

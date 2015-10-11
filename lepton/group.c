@@ -34,7 +34,7 @@ Group_new_p(GroupObject *group) {
 		if (expansion < GROUP_MIN_ALLOC)
 			expansion = GROUP_MIN_ALLOC;
 		realloc_plist = (ParticleList *)PyMem_Realloc(group->plist,
-			sizeof(ParticleList) + 
+			sizeof(ParticleList) +
 			sizeof(Particle) * (group->plist->palloc + expansion));
 		if (realloc_plist == NULL) {
 			return -1;
@@ -51,7 +51,7 @@ Group_new_p(GroupObject *group) {
 void inline
 Group_kill_p(GroupObject *group, Particle *p) {
 	Particle *lastactive;
-	lastactive = &group->plist->p[GroupObject_ActiveCount(group)];	
+	lastactive = &group->plist->p[GroupObject_ActiveCount(group)];
 	if (Particle_IsAlive(*p) && p < lastactive) {
 		group->plist->pactive--;
 		group->plist->pkilled++;
@@ -73,7 +73,7 @@ GroupObject_Check(GroupObject *o)
 		GroupObject_Type = (PyTypeObject *)PyObject_GetAttrString(m, "ParticleGroup");
 		Py_DECREF(m);
 	}
-	if (o->ob_type != GroupObject_Type) {
+	if (Py_TYPE(o) != GroupObject_Type) {
 		PyErr_SetString(PyExc_TypeError, "Expected ParticleGroup object");
 		return 0;
 	}
@@ -96,7 +96,7 @@ get_Vec3(Vec3 *vec, PyObject *dict, PyObject *template, const char *attrname)
 	if (attr != NULL) {
 		tuple = PySequence_Tuple(attr);
 		if (tuple != NULL)
-			result = PyArg_ParseTuple(tuple, "fff; 3 floats expected", 
+			result = PyArg_ParseTuple(tuple, "fff; 3 floats expected",
 				&vec->x, &vec->y, &vec->z);
 	} else {
 		PyErr_Clear();
@@ -125,7 +125,7 @@ get_Color(Color *color, PyObject *dict, PyObject *template, const char *attrname
 		tuple = PySequence_Tuple(attr);
 		if (tuple != NULL) {
 			color->a = 1; /* default */
-			result = PyArg_ParseTuple(tuple, "fff|f; 3 or 4 floats expected", 
+			result = PyArg_ParseTuple(tuple, "fff|f; 3 or 4 floats expected",
 				&color->r, &color->g, &color->b, &color->a);
 		}
 	} else {
@@ -173,7 +173,7 @@ Vector_get(PyObject *self, void *closure)
 	return (PyObject *)Vector_new(self, (Vec3 *)((char *)self + (unsigned long)closure), 3);
 }
 
-int 
+int
 Vector_set(PyObject *self, PyObject *value, void *closure)
 {
 	Vec3 *vec;
@@ -188,4 +188,3 @@ Vector_set(PyObject *self, PyObject *value, void *closure)
 	}
 	return 0;
 }
-

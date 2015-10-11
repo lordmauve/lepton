@@ -18,6 +18,8 @@
 #include <structmember.h>
 #include <float.h>
 #include <time.h>
+
+#include "compat.h"
 #include "fastrng.h"
 #include "group.h"
 #include "vector.h"
@@ -27,8 +29,8 @@ static PyTypeObject StaticEmitter_Type;
 #define DISCRETE_COUNT 8
 
 static const char *discrete_names[] = {
-	"position", "velocity", "size", "up", 
-	"rotation", "color", "mass", "age", 
+	"position", "velocity", "size", "up",
+	"rotation", "color", "mass", "age",
 	NULL
 };
 
@@ -66,7 +68,7 @@ Emitter_dealloc(StaticEmitterObject *self) {
 #define NO_TTL -1.0f
 
 static int
-Emitter_parse_kwargs(StaticEmitterObject *self, 
+Emitter_parse_kwargs(StaticEmitterObject *self,
 	PyObject **ptemplate, PyObject **pdeviation, PyObject *kwargs)
 {
 	PyObject *key, *value;
@@ -79,7 +81,7 @@ Emitter_parse_kwargs(StaticEmitterObject *self,
 		if (value != NULL) {
 			value = PyNumber_Float(value);
 			if (value == NULL) {
-				PyErr_SetString(PyExc_ValueError, 
+				PyErr_SetString(PyExc_ValueError,
 					"StaticEmitter: expected float value for rate");
 				return 0;
 			}
@@ -93,7 +95,7 @@ Emitter_parse_kwargs(StaticEmitterObject *self,
 		if (value != NULL) {
 			value = PyNumber_Float(value);
 			if (value == NULL) {
-				PyErr_SetString(PyExc_ValueError, 
+				PyErr_SetString(PyExc_ValueError,
 					"StaticEmitter: expected float value for time_to_live");
 				return 0;
 			}
@@ -132,13 +134,13 @@ Emitter_parse_kwargs(StaticEmitterObject *self,
 					Py_INCREF(value);
 					self->domain[i] = value;
 				} else if (PySequence_Check(value)) {
-					value = PySequence_Fast(value, 
+					value = PySequence_Fast(value,
 						"StaticEmitter: Invalid discrete value sequence");
 					if (value == NULL)
 						goto error;
 					if (PySequence_Fast_GET_SIZE(value) == 0) {
 						Py_DECREF(value);
-						PyErr_Format(PyExc_TypeError, 
+						PyErr_Format(PyExc_TypeError,
 							"StaticEmitter: empty discrete value sequence "
 							"for %s", key_str);
 						goto error;
@@ -146,7 +148,7 @@ Emitter_parse_kwargs(StaticEmitterObject *self,
 					self->discrete[i] = value;
 				} else {
 					Py_DECREF(value);
-					PyErr_Format(PyExc_TypeError, 
+					PyErr_Format(PyExc_TypeError,
 						"StaticEmitter: discrete argument %s not "
 						"a sequence or domain", key_str);
 					goto error;
@@ -155,7 +157,7 @@ Emitter_parse_kwargs(StaticEmitterObject *self,
 			}
 		}
 		if (value != NULL) {
-			PyErr_Format(PyExc_TypeError, 
+			PyErr_Format(PyExc_TypeError,
 				"StaticEmitter: unexpected keyword argument: %s",
 				key_str);
 			goto error;
@@ -198,7 +200,7 @@ StaticEmitter_init(StaticEmitterObject *self, PyObject *args, PyObject *kwargs)
 	if (!PyArg_ParseTuple(args, "|fOOf:__init__",
 		&self->rate, &ptemplate, &pdeviation, &self->time_to_live))
 		return -1;
-	
+
 	if (kwargs != NULL) {
 		if (!Emitter_parse_kwargs(self, &ptemplate, &pdeviation, kwargs))
 			return -1;
@@ -217,7 +219,7 @@ StaticEmitter_init(StaticEmitterObject *self, PyObject *args, PyObject *kwargs)
 		if (!success)
 			goto error;
 	}
-	
+
 	if (pdeviation != NULL) {
 		success = Emitter_fill_particle_from(&self->pdeviation, pdeviation);
 		Py_DECREF(pdeviation);
@@ -227,7 +229,7 @@ StaticEmitter_init(StaticEmitterObject *self, PyObject *args, PyObject *kwargs)
 	} else {
 		self->has_deviation = 0;
 	}
-	
+
 	return 0;
 
 error:
@@ -240,7 +242,7 @@ error:
  * vector value. Return true on success
  */
 static inline int
-Vec3_fill(Vec3 * __restrict__ vec, PyObject *domain, PyObject *discrete_seq, 
+Vec3_fill(Vec3 * __restrict__ vec, PyObject *domain, PyObject *discrete_seq,
 	Vec3 * __restrict__ tmpl)
 {
 	PyObject *v = NULL;
@@ -269,7 +271,7 @@ Vec3_fill(Vec3 * __restrict__ vec, PyObject *domain, PyObject *discrete_seq,
  * vector value. Return true on success
  */
 static inline int
-Color_fill(Color * __restrict__ color, PyObject *domain, PyObject *discrete_seq, 
+Color_fill(Color * __restrict__ color, PyObject *domain, PyObject *discrete_seq,
 	Color * __restrict__ tmpl)
 {
 	PyObject *v = NULL;
@@ -352,21 +354,21 @@ static int
 Emitter_make_particle(StaticEmitterObject *self, Particle *p)
 {
 	int success = (
-		Vec3_fill(&p->position, self->domain[POSITION_I], 
+		Vec3_fill(&p->position, self->domain[POSITION_I],
 			self->discrete[POSITION_I], &self->ptemplate.position) &&
-		Vec3_fill(&p->velocity, self->domain[VELOCITY_I], 
+		Vec3_fill(&p->velocity, self->domain[VELOCITY_I],
 			self->discrete[VELOCITY_I], &self->ptemplate.velocity) &&
-		Vec3_fill(&p->size, self->domain[SIZE_I], 
+		Vec3_fill(&p->size, self->domain[SIZE_I],
 			self->discrete[SIZE_I], &self->ptemplate.size) &&
-		Vec3_fill(&p->up, self->domain[UP_I], 
+		Vec3_fill(&p->up, self->domain[UP_I],
 			self->discrete[UP_I], &self->ptemplate.up) &&
-		Vec3_fill(&p->rotation, self->domain[ROTATION_I], 
+		Vec3_fill(&p->rotation, self->domain[ROTATION_I],
 			self->discrete[ROTATION_I], &self->ptemplate.rotation) &&
-		Color_fill(&p->color, self->domain[COLOR_I], 
+		Color_fill(&p->color, self->domain[COLOR_I],
 			self->discrete[COLOR_I], &self->ptemplate.color) &&
-		Float_fill(&p->age, self->domain[AGE_I], 
+		Float_fill(&p->age, self->domain[AGE_I],
 			self->discrete[AGE_I], self->ptemplate.age) &&
-		Float_fill(&p->mass, self->domain[MASS_I], 
+		Float_fill(&p->mass, self->domain[MASS_I],
 			self->discrete[MASS_I], self->ptemplate.mass));
 	if (!success)
 		return 0;
@@ -396,7 +398,7 @@ StaticEmitter_call(StaticEmitterObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -407,7 +409,7 @@ StaticEmitter_call(StaticEmitterObject *self, PyObject *args)
 			/* time's up, remove ourselves from the group */
 			td = self->time_to_live;
 			self->time_to_live = 0;
-			result = PyObject_CallMethod((PyObject *)pgroup, "unbind_controller", 
+			result = PyObject_CallMethod((PyObject *)pgroup, "unbind_controller",
 				"O", (PyObject *)self);
 			if (result == NULL)
 				return NULL;
@@ -444,11 +446,11 @@ Emitter_emit(StaticEmitterObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "iO:emit", &count, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
-	/* Clamp to zero to gracefully handle random input values that 
+	/* Clamp to zero to gracefully handle random input values that
 	 * occasionally go negative */
 	if (count < 0)
 		count = 0;
@@ -490,19 +492,19 @@ StaticEmitter_getattr(StaticEmitterObject *self, PyObject *o)
 {
 	char *name = PyString_AS_STRING(o);
 	if (!strcmp(name, "template")) {
-		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);	
+		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);
 	} else if (!strcmp(name, "deviation")) {
-		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);	
+		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);
 	} else if (!strcmp(name, "rate")) {
 		return PyMember_GetOne((char *)self, &StaticEmitter_members[0]);
 	} else if (!strcmp(name, "time_to_live")) {
 		return PyMember_GetOne((char *)self, &StaticEmitter_members[1]);
 	} else {
-		return Py_FindMethod(StaticEmitter_methods, (PyObject *)self, name);
+		return PY_FIND_METHOD(StaticEmitter_methods, self, o);
 	}
 }
 
-PyDoc_STRVAR(StaticEmitter__doc__, 
+PyDoc_STRVAR(StaticEmitter__doc__,
 	"Creates particles in a group at a fixed rate deriving particle\n"
 	"attributes from a configurable mix of domain, discrete value lists\n"
 	"and fixed template particles plus random deviation\n\n"
@@ -530,8 +532,7 @@ PyDoc_STRVAR(StaticEmitter__doc__,
 static PyTypeObject StaticEmitter_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"emitter.StaticEmitter",		/*tp_name*/
 	sizeof(StaticEmitterObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -606,10 +607,10 @@ PerParticleEmitter_init(PerParticleEmitterObject *self, PyObject *args, PyObject
 	if (!PyArg_ParseTuple(args, "O|fOOf:__init__",
 		&self->source_group, &self->rate, &ptemplate, &pdeviation, &self->time_to_live))
 		return -1;
-	
+
 	if (!GroupObject_Check(self->source_group))
 		return -1;
-	
+
 	if (kwargs != NULL) {
 		if (!Emitter_parse_kwargs((StaticEmitterObject *)self, &ptemplate, &pdeviation, kwargs))
 			return -1;
@@ -628,7 +629,7 @@ PerParticleEmitter_init(PerParticleEmitterObject *self, PyObject *args, PyObject
 		if (!success)
 			goto error;
 	}
-	
+
 	if (pdeviation != NULL) {
 		success = Emitter_fill_particle_from(&self->pdeviation, pdeviation);
 		Py_DECREF(pdeviation);
@@ -638,7 +639,7 @@ PerParticleEmitter_init(PerParticleEmitterObject *self, PyObject *args, PyObject
 	} else {
 		self->has_deviation = 0;
 	}
-	
+
 	return 0;
 
 error:
@@ -660,7 +661,7 @@ PerParticleEmitter_call(PerParticleEmitterObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -671,7 +672,7 @@ PerParticleEmitter_call(PerParticleEmitterObject *self, PyObject *args)
 			/* time's up, remove ourselves from the group */
 			td = self->time_to_live;
 			self->time_to_live = 0;
-			result = PyObject_CallMethod((PyObject *)pgroup, "unbind_controller", 
+			result = PyObject_CallMethod((PyObject *)pgroup, "unbind_controller",
 				"O", (PyObject *)self);
 			if (result == NULL)
 				return NULL;
@@ -724,11 +725,11 @@ PerParticleEmitter_emit(PerParticleEmitterObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "iO:__init__", &count, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
-	
-	/* Clamp to zero to gracefully handle random input values that 
+
+	/* Clamp to zero to gracefully handle random input values that
 	 * occasionally go negative */
 	if (count < 0)
 		count = 0;
@@ -774,7 +775,7 @@ static PyMethodDef PerParticleEmitter_methods[] = {
 	{"emit", (PyCFunction)PerParticleEmitter_emit, METH_VARARGS,
 		PyDoc_STR("emit(count, group) -> None\n"
 			"Emit count new particles per source particle into the\n"
-			"group specified. This call is not affected by the emitter\n" 
+			"group specified. This call is not affected by the emitter\n"
 			"rate or time to live values.")},
 	{NULL,		NULL}		/* sentinel */
 };
@@ -784,9 +785,9 @@ PerParticleEmitter_getattr(PerParticleEmitterObject *self, PyObject *o)
 {
 	char *name = PyString_AS_STRING(o);
 	if (!strcmp(name, "template")) {
-		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);	
+		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);
 	} else if (!strcmp(name, "deviation")) {
-		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);	
+		return (PyObject *)ParticleRefObject_New(NULL, &self->ptemplate);
 	} else if (!strcmp(name, "rate")) {
 		return PyMember_GetOne((char *)self, &PerParticleEmitter_members[0]);
 	} else if (!strcmp(name, "time_to_live")) {
@@ -794,11 +795,11 @@ PerParticleEmitter_getattr(PerParticleEmitterObject *self, PyObject *o)
 	} else if (!strcmp(name, "source_group")) {
 		return PyMember_GetOne((char *)self, &PerParticleEmitter_members[2]);
 	} else {
-		return Py_FindMethod(PerParticleEmitter_methods, (PyObject *)self, name);
+		return PY_FIND_METHOD(PerParticleEmitter_methods, self, o);
 	}
 }
 
-PyDoc_STRVAR(PerParticleEmitter__doc__, 
+PyDoc_STRVAR(PerParticleEmitter__doc__,
 	"Creates particles in a group for each particle in a source group at\n"
 	"a fixed rate. Particle attributes are derived from a configurable mix\n"
 	"of source particle, domain, discrete value lists and fixed template \n"
@@ -829,8 +830,7 @@ PyDoc_STRVAR(PerParticleEmitter__doc__,
 static PyTypeObject PerParticleEmitter_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"emitter.PerParticleEmitter",		/*tp_name*/
 	sizeof(PerParticleEmitterObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -875,8 +875,7 @@ static PyTypeObject PerParticleEmitter_Type = {
 
 /* --------------------------------------------------------------------- */
 
-PyMODINIT_FUNC
-initemitter(void)
+MOD_INIT(emitter)
 {
 	PyObject *m;
 
@@ -884,17 +883,17 @@ initemitter(void)
 	StaticEmitter_Type.tp_alloc = PyType_GenericAlloc;
 	StaticEmitter_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&StaticEmitter_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	PerParticleEmitter_Type.tp_alloc = PyType_GenericAlloc;
 	PerParticleEmitter_Type.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&PerParticleEmitter_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	/* Create the module and add the types */
-	m = Py_InitModule3("emitter", NULL, "Particle Emitters");
+	MOD_DEF(m, "emitter", "Particle Emitters", NULL);
 	if (m == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 	Py_INCREF(&StaticEmitter_Type);
 	PyModule_AddObject(m, "StaticEmitter", (PyObject *)&StaticEmitter_Type);
@@ -902,4 +901,6 @@ initemitter(void)
 	PyModule_AddObject(m, "PerParticleEmitter", (PyObject *)&PerParticleEmitter_Type);
 
 	rand_seed((unsigned long)time(NULL));
+
+    return MOD_SUCCESS_VAL(m);
 }

@@ -31,6 +31,7 @@
 #include <GL/glu.h>
 #endif
 
+#include "compat.h"
 #include "vector.h"
 #include "group.h"
 #include "renderer.h"
@@ -58,7 +59,7 @@ adjust_particle_widths(GroupObject *pgroup, FloatArrayObject *tex_array)
 		p[i].size.x = p[i].size.y * t_width / t_height;
 	}
 }
-		
+
 static void
 adjust_particle_heights(GroupObject *pgroup, FloatArrayObject *tex_array)
 {
@@ -121,7 +122,7 @@ SpriteTex_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 }
 
 static int
-SpriteTex_clear(SpriteTexObject *self) 
+SpriteTex_clear(SpriteTexObject *self)
 {
 	Py_CLEAR(self->dict);
 	Py_CLEAR(self->tex_array);
@@ -129,14 +130,14 @@ SpriteTex_clear(SpriteTexObject *self)
 }
 
 static void
-SpriteTex_dealloc(SpriteTexObject *self) 
+SpriteTex_dealloc(SpriteTexObject *self)
 {
 	PyMem_Free(self->tex_coords);
 	self->tex_coords = NULL;
 	PyMem_Free(self->weights);
 	self->weights = NULL;
 	SpriteTex_clear(self);
-	self->ob_type->tp_free((PyObject *)self);
+	Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 static int
@@ -176,23 +177,23 @@ get_tex_coords_2d(PyObject *tex_coords_seq, Py_ssize_t *count_out)
 			goto error;
 		tlen = PyTuple_GET_SIZE(t);
 		if (tlen == 4) {
-			if (!PyArg_ParseTuple(t, 
-				"(ff)(ff)(ff)(ff);Expected coords element with sequence of 4 float pairs", 
+			if (!PyArg_ParseTuple(t,
+				"(ff)(ff)(ff)(ff);Expected coords element with sequence of 4 float pairs",
 				tex, tex+1, tex+2, tex+3, tex+4, tex+5, tex+6, tex+7))
 				goto error;
 		} else if (tlen == 8) {
-			if (!PyArg_ParseTuple(t, 
+			if (!PyArg_ParseTuple(t,
 				"ffffffff;Expected coords element with sequence of 8 floats",
 				tex, tex+1, tex+2, tex+3, tex+4, tex+5, tex+6, tex+7))
 				goto error;
 		} else if (tlen == 12) {
-			if (!PyArg_ParseTuple(t, 
+			if (!PyArg_ParseTuple(t,
 				"ffffffffffff;Expected coords element with sequence of 12 floats",
-				tex, tex+1, &ignore, tex+2, tex+3, &ignore, 
+				tex, tex+1, &ignore, tex+2, tex+3, &ignore,
 				tex+4, tex+5, &ignore, tex+6, tex+7, &ignore))
 				goto error;
 		} else {
-			PyErr_SetString(PyExc_ValueError, 
+			PyErr_SetString(PyExc_ValueError,
 				"coords elements must be sequence of 4 float pairs, 8 floats or 12 floats");
 				goto error;
 		}
@@ -238,23 +239,23 @@ get_tex_coords_3d(PyObject *tex_coords_seq, Py_ssize_t *count_out)
 		tlen = PyTuple_GET_SIZE(t);
 		tex[2] = tex[5] = tex[8] = tex[11] = 0.0f;
 		if (tlen == 4) {
-			if (!PyArg_ParseTuple(t, 
-				"(ff)(ff)(ff)(ff);Expected coords element with sequence of 4 float pairs", 
+			if (!PyArg_ParseTuple(t,
+				"(ff)(ff)(ff)(ff);Expected coords element with sequence of 4 float pairs",
 				tex, tex+1, tex+3, tex+4, tex+6, tex+7, tex+9, tex+10))
 				goto error;
 		} else if (tlen == 8) {
-			if (!PyArg_ParseTuple(t, 
+			if (!PyArg_ParseTuple(t,
 				"ffffffff;Expected coords element with sequence of 8 floats",
 				tex, tex+1, tex+3, tex+4, tex+6, tex+7, tex+9, tex+10))
 				goto error;
 		} else if (tlen == 12) {
-			if (!PyArg_ParseTuple(t, 
+			if (!PyArg_ParseTuple(t,
 				"ffffffffffff;Expected coords element with sequence of 12 floats",
-				tex, tex+1, tex+2, tex+3, tex+4, tex+5, tex+6, tex+7, tex+8, 
+				tex, tex+1, tex+2, tex+3, tex+4, tex+5, tex+6, tex+7, tex+8,
 				tex+9, tex+10, tex+11))
 				goto error;
 		} else {
-			PyErr_SetString(PyExc_ValueError, 
+			PyErr_SetString(PyExc_ValueError,
 				"coords elements must be sequence of 4 float pairs, 8 floats or 12 floats");
 				goto error;
 		}
@@ -280,7 +281,7 @@ SpriteTex_init(SpriteTexObject *self, PyObject *args, PyObject *kwargs)
 	int i;
 	double total_weight, weight_scale, w;
 
-	static char *kwlist[] = {"texture", "coords", "weights", "filter", "wrap", 
+	static char *kwlist[] = {"texture", "coords", "weights", "filter", "wrap",
 		"aspect_adjust_width", "aspect_adjust_height", NULL};
 
 	PyMem_Free(self->tex_coords);
@@ -297,7 +298,7 @@ SpriteTex_init(SpriteTexObject *self, PyObject *args, PyObject *kwargs)
 		&self->texture, &tex_coords_seq, &weights_seq, &self->tex_filter, &self->tex_wrap,
 		&self->adjust_width, &self->adjust_height))
 		return -1;
-	
+
 	if (self->adjust_height && self->adjust_width) {
 		PyErr_SetString(PyExc_TypeError,
 			"SpriteTexturizer: Only one of aspect_adjust_width and aspect_adjust_height "
@@ -404,7 +405,7 @@ SpriteTex_get_weights(SpriteTexObject *self, void *closure)
 	PyObject *weights = NULL, *w = NULL;
 	double total = 0.0;
 	int i;
-	
+
 	if (self->weights != NULL) {
 		weights = PyTuple_New(self->coord_count);
 		if (weights == NULL)
@@ -584,16 +585,16 @@ static PyMethodDef SpriteTex_methods[] = {
 };
 
 static PyGetSetDef SpriteTex_descriptors[] = {
-	{"tex_dimension", (getter)SpriteTex_get_tex_dimension, NULL, 
+	{"tex_dimension", (getter)SpriteTex_get_tex_dimension, NULL,
 		"The number of dimensions per texture coordinate", NULL},
-	{"tex_coords", (getter)SpriteTex_get_tex_coords, NULL, 
+	{"tex_coords", (getter)SpriteTex_get_tex_coords, NULL,
 		"The sequence of texture coordinate sets", NULL},
-	{"weights", (getter)SpriteTex_get_weights, NULL, 
+	{"weights", (getter)SpriteTex_get_weights, NULL,
 		"The sequence of texture coordinate set weights or None", NULL},
 	{NULL}
 };
 
-PyDoc_STRVAR(SpriteTex__doc__, 
+PyDoc_STRVAR(SpriteTex__doc__,
 	"Applies a set of static texture coordinates from a single resident\n"
 	"texture to a particle group\n\n"
 	"SpriteTexturizer(texture, coords=(), weights=(), filter=GL_LINEAR, wrap=GL_CLAMP, "
@@ -625,8 +626,7 @@ PyDoc_STRVAR(SpriteTex__doc__,
 static PyTypeObject SpriteTex_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"_texturizer.SpriteTexturizer",		/*tp_name*/
 	sizeof(SpriteTexObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -710,7 +710,7 @@ FlipBookTex_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 }
 
 static int
-FlipBookTex_clear(FlipBookTexObject *self) 
+FlipBookTex_clear(FlipBookTexObject *self)
 {
 	Py_CLEAR(self->dict);
 	Py_CLEAR(self->tex_array);
@@ -718,14 +718,14 @@ FlipBookTex_clear(FlipBookTexObject *self)
 }
 
 static void
-FlipBookTex_dealloc(FlipBookTexObject *self) 
+FlipBookTex_dealloc(FlipBookTexObject *self)
 {
 	PyMem_Free(self->tex_coords);
 	self->tex_coords = NULL;
 	PyMem_Free(self->frame_times);
 	self->frame_times = NULL;
 	FlipBookTex_clear(self);
-	self->ob_type->tp_free((PyObject *)self);
+	Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 static int
@@ -764,7 +764,7 @@ FlipBookTex_init(FlipBookTexObject *self, PyObject *args, PyObject *kwargs)
 		&self->tex_filter, &self->tex_wrap,
 		&self->adjust_width, &self->adjust_height))
 		return -1;
-	
+
 	if (self->adjust_height && self->adjust_width) {
 		PyErr_SetString(PyExc_TypeError,
 			"FlipBookTexturizer: Only one of aspect_adjust_width and aspect_adjust_height "
@@ -784,7 +784,7 @@ FlipBookTex_init(FlipBookTexObject *self, PyObject *args, PyObject *kwargs)
 			"FlipBookTexturizer: expected dimension value of 2 or 3");
 		goto error;
 	}
-	
+
 	if (PySequence_Check(duration)) {
 		s = PySequence_Fast(duration, "FlipBookTexturizer: duration not iterable");
 		if (s == NULL)
@@ -827,7 +827,7 @@ FlipBookTex_init(FlipBookTexObject *self, PyObject *args, PyObject *kwargs)
 		}
 		Py_CLEAR(s);
 	} else {
-		PyErr_SetString(PyExc_TypeError, 
+		PyErr_SetString(PyExc_TypeError,
 			"FlipBookTexturizer: duration must be number or number sequence");
 		goto error;
 	}
@@ -865,7 +865,7 @@ FlipBookTex_get_tex_coords(FlipBookTexObject *self, void *closure)
 		} else {
 			for (i = 0, c = 0; i < self->coord_count; i++, c+=8) {
 				set = Py_BuildValue("(ffffffffffff)",
-					tex[c], tex[c+1], tex[c+2], tex[c+3], 
+					tex[c], tex[c+1], tex[c+2], tex[c+3],
 					tex[c+4], tex[c+5], tex[c+6], tex[c+7],
 					tex[c+8], tex[c+9], tex[c+10], tex[c+11]);
 				if (set == NULL)
@@ -890,7 +890,7 @@ FlipBookTex_get_duration(FlipBookTexObject *self, void *closure)
 	PyObject *times = NULL, *t = NULL;
 	double total = 0.0;
 	int i;
-	
+
 	if (self->frame_times != NULL) {
 		times = PyTuple_New(self->coord_count);
 		if (times == NULL)
@@ -975,7 +975,7 @@ FlipBookTex_generate_tex_coords(FlipBookTexObject *self, GroupObject *pgroup)
 	last_coord = self->coord_count - 1;
 	times = self->frame_times;
 	loop = self->loop;
-	
+
 	if (self->dimension == 2) {
 		if (times == NULL) {
 			total_time = self->duration * last_coord;
@@ -983,11 +983,11 @@ FlipBookTex_generate_tex_coords(FlipBookTexObject *self, GroupObject *pgroup)
 			while (pcount--) {
 				if (p->age >= 0.0f) {
 					if (loop) {
-						frame = (int)(p->age / duration) % coord_count; 
+						frame = (int)(p->age / duration) % coord_count;
 					} else {
 						frame = (int)(fminf(p->age, total_time) / duration);
 					}
-				} /* we don't care what the frame is for dead particles */ 
+				} /* we don't care what the frame is for dead particles */
 				ttex = tex_coords + frame * 8;
 				*ptex++ = *ttex++;
 				*ptex++ = *ttex++;
@@ -1010,7 +1010,7 @@ FlipBookTex_generate_tex_coords(FlipBookTexObject *self, GroupObject *pgroup)
 					}
 					for (; frame < last_coord && age > times[frame]; frame++);
 					for (; frame > 0 && age <= times[frame - 1]; frame--);
-				} /* we don't care what the frame is for dead particles */ 
+				} /* we don't care what the frame is for dead particles */
 				ttex = tex_coords + frame * 8;
 				*ptex++ = *ttex++;
 				*ptex++ = *ttex++;
@@ -1035,11 +1035,11 @@ FlipBookTex_generate_tex_coords(FlipBookTexObject *self, GroupObject *pgroup)
 			while (pcount--) {
 				if (p->age >= 0.0f) {
 					if (loop) {
-						frame = (int)(p->age / duration) % coord_count; 
+						frame = (int)(p->age / duration) % coord_count;
 					} else {
 						frame = (int)(fminf(p->age, total_time) / duration);
 					}
-				} /* we don't care what the frame is for dead particles */ 
+				} /* we don't care what the frame is for dead particles */
 				ttex = tex_coords + frame * 12;
 				*ptex++ = *ttex++;
 				*ptex++ = *ttex++;
@@ -1066,7 +1066,7 @@ FlipBookTex_generate_tex_coords(FlipBookTexObject *self, GroupObject *pgroup)
 					}
 					for (; frame < last_coord && age > times[frame]; frame++);
 					for (; frame > 0 && age <= times[frame - 1]; frame--);
-				} /* we don't care what the frame is for dead particles */ 
+				} /* we don't care what the frame is for dead particles */
 				ttex = tex_coords + frame * 12;
 				*ptex++ = *ttex++;
 				*ptex++ = *ttex++;
@@ -1122,15 +1122,15 @@ static PyMethodDef FlipBookTex_methods[] = {
 };
 
 static PyGetSetDef FlipBookTex_descriptors[] = {
-	{"tex_coords", (getter)FlipBookTex_get_tex_coords, NULL, 
+	{"tex_coords", (getter)FlipBookTex_get_tex_coords, NULL,
 		"The sequence of texture coordinate sets", NULL},
-	{"duration", (getter)FlipBookTex_get_duration, NULL, 
+	{"duration", (getter)FlipBookTex_get_duration, NULL,
 		"Return the time duration for all frames or \n"
 		"a sequence of durations for each frame", NULL},
 	{NULL}
 };
 
-PyDoc_STRVAR(FlipBookTex__doc__, 
+PyDoc_STRVAR(FlipBookTex__doc__,
 	"Animates sets of texture coordinates from a single resident\n"
 	"\"flipbook\" texture to a particle group according to each particle's age.\n\n"
 	"FlipBookTexturizer(texture, coords, duration, loop=True, dimension=2, "
@@ -1165,8 +1165,7 @@ PyDoc_STRVAR(FlipBookTex__doc__,
 static PyTypeObject FlipBookTex_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"_texturizer.FlipBookTexturizer",		/*tp_name*/
 	sizeof(FlipBookTexObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -1208,24 +1207,26 @@ static PyTypeObject FlipBookTex_Type = {
 	0,                      /*tp_free*/
 	0,                      /*tp_is_gc*/
 };
-PyMODINIT_FUNC
-init_texturizer(void)
+
+MOD_INIT(_texturizer)
 {
 	PyObject *m;
 
 	/* Bind tp_new and tp_alloc here to appease certain compilers */
 	if (PyType_Ready(&SpriteTex_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 	if (PyType_Ready(&FlipBookTex_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	/* Create the module and add the types */
-	m = Py_InitModule3("_texturizer", NULL, "Particle renderer texturizers");
+	MOD_DEF(m, "_texturizer", "Particle renderer texturizers", NULL);
 	if (m == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 	Py_INCREF(&SpriteTex_Type);
 	PyModule_AddObject(m, "SpriteTexturizer", (PyObject *)&SpriteTex_Type);
 	Py_INCREF(&FlipBookTex_Type);
 	PyModule_AddObject(m, "FlipBookTexturizer", (PyObject *)&FlipBookTex_Type);
+
+    return MOD_SUCCESS_VAL(m);
 }

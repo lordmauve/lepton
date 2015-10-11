@@ -16,6 +16,7 @@
 
 #include <Python.h>
 #include <structmember.h>
+#include "compat.h"
 #include "group.h"
 
 static PyTypeObject ParticleGroup_Type;
@@ -24,8 +25,8 @@ static PyTypeObject ParticleProxy_Type;
 
 static PyObject *InvalidParticleRefError;
 
-#define GroupObject_CHECK(v) ((v)->ob_type == &ParticleGroup_Type)
-#define ParticleProxy_CHECK(v) ((v)->ob_type == &ParticleProxy_Type)
+#define GroupObject_CHECK(v) (Py_TYPE(v) == &ParticleGroup_Type)
+#define ParticleProxy_CHECK(v) (Py_TYPE(v) == &ParticleProxy_Type)
 
 static void
 ParticleGroup_dealloc(GroupObject *self)
@@ -118,7 +119,7 @@ ParticleGroup_new(GroupObject *self, PyObject *args, PyObject *kwargs)
 	Particle *pnew;
 	int success, arg_count;
 	PyObject *ptemplate = NULL;
-	
+
 	pindex = Group_new_p(self);
 	if (pindex < 0) {
 		PyErr_NoMemory();
@@ -158,11 +159,11 @@ static PyObject *
 ParticleGroup_kill(GroupObject *self, ParticleRefObject *pref)
 {
 	if (!ParticleProxy_CHECK(pref)) {
-		PyErr_SetString(PyExc_TypeError, 
+		PyErr_SetString(PyExc_TypeError,
 			"Expected particle reference first argument");
 		return NULL;
 	}
-	if (!ParticleRefObject_IsValid(pref)) 
+	if (!ParticleRefObject_IsValid(pref))
 		return NULL;
 
 	Group_kill_p(self, pref->p);
@@ -223,7 +224,7 @@ ParticleGroup_update(GroupObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "f:update",  &td))
 		return NULL;
-	
+
 	self->iteration++; /* invalidate proxies and group iterators */
 
 	/* consolidate active and new particles, reclaim some killed in the
@@ -277,14 +278,14 @@ ParticleGroup_update(GroupObject *self, PyObject *args)
 	Py_CLEAR(ctrlr_seq);
 	if (ctrlr_iter[0] == NULL)
 		return NULL;
-	if (self->controllers != NULL) 
+	if (self->controllers != NULL)
 		ctrlr_iter[1] = PyObject_GetIter(self->controllers);
 	else
 		ctrlr_iter[1] = NULL;
 	ctrlr_args = Py_BuildValue("fO", td, self);
 	if (ctrlr_args == NULL)
 		goto error;
-	
+
 	for (i = 0; i <= 1; i++) {
 		if (ctrlr_iter[i] != NULL) {
 			while ((ctrlr = PyIter_Next(ctrlr_iter[i]))) {
@@ -297,7 +298,7 @@ ParticleGroup_update(GroupObject *self, PyObject *args)
 			Py_CLEAR(ctrlr_iter[i]);
 		}
 	}
-	
+
 	Py_DECREF(ctrlr_args);
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -379,11 +380,11 @@ ParticleGroup_draw(GroupObject *self)
 }
 
 static struct PyMemberDef ParticleGroup_members[] = {
-    {"controllers", T_OBJECT, offsetof(GroupObject, controllers), RO,
+    {"controllers", T_OBJECT, offsetof(GroupObject, controllers), READONLY,
         "Controllers bound to this group"},
     {"renderer", T_OBJECT, offsetof(GroupObject, renderer), 0,
         "Renderer bound to this group"},
-    {"system", T_OBJECT, offsetof(GroupObject, system), RO,
+    {"system", T_OBJECT, offsetof(GroupObject, system), READONLY,
         "Particle system this group belongs to"},
 	{NULL}
 };
@@ -423,8 +424,8 @@ static PyMethodDef ParticleGroup_methods[] = {
 static PySequenceMethods ParticleGroup_as_sequence = {
 	(lenfunc)ParticleGroup_length	/* sq_length */
 };
-	
-PyDoc_STRVAR(ParticleGroup__doc__, 
+
+PyDoc_STRVAR(ParticleGroup__doc__,
 	"Group of particles that share behavior via controllers\n"
 	"and are rendered as a unit\n\n"
 	"ParticleGroup(controllers=(), renderer=None, system=particle.default_system)\n\n"
@@ -438,8 +439,7 @@ PyDoc_STRVAR(ParticleGroup__doc__,
 static PyTypeObject ParticleGroup_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"group.ParticleGroup",		/*tp_name*/
 	sizeof(GroupObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -508,7 +508,7 @@ Vector_dealloc(VectorObject *self)
 	}
 }
 
-/* Create a new vector object for the parent object and vector struct specified 
+/* Create a new vector object for the parent object and vector struct specified
  * The parent object may be NULL if there is none
  */
 VectorObject *
@@ -563,10 +563,10 @@ Vector_setattr(VectorObject *self, char *name, PyObject *v)
 	v = PyNumber_Float(v);
 	if (v == NULL)
 		return -1;
-	
+
 	result = 0;
 	switch (name[0]) {
-		case 'r': case 'x': 
+		case 'r': case 'x':
 			self->vec->x = (float)PyFloat_AS_DOUBLE(v);
 			break;
 		case 'g': case 'y':
@@ -582,7 +582,7 @@ Vector_setattr(VectorObject *self, char *name, PyObject *v)
 			PyErr_SetString(PyExc_AttributeError, name);
 			result = -1;
 	}
-	
+
 	Py_DECREF(v);
 	return result;
 }
@@ -593,7 +593,7 @@ Vector_repr(VectorObject *self)
 	char buf[255];
 	if (!ParticleRef_INVALID(self)) {
 		buf[0] = 0; /* paranoid */
-		if (self->length == 3) 
+		if (self->length == 3)
 			PyOS_snprintf(buf, 255, "Vector(%.1f, %.1f, %.1f)",
 				self->vec->x, self->vec->y, self->vec->z);
 		else
@@ -714,7 +714,7 @@ Vector_getattr(VectorObject *self, PyObject *o)
 		PyErr_SetString(InvalidParticleRefError, "Invalid particle reference");
 		return NULL;
 	}
-	
+
 	if (strlen(name) == 1) {
 		switch (name[0]) {
 			case 'r': case 'x': return PyFloat_FromDouble(self->vec->x);
@@ -724,7 +724,7 @@ Vector_getattr(VectorObject *self, PyObject *o)
 		}
 	}
 
-	return Py_FindMethod(Vector_methods, (PyObject *)self, name);
+	return PY_FIND_METHOD(Vector_methods, self, o);
 }
 
 PyDoc_STRVAR(Vector__doc__, "Vector swizzler");
@@ -732,8 +732,7 @@ PyDoc_STRVAR(Vector__doc__, "Vector swizzler");
 static PyTypeObject Vector_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			                /*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"group.Vector",		/*tp_name*/
 	sizeof(VectorObject),	/*tp_basicsize*/
 	0,			                /*tp_itemsize*/
@@ -841,8 +840,8 @@ ParticleRefObject_IsValid(ParticleRefObject *pref) {
 }
 
 static const char *ParticleProxy_attrname[] = {
-	"position", "velocity", "size", "up", "rotation", 
-	"last_position", "last_velocity", "color", "mass", "age", 
+	"position", "velocity", "size", "up", "rotation",
+	"last_position", "last_velocity", "color", "mass", "age",
 	NULL
 };
 
@@ -853,7 +852,7 @@ ParticleProxy_getattr(ParticleRefObject *self, char *name)
 
 	if (!ParticleRefObject_IsValid(self))
 		return NULL;
-	
+
 	for (attr_no = 0; ParticleProxy_attrname[attr_no]; attr_no++) {
 		if (!strcmp(name, ParticleProxy_attrname[attr_no]) )
 			break;
@@ -885,7 +884,7 @@ ParticleProxy_setattr(ParticleRefObject *self, char *name, PyObject *v)
 
 	if (!ParticleRefObject_IsValid(self))
 		return -1;
-	
+
 	for (attr_no = 0; ParticleProxy_attrname[attr_no]; attr_no++) {
 		if (!strcmp(name, ParticleProxy_attrname[attr_no]) )
 			break;
@@ -901,55 +900,55 @@ ParticleProxy_setattr(ParticleRefObject *self, char *name, PyObject *v)
 	}
 	if (v == NULL)
 		return -1;
-	
+
 	switch (attr_no) {
-		case 0: 
-			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&self->p->position.x, 
-				&self->p->position.y, 
+		case 0:
+			result = PyArg_ParseTuple(v, "fff;3 floats expected",
+				&self->p->position.x,
+				&self->p->position.y,
 				&self->p->position.z) - 1;
 			break;
-		case 1: 
-			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&self->p->velocity.x, 
-				&self->p->velocity.y, 
+		case 1:
+			result = PyArg_ParseTuple(v, "fff;3 floats expected",
+				&self->p->velocity.x,
+				&self->p->velocity.y,
 				&self->p->velocity.z) - 1;
 			break;
-		case 2: 
-			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&self->p->size.x, 
-				&self->p->size.y, 
+		case 2:
+			result = PyArg_ParseTuple(v, "fff;3 floats expected",
+				&self->p->size.x,
+				&self->p->size.y,
 				&self->p->size.z) - 1;
 			break;
-		case 3: 
-			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&self->p->up.x, 
-				&self->p->up.y, 
+		case 3:
+			result = PyArg_ParseTuple(v, "fff;3 floats expected",
+				&self->p->up.x,
+				&self->p->up.y,
 				&self->p->up.z) - 1;
 			break;
-		case 4: 
-			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&self->p->rotation.x, 
-				&self->p->rotation.y, 
+		case 4:
+			result = PyArg_ParseTuple(v, "fff;3 floats expected",
+				&self->p->rotation.x,
+				&self->p->rotation.y,
 				&self->p->rotation.z) - 1;
 			break;
-		case 5: 
-			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&self->p->last_position.x, 
-				&self->p->last_position.y, 
+		case 5:
+			result = PyArg_ParseTuple(v, "fff;3 floats expected",
+				&self->p->last_position.x,
+				&self->p->last_position.y,
 				&self->p->last_position.z) - 1;
 			break;
-		case 6: 
-			result = PyArg_ParseTuple(v, "fff;3 floats expected", 
-				&self->p->last_velocity.x, &self->p->last_velocity.y, 
+		case 6:
+			result = PyArg_ParseTuple(v, "fff;3 floats expected",
+				&self->p->last_velocity.x, &self->p->last_velocity.y,
 				&self->p->last_velocity.z) - 1;
 			break;
-		case 7: 
+		case 7:
 			self->p->color.a = 1.0f;
-			result = PyArg_ParseTuple(v, "fff|f;3 or 4 floats expected", 
-				&self->p->color.r, 
-				&self->p->color.g, 
-				&self->p->color.b, 
+			result = PyArg_ParseTuple(v, "fff|f;3 or 4 floats expected",
+				&self->p->color.r,
+				&self->p->color.g,
+				&self->p->color.b,
 				&self->p->color.a) - 1;
 			break;
 		case 8: self->p->mass = (float)PyFloat_AS_DOUBLE(v);
@@ -997,8 +996,7 @@ PyDoc_STRVAR(ParticleProxy__doc__, "Group particle accessor");
 static PyTypeObject ParticleProxy_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			                /*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"group.ParticleProxy",		/*tp_name*/
 	sizeof(ParticleRefObject),	/*tp_basicsize*/
 	0,			                /*tp_itemsize*/
@@ -1067,7 +1065,7 @@ ParticleIter_next(ParticleRefObject *self)
 	while (self->p < lastp && !Particle_IsAlive(*self->p)) {
 		self->p++;
 	}
-	
+
 	if (self->p < lastp) {
 		return (PyObject *)ParticleRefObject_New(self->parent, self->p++);
 	} else {
@@ -1081,8 +1079,7 @@ PyDoc_STRVAR(ParticleIter__doc__, "Group particle iterator");
 static PyTypeObject ParticleIter_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			                /*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"group.ParticleIter",		/*tp_name*/
 	sizeof(ParticleRefObject),	/*tp_basicsize*/
 	0,			                /*tp_itemsize*/
@@ -1126,43 +1123,48 @@ static PyTypeObject ParticleIter_Type = {
 };
 
 /* --------------------------------------------------------------------- */
+/* Prepare a type object */
+int prepare_type(PyTypeObject *type) {
+    type->tp_alloc = PyType_GenericAlloc;
+	type->tp_new = PyType_GenericNew;
+	type->tp_getattro = PyObject_GenericGetAttr;
+	return PyType_Ready(type) >= 0;
+}
 
-PyMODINIT_FUNC
-initgroup(void)
+
+MOD_INIT(group)
 {
 	PyObject *m;
 
 	/* Bind external consts here to appease certain compilers */
-	ParticleGroup_Type.tp_alloc = PyType_GenericAlloc;
-	ParticleGroup_Type.tp_new = PyType_GenericNew;
-	ParticleGroup_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&ParticleGroup_Type) < 0)
-		return;
+	if (!prepare_type(&ParticleGroup_Type))
+		return MOD_ERROR_VAL;
 
 	ParticleProxy_Type.tp_alloc = PyType_GenericAlloc;
 	if (PyType_Ready(&ParticleProxy_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	ParticleIter_Type.tp_alloc = PyType_GenericAlloc;
 	ParticleIter_Type.tp_getattro = PyObject_GenericGetAttr;
 	ParticleIter_Type.tp_iter = PyObject_SelfIter;
 	if (PyType_Ready(&ParticleIter_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	Vector_Type.tp_alloc = PyType_GenericAlloc;
 	if (PyType_Ready(&Vector_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	/* Create the module and add the types */
-	m = Py_InitModule3("group", NULL, "Particle Groups");
-	if (m == NULL)
-		return;
+	MOD_DEF(m, "group", "Particle Groups", NULL);
+	if (m == NULL) {
+		return MOD_ERROR_VAL;
+    }
 
 	if (InvalidParticleRefError == NULL) {
 		InvalidParticleRefError = PyErr_NewException(
 			"group.InvalidParticleRefError", NULL, NULL);
 		if (InvalidParticleRefError == NULL)
-			return;
+			return MOD_ERROR_VAL;
 	}
 	Py_INCREF(InvalidParticleRefError);
 	PyModule_AddObject(m, "InvalidParticleRefError", InvalidParticleRefError);
@@ -1173,4 +1175,6 @@ initgroup(void)
 	PyModule_AddObject(m, "ParticleProxy", (PyObject *)&ParticleProxy_Type);
 	Py_INCREF(&Vector_Type);
 	PyModule_AddObject(m, "Vector", (PyObject *)&Vector_Type);
+
+    return MOD_SUCCESS_VAL(m);
 }

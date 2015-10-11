@@ -18,6 +18,7 @@
 #include <structmember.h>
 #include <float.h>
 
+#include "compat.h"
 #include "group.h"
 #include "vector.h"
 
@@ -53,7 +54,7 @@ GravityController_call(GravityControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -66,12 +67,12 @@ GravityController_call(GravityControllerObject *self, PyObject *args)
 		Vec3_add(&p->velocity, &p->velocity, &g);
 		p++;
 	}
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
-PyDoc_STRVAR(GravityController__doc__, 
+PyDoc_STRVAR(GravityController__doc__,
 	"Imparts a fixed accelleration to all particles\n\n"
 	"Gravity((gx, gy, gz))\n\n"
 	"(gx, gy, gz) -- Gravity vector");
@@ -79,8 +80,7 @@ PyDoc_STRVAR(GravityController__doc__,
 static PyTypeObject GravityController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.Gravity",		/*tp_name*/
 	sizeof(GravityControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -151,7 +151,7 @@ MovementController_init(MovementControllerObject *self, PyObject *args, PyObject
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|Off:__init__", kwlist,
 		&damping_arg, &self->min_velocity, &self->max_velocity))
 		return -1;
-	
+
 	if (self->min_velocity < 0) {
 		PyErr_SetString(PyExc_ValueError, "Movement: expected min_velocity >= 0");
 		return -1;
@@ -163,17 +163,17 @@ MovementController_init(MovementControllerObject *self, PyObject *args, PyObject
 	}
 
 	if (self->max_velocity < self->min_velocity) {
-		PyErr_SetString(PyExc_ValueError, 
+		PyErr_SetString(PyExc_ValueError,
 			"Movement: expected max_velocity >= min_velocity");
 		return -1;
 	}
-	
+
 	if (damping_arg != NULL) {
 		if (PySequence_Check(damping_arg)) {
 			damping_arg = PySequence_Tuple(damping_arg);
 			if (damping_arg == NULL)
 				return -1;
-			if (!PyArg_ParseTuple(damping_arg, "fff", 
+			if (!PyArg_ParseTuple(damping_arg, "fff",
 				&self->damping.x, &self->damping.y, &self->damping.z)) {
 				Py_DECREF(damping_arg);
 				return -1;
@@ -209,7 +209,7 @@ MovementController_call(MovementControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -223,9 +223,9 @@ MovementController_call(MovementControllerObject *self, PyObject *args)
 		max_v_sq = FLT_MAX;
 	count = GroupObject_ActiveCount(pgroup);
 
-	if (self->damping.x == 1.0f && 
-		self->damping.y == 1.0f && 
-		self->damping.z == 1.0f && 
+	if (self->damping.x == 1.0f &&
+		self->damping.y == 1.0f &&
+		self->damping.z == 1.0f &&
 		max_v == FLT_MAX && min_v == 0) {
 		/* simple case, no damping or velocity bounds */
 		while (count--) {
@@ -253,7 +253,7 @@ MovementController_call(MovementControllerObject *self, PyObject *args)
 			p++;
 		}
 	}
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -268,7 +268,7 @@ static struct PyMemberDef MovementControllerController_members[] = {
 	{NULL}
 };
 
-PyDoc_STRVAR(MovementController__doc__, 
+PyDoc_STRVAR(MovementController__doc__,
 	"Updates particle position and velocity\n\n"
 	"Movement(damping=None, min_velocity=None, max_velocity=None)\n\n"
 	"damping -- A three-tuple velocity multiplier per unit time\n"
@@ -284,8 +284,7 @@ PyDoc_STRVAR(MovementController__doc__,
 static PyTypeObject MovementController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.Movement",		/*tp_name*/
 	sizeof(MovementControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -353,8 +352,8 @@ static int
 FaderController_init(FaderControllerObject *self, PyObject *args, PyObject *kwargs)
 {
 	static char *kwlist[] = {"start_alpha", "fade_in_start", "fade_in_end", "max_alpha", "fade_out_start", "fade_out_end", "end_alpha", NULL};
-	self->start_alpha   = 0.0; 
-	self->fade_in_start = 0.0; 
+	self->start_alpha   = 0.0;
+	self->fade_in_start = 0.0;
 	self->fade_in_end   = 0.0;
 	self->max_alpha     = 1.0;
 	self->end_alpha     = 0.0;
@@ -362,7 +361,7 @@ FaderController_init(FaderControllerObject *self, PyObject *args, PyObject *kwar
 	self->fade_out_end = FLT_MAX;
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|fffffff:__init__", kwlist,
-		&self->start_alpha, &self->fade_in_start, &self->fade_in_end, &self->max_alpha, 
+		&self->start_alpha, &self->fade_in_start, &self->fade_in_end, &self->max_alpha,
 		&self->fade_out_start, &self->fade_out_end, &self->end_alpha))
 		return -1;
 
@@ -387,7 +386,7 @@ static struct PyMemberDef FaderControllerController_members[] = {
 	{NULL}
 };
 
-PyDoc_STRVAR(FaderController__doc__, 
+PyDoc_STRVAR(FaderController__doc__,
 	"Alters the alpha of particles to fade them in and out over time\n\n"
 	"start_alpha -- Initial alpha value.\n"
 	"fade_in_start -- Time to start fading in to max_alpha\n"
@@ -409,7 +408,7 @@ FaderController_call(FaderControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -442,8 +441,7 @@ FaderController_call(FaderControllerObject *self, PyObject *args)
 static PyTypeObject FaderController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.Fader",		/*tp_name*/
 	sizeof(FaderControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -521,7 +519,7 @@ LifetimeController_call(LifetimeControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -533,12 +531,12 @@ LifetimeController_call(LifetimeControllerObject *self, PyObject *args)
 			Group_kill_p(pgroup, p);
 		p++;
 	}
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
-PyDoc_STRVAR(LifetimeController__doc__, 
+PyDoc_STRVAR(LifetimeController__doc__,
 	"Kills particles beyond an age threshold\n\n"
 	"Lifetime(max_age)\n\n"
 	"max_age -- Age threshold, particles older than this are killed.");
@@ -546,8 +544,7 @@ PyDoc_STRVAR(LifetimeController__doc__,
 static PyTypeObject LifetimeController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.Lifetime",		/*tp_name*/
 	sizeof(LifetimeControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -626,14 +623,14 @@ ColorBlenderController_init(ColorBlenderControllerObject *self, PyObject *args)
 		return -1;
 
 	if (!PySequence_Check(color_times)) {
-		PyErr_SetString(PyExc_ValueError, 
+		PyErr_SetString(PyExc_ValueError,
 			"ColorBlender: expected sequence for color_times");
 		return -1;
 	}
-	
+
 	color_times_len = PySequence_Length(color_times);
 	if (color_times_len < 2) {
-		PyErr_SetString(PyExc_ValueError, 
+		PyErr_SetString(PyExc_ValueError,
 			"ColorBlender: color_times sequence must have at least 2 elements");
 		return -1;
 	}
@@ -664,14 +661,14 @@ ColorBlenderController_init(ColorBlenderControllerObject *self, PyObject *args)
 	Py_DECREF(color_tup);
 
 	if (self->min_age == self->max_age) {
-		PyErr_SetString(PyExc_ValueError, 
+		PyErr_SetString(PyExc_ValueError,
 			"ColorBlender: color_times sequence contains duplicate times");
 		return -1;
 	}
 
 	self->length = (unsigned long)((self->max_age - self->min_age) * self->resolution);
 	if (self->length == 0) {
-		PyErr_SetString(PyExc_ValueError, 
+		PyErr_SetString(PyExc_ValueError,
 			"ColorBlender: color_times interval too short for resolution");
 		return -1;
 	}
@@ -699,11 +696,11 @@ ColorBlenderController_init(ColorBlenderControllerObject *self, PyObject *args)
 		Py_CLEAR(color_tup);
 
 		if (last_time == next_time) {
-			PyErr_SetString(PyExc_ValueError, 
+			PyErr_SetString(PyExc_ValueError,
 				"ColorBlender: color_times sequence contains duplicate times");
 			goto error;
 		}
-		
+
 		grad.r = next_color.r - last_color.r;
 		grad.g = next_color.g - last_color.g;
 		grad.b = next_color.b - last_color.b;
@@ -714,12 +711,12 @@ ColorBlenderController_init(ColorBlenderControllerObject *self, PyObject *args)
 			if (--count <= 0) {
 				PyErr_Format(PyExc_RuntimeError,
 					"ColorBlender (BUG): Overrun creating color gradient: "
-					"length=%d res=%d cti=%d iter=%d count=%d", 
-					(int)self->length,  (int)self->resolution, (int)cti, (int)i, 
+					"length=%d res=%d cti=%d iter=%d count=%d",
+					(int)self->length,  (int)self->resolution, (int)cti, (int)i,
 					(int)((next_time - last_time) * self->resolution));
 				goto error;
 			}
-				
+
 			t = (float)i * iter_time;
 			color->r = last_color.r + grad.r * t;
 			color->g = last_color.g + grad.g * t;
@@ -758,7 +755,7 @@ ColorBlenderController_call(ColorBlenderControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -778,7 +775,7 @@ ColorBlenderController_call(ColorBlenderControllerObject *self, PyObject *args)
 		}
 		p++;
 	}
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -789,7 +786,7 @@ static struct PyMemberDef ColorBlenderController_members[] = {
 	{NULL}
 };
 
-PyDoc_STRVAR(ColorBlenderController__doc__, 
+PyDoc_STRVAR(ColorBlenderController__doc__,
 	"Changes particle color over time\n\n"
 	"ColorBlender(color_times, resolution=30)\n\n"
 	"color_times -- A sequence of 2 or more (time, color) pairs where color\n"
@@ -810,8 +807,7 @@ PyDoc_STRVAR(ColorBlenderController__doc__,
 static PyTypeObject ColorBlenderController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.ColorBlender",		/*tp_name*/
 	sizeof(ColorBlenderControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -885,7 +881,7 @@ GrowthController_init(GrowthControllerObject *self, PyObject *args, PyObject *kw
 		growth_arg = PySequence_Tuple(growth_arg);
 		if (growth_arg == NULL)
 			return -1;
-		if (!PyArg_ParseTuple(growth_arg, "fff", 
+		if (!PyArg_ParseTuple(growth_arg, "fff",
 			&self->growth.x, &self->growth.y, &self->growth.z)) {
 			Py_DECREF(growth_arg);
 			return -1;
@@ -906,7 +902,7 @@ GrowthController_init(GrowthControllerObject *self, PyObject *args, PyObject *kw
 			damping_arg = PySequence_Tuple(damping_arg);
 			if (damping_arg == NULL)
 				return -1;
-			if (!PyArg_ParseTuple(damping_arg, "fff", 
+			if (!PyArg_ParseTuple(damping_arg, "fff",
 				&self->damping.x, &self->damping.y, &self->damping.z)) {
 				Py_DECREF(damping_arg);
 				return -1;
@@ -942,7 +938,7 @@ GrowthController_call(GrowthControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -956,12 +952,12 @@ GrowthController_call(GrowthControllerObject *self, PyObject *args)
 		p++;
 	}
 	Vec3_muli(&self->growth, &self->damping);
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
-PyDoc_STRVAR(GrowthController__doc__, 
+PyDoc_STRVAR(GrowthController__doc__,
 	"Changes the size of particles over time\n\n"
 	"Growth(growth, damping=1.0)\n\n"
 	"growth -- Change in particle size per unit time.\n"
@@ -972,8 +968,7 @@ PyDoc_STRVAR(GrowthController__doc__,
 static PyTypeObject GrowthController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.Growth",		/*tp_name*/
 	sizeof(GrowthControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -1068,7 +1063,7 @@ CollectorController_call(CollectorControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -1088,7 +1083,7 @@ CollectorController_call(CollectorControllerObject *self, PyObject *args)
 			if (self->callback != NULL && self->callback != Py_None) {
 				particleref->p = p;
 				result = PyObject_CallFunctionObjArgs(
-					self->callback, (PyObject *)particleref, (PyObject *)pgroup, 
+					self->callback, (PyObject *)particleref, (PyObject *)pgroup,
 					(PyObject *)self, NULL);
 				if (result == NULL) {
 					goto error;
@@ -1102,7 +1097,7 @@ CollectorController_call(CollectorControllerObject *self, PyObject *args)
 	}
 	Py_DECREF(particleref);
 	Py_DECREF(vector);
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 
@@ -1128,7 +1123,7 @@ static struct PyMemberDef CollectorController_members[] = {
 	{NULL}
 };
 
-PyDoc_STRVAR(CollectorController__doc__, 
+PyDoc_STRVAR(CollectorController__doc__,
 	"domain -- particles inside or outside this domain are killed.\n"
 	"The domain must have a non-zero volume.\n\n"
 	"collect_inside -- True to collect particles inside the domain, False\n"
@@ -1140,8 +1135,7 @@ PyDoc_STRVAR(CollectorController__doc__,
 static PyTypeObject CollectorController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.Collector",		/*tp_name*/
 	sizeof(CollectorControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -1241,10 +1235,10 @@ BounceController_call(BounceControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
-	
+
 	intersect_str = PyString_InternFromString("intersect");
 	if (intersect_str == NULL)
 		goto error;
@@ -1302,7 +1296,7 @@ BounceController_call(BounceControllerObject *self, PyObject *args)
 						if (particleref == NULL || collide_vec == NULL || normal_vec == NULL)
 							goto error;
 						result = PyObject_CallFunctionObjArgs(
-							self->callback, (PyObject *)particleref, (PyObject *)pgroup, 
+							self->callback, (PyObject *)particleref, (PyObject *)pgroup,
 							(PyObject *)self, collide_vec, normal_vec, NULL);
 						if (result == NULL) {
 							goto error;
@@ -1334,7 +1328,7 @@ BounceController_call(BounceControllerObject *self, PyObject *args)
 	Py_DECREF(intersect_str);
 	Py_DECREF(start_pos);
 	Py_DECREF(end_pos);
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 
@@ -1376,7 +1370,7 @@ static struct PyMemberDef BounceController_members[] = {
 	{NULL}
 };
 
-PyDoc_STRVAR(BounceController__doc__, 
+PyDoc_STRVAR(BounceController__doc__,
 	"Bounce(domain, bounce=1.0, friction=0, bounce_limit=5, callback=None)\n\n"
 	"domain -- Particles that collide with the surface of this domain are\n"
 	"redirected as if they bounced or reflected off the surface. This\n"
@@ -1406,8 +1400,7 @@ PyDoc_STRVAR(BounceController__doc__,
 static PyTypeObject BounceController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.Bounce",		/*tp_name*/
 	sizeof(BounceControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -1502,7 +1495,7 @@ MagnetController_call(MagnetControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__call__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -1539,7 +1532,7 @@ MagnetController_call(MagnetControllerObject *self, PyObject *args)
 	}
 	Py_DECREF(position);
 	Py_DECREF(closest_pt_to);
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 
@@ -1577,14 +1570,13 @@ static struct PyMemberDef MagnetController_members[] = {
 	{NULL}
 };
 
-PyDoc_STRVAR(MagnetController__doc__, 
+PyDoc_STRVAR(MagnetController__doc__,
 	"Magnet(domain, charge, exponent=2, epsilon=0.00001, outer_cutoff=inf)");
 
 static PyTypeObject MagnetController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.Magnet",		/*tp_name*/
 	sizeof(MagnetControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -1680,7 +1672,7 @@ DragController_call(DragControllerObject *self, PyObject *args)
 
 	if (!PyArg_ParseTuple(args, "fO:__init__", &td, &pgroup))
 		return NULL;
-	
+
 	if (!GroupObject_Check(pgroup))
 		return NULL;
 
@@ -1713,7 +1705,7 @@ DragController_call(DragControllerObject *self, PyObject *args)
 		}
 		p++;
 	}
-	
+
 	Py_DECREF(position);
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -1733,12 +1725,12 @@ static struct PyMemberDef DragController_members[] = {
 };
 
 static PyGetSetDef DragController_descriptors[] = {
-	{"fluid_velocity", (getter)Vector_get, (setter)Vector_set, 
+	{"fluid_velocity", (getter)Vector_get, (setter)Vector_set,
 		"Fluid velocity vector", (void *)offsetof(DragControllerObject, fluid_velocity)},
 	{NULL}
 };
 
-PyDoc_STRVAR(DragController__doc__, 
+PyDoc_STRVAR(DragController__doc__,
 	"Simulate viscous drag in a fluid\n\n"
 	"Drag(c1, c2, fluid_velocity, domain)\n\n"
 	"c1 -- Linear drag coefficient\n\n"
@@ -1752,8 +1744,7 @@ PyDoc_STRVAR(DragController__doc__,
 static PyTypeObject DragController_Type = {
 	/* The ob_type field must be initialized in the module init function
 	 * to be portable to Windows without using C++. */
-	PyObject_HEAD_INIT(NULL)
-	0,			/*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"controller.Drag",		/*tp_name*/
 	sizeof(DragControllerObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
@@ -1798,76 +1789,45 @@ static PyTypeObject DragController_Type = {
 
 /* --------------------------------------------------------------------- */
 
-PyMODINIT_FUNC
-init_controller(void)
+
+MOD_INIT(_controller)
 {
 	PyObject *m;
 
-	/* Bind external consts here to appease certain compilers */
-	GravityController_Type.tp_alloc = PyType_GenericAlloc;
-	GravityController_Type.tp_new = PyType_GenericNew;
-	GravityController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&GravityController_Type) < 0)
-		return;
+    if (!prepare_type(&GravityController_Type))
+        return MOD_ERROR_VAL;
 
-	MovementController_Type.tp_alloc = PyType_GenericAlloc;
-	MovementController_Type.tp_new = PyType_GenericNew;
-	MovementController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&MovementController_Type) < 0)
-		return;
+    if (!prepare_type(&MovementController_Type))
+        return MOD_ERROR_VAL;
 
-	FaderController_Type.tp_alloc = PyType_GenericAlloc;
-	FaderController_Type.tp_new = PyType_GenericNew;
-	FaderController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&FaderController_Type) < 0)
-		return;
+    if (!prepare_type(&FaderController_Type))
+        return MOD_ERROR_VAL;
 
-	LifetimeController_Type.tp_alloc = PyType_GenericAlloc;
-	LifetimeController_Type.tp_new = PyType_GenericNew;
-	LifetimeController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&LifetimeController_Type) < 0)
-		return;
+    if (!prepare_type(&LifetimeController_Type))
+        return MOD_ERROR_VAL;
 
-	ColorBlenderController_Type.tp_alloc = PyType_GenericAlloc;
-	ColorBlenderController_Type.tp_new = PyType_GenericNew;
-	ColorBlenderController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&ColorBlenderController_Type) < 0)
-		return;
+    if (!prepare_type(&ColorBlenderController_Type))
+        return MOD_ERROR_VAL;
 
-	GrowthController_Type.tp_alloc = PyType_GenericAlloc;
-	GrowthController_Type.tp_new = PyType_GenericNew;
-	GrowthController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&GrowthController_Type) < 0)
-		return;
+    if (!prepare_type(&GrowthController_Type))
+        return MOD_ERROR_VAL;
 
-	CollectorController_Type.tp_alloc = PyType_GenericAlloc;
-	CollectorController_Type.tp_new = PyType_GenericNew;
-	CollectorController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&CollectorController_Type) < 0)
-		return;
+    if (!prepare_type(&CollectorController_Type))
+        return MOD_ERROR_VAL;
 
-	BounceController_Type.tp_alloc = PyType_GenericAlloc;
-	BounceController_Type.tp_new = PyType_GenericNew;
-	BounceController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&BounceController_Type) < 0)
-		return;
+    if (!prepare_type(&BounceController_Type))
+        return MOD_ERROR_VAL;
 
-	MagnetController_Type.tp_alloc = PyType_GenericAlloc;
-	MagnetController_Type.tp_new = PyType_GenericNew;
-	MagnetController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&MagnetController_Type) < 0)
-		return;
+    if (!prepare_type(&MagnetController_Type))
+        return MOD_ERROR_VAL;
 
-	DragController_Type.tp_alloc = PyType_GenericAlloc;
-	DragController_Type.tp_new = PyType_GenericNew;
-	DragController_Type.tp_getattro = PyObject_GenericGetAttr;
-	if (PyType_Ready(&DragController_Type) < 0)
-		return;
+    if (!prepare_type(&DragController_Type))
+        return MOD_ERROR_VAL;
 
 	/* Create the module and add the types */
-	m = Py_InitModule3("_controller", NULL, "Particle Controllers");
+	MOD_DEF(m, "_controller", "Particle Controllers", NULL);
 	if (m == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 	Py_INCREF(&GravityController_Type);
 	PyModule_AddObject(m, "Gravity", (PyObject *)&GravityController_Type);
@@ -1889,4 +1849,6 @@ init_controller(void)
 	PyModule_AddObject(m, "Magnet", (PyObject *)&MagnetController_Type);
 	Py_INCREF(&DragController_Type);
 	PyModule_AddObject(m, "Drag", (PyObject *)&DragController_Type);
+
+    return MOD_SUCCESS_VAL(m);
 }

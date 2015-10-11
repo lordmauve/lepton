@@ -31,7 +31,9 @@ else:
     library_dirs = []
     libraries = []
 
-compile_args = []  # disable compile args for now
+compile_args = [
+    '-Werror-implicit-function-declaration'
+]  # disable compile args for now
 
 setup(
     name='wasabi-lepton',

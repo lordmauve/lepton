@@ -18,7 +18,7 @@ the necessary OpenGL state changes to setup texturing for rendering
 
 import math
 import ctypes
-import _texturizer
+from . import _texturizer
 
 def _nearest_pow2(v):
     # From http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
@@ -51,8 +51,8 @@ class SpriteTexturizer(_texturizer.SpriteTexturizer):
 	@classmethod
 	def from_images(cls, images, weights=None, filter=None, wrap=None,
 		aspect_adjust_width=False, aspect_adjust_height=False):
-		"""Create a SpriteTexturizer from a sequence of Pyglet images. 
-		
+		"""Create a SpriteTexturizer from a sequence of Pyglet images.
+
 		Note all the images must be able to fit into a single OpenGL texture, so
 		their combined size should typically be less than 1024x1024
 		"""
@@ -92,7 +92,7 @@ class FlipBookTexturizer(_texturizer.FlipBookTexturizer):
 
 def create_point_texture(size, feather=0):
 	"""Create and load a circular grayscale image centered in a square texture
-	with a width and height of size. The radius of the circle is size / 2. 
+	with a width and height of size. The radius of the circle is size / 2.
 	Since size is used as the texture width and height, it should typically
 	be a power of two.
 
@@ -124,7 +124,7 @@ def create_point_texture(size, feather=0):
 	gl.glGenTextures(1, ctypes.byref(id))
 	gl.glBindTexture(gl.GL_TEXTURE_2D, id.value)
 	gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 4)
-	gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_LUMINANCE, size, size, 0, 
+	gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_LUMINANCE, size, size, 0,
 		gl.GL_LUMINANCE, gl.GL_FLOAT, ctypes.byref(texel))
 	gl.glFlush()
 	return id.value
