@@ -40,10 +40,8 @@ class Vec3(ctypes.Array):
         return '%s(%s, %s, %s)' % (self.__class__.__name__, self.x, self.y, self.z)
 
     # Vector math methods to be moved to C ##
-
-    @staticmethod
-    def length(v):
-        x, y, z = v
+    def length(self):
+        x, y, z = self
         return sqrt(x * x + y * y + z * z)
 
     def normalize(self):
