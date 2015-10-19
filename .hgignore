@@ -1,7 +1,9 @@
+syntax: glob
 wasabi_lepton.egg-info
 build
 dist
-
-syntax: glob
+doc/_build
 *.so
+*.swp
+*.pyc
 __pycache__
