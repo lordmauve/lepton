@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import os.path
 import sys
 from setuptools import setup, Extension
+thisdir = os.path.dirname(__file__)
+sys.path = [p for p in sys.path if p and p != thisdir]
 
 extra_link_args = []
 macros = [('GLEW_STATIC', None)]
