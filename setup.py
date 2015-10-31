@@ -53,7 +53,7 @@ def make_ext(name, files):
     )
 
 setup(
-    name='wasabi-lepton',
+    name='lepton',
     version='1.0b3',  # *** REMEMBER TO UPDATE __init__.py ***
     description='Wasabi-Lepton: A fork of Lepton, A high-performance, pluggable particle engine and API for Python',
     long_description='''\

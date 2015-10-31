@@ -24,6 +24,7 @@ Contents:
 .. toctree::
     :maxdepth: 2
 
+    cookbook
     systems
     emitters
     controllers
