@@ -49,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'wasabi-lepton'
+project = 'lepton'
 copyright = '2015, Casey Duncan'
 author = 'Casey Duncan'
 

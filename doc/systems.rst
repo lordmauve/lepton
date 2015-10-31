@@ -131,5 +131,6 @@ way to manipulate individual particles within the group.::
     Particles are not independent first-class objects; the particle data is
     actually stored in a contiguous memory array for efficiency.
 
-    ParticleProxy and Vector objects may become invalid at any point. You
-    should not keep references to these objects outside of an update loop.
+    ParticleProxy and Vector objects may become invalid whenever controllers
+    run. You should not keep references to these objects outside of an update
+    loop.

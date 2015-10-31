@@ -1,7 +1,20 @@
 Controllers
 ===========
 
-.. automodule:: lepton.controller
+.. module:: lepton.controller
+
+A controller is a callable of the form::
+
+    controller(timedelta, group)
+
+Particle controllers are bound to particle groups and invoked via the group's
+``update()`` method. A typical controller will iterate all particles in a
+group, apply some logic and mutate the particles or remove or add particles to
+the group.
+
+Lepton's built-in controllers are written in C for performance, but Python
+functions or classes with ``__call__()`` methods can also be used.
+
 
 Movement
 --------
@@ -48,9 +61,9 @@ Particles may grow or shrink over time.
 Death
 -----
 
-Because the maximum number of particles in a group is capped, particle systems
-should include some mechanism for destroying particles so that the effect can
-continue.
+If you continue to emit particles into a group then the number of particles
+can grow in an unbounded way. To avoid this you should ensure there is some
+reliable way in which particles can be destroyed.
 
 Particles may be destroyed after a certain per-particle lifetime, or perhaps
 when they move into or out of a :doc:`domain <domains>`.
