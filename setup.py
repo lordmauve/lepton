@@ -78,7 +78,7 @@ You can download binary releases or browse the source code at our Google code si
 ''',
     author='Casey Duncan, Harry Tormey & Contributors',
     author_email='py-lepton-users@googlegroups.com',
-    url='http://code.google.com/p/py-lepton/',
+    url='https://bitbucket.org/lordmauve/lepton',
     license='MIT',
     classifiers=[
         'Development Status :: 4 - Beta',
