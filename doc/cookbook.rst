@@ -161,9 +161,11 @@ in opposing directions. The front  controller pushes particles to the right,
 while the back controller pushes particles to the left. This sets up the "spin"
 of the vortex.
 
-.. image:: _static/logo.png
-.. image:: _static/magnet.png
-.. image:: _static/pygame_fill.png
-.. image:: _static/smoke.png
-.. image:: _static/tunnel.png
+
+..
+    .. image:: _static/logo.png
+    .. image:: _static/magnet.png
+    .. image:: _static/pygame_fill.png
+    .. image:: _static/smoke.png
+    .. image:: _static/tunnel.png
 
