@@ -131,13 +131,39 @@ coordinates (a texture atlas). The list of texture coordinates for each letter
 is passed to the ``SpriteTexturizer`` which picks between these for each
 particle.
 
+
+'Splode
+-------
+
+.. image:: _static/splode2d.png
+
+This explosion is created using two :class:`ParticleGroups <.ParticleGroup>` /
+:class:`Emitters <.StaticEmitter>`:
+
+* The sparks are emitted outwards at high, random velocity.
+* The fire is emitted outwards at a slower velocity, in a number of colours.
+  These particles also rotate in random directions.
+
+Both sets of particles fade over time. Once again, these particles are drawn
+with additive blending.
+
+Vortex
+------
+
+.. image:: _static/vortex.png
+
+This complex effect consists of particles attracted by a :class:`.Cone`-shaped
+:class:`.Magnet`. Short particle trails are added with the same
+:class:`.PerParticleEmitter` technique as for the Fireworks example.
+
+To ensure particles circulate, two :class:`.Drag` controllers push particles
+in opposing directions. The front  controller pushes particles to the right,
+while the back controller pushes particles to the left. This sets up the "spin"
+of the vortex.
+
 .. image:: _static/logo.png
 .. image:: _static/magnet.png
-.. image:: _static/pygame_bubble.png
 .. image:: _static/pygame_fill.png
 .. image:: _static/smoke.png
-.. image:: _static/splode2d.png
-.. image:: _static/splode.png
 .. image:: _static/tunnel.png
-.. image:: _static/vortex.png
 
