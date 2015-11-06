@@ -54,7 +54,7 @@ def make_ext(name, files):
 
 setup(
     name='lepton',
-    version='1.0b3',  # *** REMEMBER TO UPDATE __init__.py ***
+    version='1.0b4',  # *** REMEMBER TO UPDATE __init__.py ***
     description='Wasabi-Lepton: A fork of Lepton, A high-performance, pluggable particle engine and API for Python',
     long_description='''\
 Lepton is designed to make complex and beautiful particle effects possible,
@@ -78,6 +78,8 @@ You can download binary releases or browse the source code at our Google code si
 ''',
     author='Casey Duncan, Harry Tormey & Contributors',
     author_email='py-lepton-users@googlegroups.com',
+    maintainer='Daniel Pope',
+    maintainer_email='mauve@mauveweb.co.uk',
     url='https://bitbucket.org/lordmauve/lepton',
     license='MIT',
     classifiers=[
