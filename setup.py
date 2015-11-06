@@ -3,8 +3,8 @@ from __future__ import print_function
 import os.path
 import sys
 from setuptools import setup, Extension
-thisdir = os.path.dirname(__file__)
-sys.path = [p for p in sys.path if p and p != thisdir]
+thisdir = os.path.abspath(os.path.dirname(__file__))
+sys.path = [p for p in sys.path if p and os.path.abspath(p) != thisdir]
 
 extra_link_args = []
 macros = [('GLEW_STATIC', None)]
@@ -55,7 +55,7 @@ def make_ext(name, files):
 setup(
     name='lepton',
     version='1.0b4',  # *** REMEMBER TO UPDATE __init__.py ***
-    description='Wasabi-Lepton: A fork of Lepton, A high-performance, pluggable particle engine and API for Python',
+    description='Lepton: A high-performance, pluggable particle engine and API for Python',
     long_description='''\
 Lepton is designed to make complex and beautiful particle effects possible,
 and even easy from Python programs.
