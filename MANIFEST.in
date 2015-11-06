@@ -8,7 +8,9 @@ recursive-include examples *
 prune examples/games
 
 prune **/.svn
-global-exclude *.pyc 
+global-exclude *.pyc
+global-exclude *.swp
+global-exclude *.orig
 global-exclude *.pyo
 global-exclude *.o
 global-exclude *.so
