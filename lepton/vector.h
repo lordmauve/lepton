@@ -22,7 +22,6 @@
 #define _VECTOR_H_
 
 #ifdef _MSC_VER
-#define inline
 #define __restrict__
 #endif
 

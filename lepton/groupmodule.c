@@ -16,6 +16,8 @@
 
 #include <Python.h>
 #include <structmember.h>
+
+#include "cccompat.h"
 #include "compat.h"
 #include "group.h"
 
@@ -108,7 +110,7 @@ error:
 
 /* Group methods */
 
-inline ParticleRefObject *
+EXTERN_INLINE ParticleRefObject *
 ParticleRefObject_New(PyObject *parent, Particle *p);
 
 /* Create a new particle in the group from a template */
@@ -798,7 +800,7 @@ ParticleProxy_dealloc(ParticleRefObject *self)
 /* Create a new particle reference object for the given group and index
  * no range checking is done
  */
-inline ParticleRefObject *
+EXTERN_INLINE ParticleRefObject *
 ParticleRefObject_New(PyObject *parent, Particle *p)
 {
 	ParticleRefObject *pproxy;

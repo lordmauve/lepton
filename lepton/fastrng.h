@@ -13,11 +13,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "cccompat.h"
+
 #ifndef _FASTRNG_H_
 #define _FASTRNG_H_
 
 #ifdef _MSC_VER
-#define inline
 #define __restrict__
 #endif
 
@@ -28,13 +29,13 @@ rand_seed(uint32_t s);
 /*
    Generate a 32-bit random number in with the interval [0,0xffffffff]
 */
-inline uint32_t
+EXTERN_INLINE uint32_t
 rand_int32(void);
 
 /*
 	Generate a random number with uniform distribution in the interval (0, 1.0]
 */
-inline float
+EXTERN_INLINE float
 rand_uni(void);
 
 /*
@@ -42,7 +43,7 @@ rand_uni(void);
 
 	mu is the mean and sigma is the std deviation
 */
-inline float
+EXTERN_INLINE float
 rand_norm(const float mu, const float sigma);
 
 /*
@@ -50,7 +51,7 @@ rand_norm(const float mu, const float sigma);
 
 	mu is the desired mean
 */
-inline float
+EXTERN_INLINE float
 rand_expo(const float mu);
 
 #endif
