@@ -4,9 +4,12 @@
  */
 
 #include "vector.h"
+#include "compat.h"
+#include "cccompat.h"
 
 #ifndef _GROUP_H_
 #define _GROUP_H_
+
 
 typedef struct {
 	/* Note order is important for alignment */
@@ -70,7 +73,7 @@ typedef struct {
 	PyObject		*controllers;
 	PyObject		*renderer;
 	PyObject		*system;
-	unsigned long	iteration; /* update iteration count */ 
+	unsigned long	iteration; /* update iteration count */
 	ParticleList	*plist;
 } GroupObject;
 
@@ -97,19 +100,19 @@ typedef struct {
 typedef struct {
 	PyObject_HEAD
 	PyObject		*parent; /* parent object (such as a group or domain) */
-	unsigned long	iteration; /* update iteration reference is valid for */ 
+	unsigned long	iteration; /* update iteration reference is valid for */
 	Particle		*p; /* pointer to particle in group */
 } ParticleRefObject;
 
 /* Vector objects are used to manipulate Vec3/Color structs from Python
  *
  * Right now these are little more than stubs to be compatible with the
- * original Vec3 and Color ctypes class. 
+ * original Vec3 and Color ctypes class.
  */
 typedef struct {
 	PyObject_HEAD
 	PyObject		*parent; /* parent object (such as a group or domain) */
-	unsigned long	iteration; /* update iteration vector is valid for */ 
+	unsigned long	iteration; /* update iteration vector is valid for */
 	int				length; /* 3 or 4 */
 	union {
 		Vec3		*vec;
@@ -128,7 +131,7 @@ Group_new_p(GroupObject *group);
 /* Kill the particle at the index specified. Does nothing if the index does
  * not point to a valid particle
  */
-void inline
+EXTERN_INLINE void
 Group_kill_p(GroupObject *group, Particle *p);
 
 /* Return true if o is a bon-a-fide GroupObject */
@@ -148,10 +151,10 @@ int
 get_Float(float *f, PyObject *dict, PyObject *template, const char *attrname);
 
 /* Create a new particle reference object for the given group and particle */
-inline ParticleRefObject *
+EXTERN_INLINE ParticleRefObject *
 ParticleRefObject_New(PyObject *parent, Particle *p);
 
-/* Create a new vector object for the parent object and vector struct specified 
+/* Create a new vector object for the parent object and vector struct specified
  * The parent object may be NULL if there is none
  */
 VectorObject *
@@ -160,11 +163,11 @@ Vector_new(PyObject *parent, Vec3 *vec, int length);
 /* Generic vector getter for descriptors, the closure is
    used to pass the offset to the Vec3 struct
 */
-PyObject * 
+PyObject *
 Vector_get(PyObject *self, void *closure);
 
 /* Generic vector setter for descriptors */
-int 
+int
 Vector_set(PyObject *self, PyObject *value, void *closure);
 
 #endif
