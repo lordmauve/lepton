@@ -18,6 +18,7 @@
 #include <Python.h>
 #include <float.h>
 #include "group.h"
+#include "compat.h"
 
 /* Return an index for a new particle in the group, allocating space for it if
  * necessary.
@@ -48,7 +49,7 @@ Group_new_p(GroupObject *group) {
 
 /* Kill the particle specified.
  */
-void inline
+EXTERN_INLINE void
 Group_kill_p(GroupObject *group, Particle *p) {
 	Particle *lastactive;
 	lastactive = &group->plist->p[GroupObject_ActiveCount(group)];

@@ -19,6 +19,7 @@
 #include <float.h>
 #include <time.h>
 
+#include "cccompat.h"
 #include "compat.h"
 #include "fastrng.h"
 #include "group.h"
@@ -330,7 +331,7 @@ Float_fill(float * f, PyObject *domain, PyObject *discrete_seq, float tmpl)
 	return result;
 }
 
-inline void
+EXTERN_INLINE void
 Vec3_deviate(Vec3 *dest, Vec3 *deviation)
 {
 	dest->x = deviation->x ? rand_norm(dest->x, deviation->x) : dest->x;
@@ -338,7 +339,7 @@ Vec3_deviate(Vec3 *dest, Vec3 *deviation)
 	dest->z = deviation->z ? rand_norm(dest->z, deviation->z) : dest->z;
 }
 
-inline void
+EXTERN_INLINE void
 Color_deviate(Color *dest, Color *deviation)
 {
 	dest->r = deviation->r ? rand_norm(dest->r, deviation->r) : dest->r;
