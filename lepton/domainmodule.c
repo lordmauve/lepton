@@ -18,6 +18,8 @@
 #include <structmember.h>
 #include <math.h>
 #include <float.h>
+
+#include "cccompat.h"
 #include "compat.h"
 #include "vector.h"
 #include "fastrng.h"

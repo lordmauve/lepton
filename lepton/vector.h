@@ -17,13 +17,10 @@
 
 #include <Python.h>
 #include <math.h>
+#include "cccompat.h"
 
 #ifndef _VECTOR_H_
 #define _VECTOR_H_
-
-#ifdef _MSC_VER
-#define __restrict__
-#endif
 
 /* 3D vector */
 typedef struct {
