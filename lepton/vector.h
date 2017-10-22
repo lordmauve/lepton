@@ -17,7 +17,6 @@
 
 #include <Python.h>
 #include <math.h>
-#include <stdint.h>
 #include "cccompat.h"
 
 #ifndef _VECTOR_H_
