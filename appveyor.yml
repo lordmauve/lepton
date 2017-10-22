@@ -22,7 +22,8 @@ environment:
 
 install:
   # We need wheel installed to build wheels
-  - "%PYTHON%\\python.exe -m pip install wheel"
+  # and Pyglet to run tests
+  - "%PYTHON%\\python.exe -m pip install wheel pyglet"
 
 build: off
 
