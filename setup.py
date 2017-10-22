@@ -54,7 +54,7 @@ def make_ext(name, files):
 
 setup(
     name='lepton',
-    version='1.0b4',  # *** REMEMBER TO UPDATE __init__.py ***
+    version='1.0',  # *** REMEMBER TO UPDATE __init__.py ***
     description='Lepton: A high-performance, pluggable particle engine and API for Python',
     long_description='''\
 Lepton is designed to make complex and beautiful particle effects possible,
