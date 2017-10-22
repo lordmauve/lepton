@@ -9,6 +9,9 @@ sys.path = [p for p in sys.path if p and os.path.abspath(p) != thisdir]
 extra_link_args = []
 macros = [('GLEW_STATIC', None)]
 
+compile_args = ['-Werror-implicit-function-declaration']
+
+
 if sys.platform.startswith('linux'):
     include_dirs = ['/usr/include', '/usr/local/include/',
                     '/usr/X11/include', '/usr/X11R6/include', 'glew/include']
@@ -23,6 +26,7 @@ elif sys.platform == 'win32':
     include_dirs = ['../include', 'glew/include']
     library_dirs = ['../lib']
     libraries = ['opengl32']
+    del compile_args[:]
 elif sys.platform == 'darwin':
     include_dirs = ['/System/Library/Frameworks/OpenGL.framework/Headers',
                     '/System/Library/Frameworks/GLUT.framework/Headers', 'glew/include']
@@ -35,9 +39,6 @@ else:
     library_dirs = []
     libraries = []
 
-compile_args = [
-    '-Werror-implicit-function-declaration'
-]
 
 
 def make_ext(name, files):
