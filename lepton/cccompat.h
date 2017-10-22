@@ -12,3 +12,13 @@
 #define EXTERN_INLINE extern inline
 #endif
 
+
+#ifdef _MSC_VER
+#define __restrict__
+
+/* Under MSVC, the C99 'inline' keyword is not available, use __inline instead.
+ *
+ * See https://stackoverflow.com/questions/24736304/unable-to-use-inline-in-declaration-get-error-c2054
+ */
+#define inline __inline
+#endif
