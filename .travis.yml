@@ -1,0 +1,10 @@
+matrix:
+  include:
+    - sudo: required
+      services:
+        - docker
+    - os: osx
+
+script:
+  - pip install cibuildwheel==0.6.0
+  - cibuildwheel --output-dir wheelhouse
