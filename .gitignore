@@ -1,5 +1,4 @@
-syntax: glob
-wasabi_lepton.egg-info
+lepton.egg-info
 build
 dist
 doc/_build

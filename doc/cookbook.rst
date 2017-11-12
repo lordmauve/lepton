@@ -76,7 +76,10 @@ mixture of blue, teal and yellow.
 
 Fireworks
 ---------
-.. image:: _static/fireworks.png
+
+.. raw:: html
+
+   <video autoplay loop src="_static/fireworks.webm"></video>
 
 Each explosion creates two groups: the sparks group, which is populated with
 particles immediately, and the trails group. A :class:`.PerParticleEmitter` in
