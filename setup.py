@@ -17,7 +17,7 @@ if sys.platform.startswith('linux'):
                     '/usr/X11/include', '/usr/X11R6/include', 'glew/include']
     library_dirs = ['/usr/lib', '/usr/local/lib',
                     '/usr/X11/lib', '/usr/X11R6/lib']
-    libraries = ['GL', 'X11', 'Xext']
+    libraries = ['GL', 'X11', 'Xext', 'GLU']
 elif sys.platform == 'cygwin':
     include_dirs = ['/usr/include', '/usr/include/win32api/', 'glew/include']
     library_dirs = ['/usr/lib']

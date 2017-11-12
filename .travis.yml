@@ -9,3 +9,6 @@ matrix:
 script:
   - pip install cibuildwheel==0.6.0
   - cibuildwheel --output-dir wheelhouse
+env:
+  global:
+    - CIBW_BEFORE_BUILD_LINUX="yum install libglu1-mesa-dev"
