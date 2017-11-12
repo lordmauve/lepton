@@ -32,7 +32,7 @@ elif sys.platform == 'darwin':
                     '/System/Library/Frameworks/GLUT.framework/Headers', 'glew/include']
     library_dirs = []
     libraries = []
-    extra_link_args = ['-framework:OpenGL']
+    extra_link_args = ['-framework', 'OpenGL']
 else:
     print("Platform", sys.platform, "not really supported just yet", file=sys.stderr)
     include_dirs = ['glew/include']
