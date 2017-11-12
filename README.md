@@ -1,13 +1,11 @@
-Lepton
-======
+# Lepton
 
 Lepton: A high-performance, pluggable particle engine and API for Python
 
 ![Bubbles Example](https://raw.githubusercontent.com/lordmauve/lepton/master/doc/_static/bubbles.png)
 
 
-Documentation
--------------
+## Documentation
 
 See http://pythonhosted.org/lepton/ for full documentation.
 
@@ -16,14 +14,13 @@ The examples provided with Lepton require either pyglet
 but neither are required to use the library.
 
 
-Installation
-------------
+## Installation
 
 Lepton is a CPython C API extension, which means it can be difficult to install.
 On some systems, lepton can be installed just by running
 
 ```
-$ pip install lepton
+pip install lepton
 ```
 
 A current project is to provide **binary wheel packages** which will ensure
@@ -37,8 +34,7 @@ which work for you:
 If you'd like to contribute to making these work, please submit a pull request!
 
 
-Building
---------
+## Building
 
 Lepton is platform-independent and should run on any operating system
 supporting Python and OpenGL. Let us know if you try to build
@@ -56,24 +52,27 @@ system, this means you need to have the python-dev-all and libxext-dev
 packages installed. Specifically on Debian and Ubuntu, you will likely
 need the following packages installed:
 
-xorg-dev
-libgl1-mesa-dev
-libglu1-mesa-dev
+* xorg-dev
+* libgl1-mesa-dev
+* libglu1-mesa-dev
 
 If you're reading this README from a source distribution, install lepton
-with::
+with:
 
-    python setup.py install
+```
+python setup.py install
+```
 
-If you just want to test it out without installing it, you can use::
+If you just want to test it out without installing it, you can use:
 
-    python setup.py build_ext --inplace
+```
+python setup.py build_ext --inplace
+```
 
 Then add this directory to your PYTHONPATH.
 
 
-Support
--------
+## Support
 
 If you find a bug, use the issue tracker above. If you'd like to discuss
 usage, new features or contribute to Lepton, join our google group at:
@@ -81,13 +80,12 @@ usage, new features or contribute to Lepton, join our google group at:
 http://groups.google.com/group/py-lepton-users
 
 
-Credits
--------
+##Credits
 
-Casey Duncan -- Lepton creator and primary developer
-Jussi Lepistö -- Windows maintainer
-Andrew Charles -- Code contributor
-Harry Tormey -- Inspiration and code contributor
-Daniel Pope -- Maintainer
+* [Casey Duncan](/caseman) -- Lepton creator and primary developer
+* Jussi Lepistö -- Windows maintainer
+* Andrew Charles -- Code contributor
+* Harry Tormey -- Inspiration and code contributor
+* [Daniel Pope](/lordmauve) -- Maintainer
 
 And thanks to others for their contributions of ideas and bugfixes!
