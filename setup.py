@@ -9,7 +9,10 @@ sys.path = [p for p in sys.path if p and os.path.abspath(p) != thisdir]
 extra_link_args = []
 macros = [('GLEW_STATIC', None)]
 
-compile_args = ['-Werror-implicit-function-declaration']
+compile_args = [
+    '-Werror-implicit-function-declaration',
+    '-Wreturn-type',
+]
 
 
 if sys.platform.startswith('linux'):

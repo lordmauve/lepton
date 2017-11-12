@@ -779,7 +779,7 @@ MOD_INIT(renderer)
 
 	/* FloatArray objects cannot be instantiated from Python */
 	if (PyType_Ready(&FloatArray_Type) < 0)
-		return;
+		return MOD_ERROR_VAL;
 
 	/* Create the module and add the types */
 	MOD_DEF(m, "renderer", "Particle Renderers", NULL);
