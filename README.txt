@@ -1,12 +1,44 @@
 Lepton
 ======
 
-https://bitbucket.org/lordmauve/lepton/
-
 Lepton: A high-performance, pluggable particle engine and API for Python
 
-Requirements
+![Bubbles Example](https://raw.githubusercontent.com/lordmauve/lepton/master/doc/_static/bubbles.png)
+
+
+Documentation
+-------------
+
+See http://pythonhosted.org/lepton/ for full documentation.
+
+The examples provided with Lepton require either pyglet
+(http://www.pyglet.org), or pygame (http://www.pygame.org),
+but neither are required to use the library.
+
+
+Installation
 ------------
+
+Lepton is a CPython C API extension, which means it can be difficult to install.
+On some systems, lepton can be installed just by running
+
+```
+$ pip install lepton
+```
+
+A current project is to provide **binary wheel packages** which will ensure
+this works (and quickly) on Linux, Mac and Windows (x86 architectures). This
+work is currently incomplete, but the CI pages are here and may contain wheels
+which work for you:
+
+* [Travis CI](https://travis-ci.org/lordmauve/lepton) - Linux and Mac builds
+* [Appveyor](https://ci.appveyor.com/project/lordmauve/lepton) - Windows builds
+
+If you'd like to contribute to making these work, please submit a pull request!
+
+
+Building
+--------
 
 Lepton is platform-independent and should run on any operating system
 supporting Python and OpenGL. Let us know if you try to build
@@ -28,30 +60,6 @@ xorg-dev
 libgl1-mesa-dev
 libglu1-mesa-dev
 
-Binary releases for Windows are available for download from the google code
-site above.  If you'd like to help out by contributing a binary distribution
-for your platform, you're more than welcome to!
-
-The examples provided with Lepton require either pyglet
-(http://www.pyglet.org), or pygame (http://www.pygame.org),
-but neither are required to use the library.
-
-Alpha Software
---------------
-
-Lepton is currently under development, and the APIs may change in future
-versions. That said, it has many useful features already and the developers
-will attempt to minimize breakage where possible or provide migration
-documentation for new versions.
-
-If you find a bug, or desire a feature, please use the issue tracker at:
-
-https://bitbucket.org/lordmauve/lepton/issues?status=new&status=open
-
-
-Installation
-------------
-
 If you're reading this README from a source distribution, install lepton
 with::
 
@@ -63,6 +71,7 @@ If you just want to test it out without installing it, you can use::
 
 Then add this directory to your PYTHONPATH.
 
+
 Support
 -------
 
@@ -71,6 +80,7 @@ usage, new features or contribute to Lepton, join our google group at:
 
 http://groups.google.com/group/py-lepton-users
 
+
 Credits
 -------
 
@@ -78,5 +88,6 @@ Casey Duncan -- Lepton creator and primary developer
 Jussi Lepistö -- Windows maintainer
 Andrew Charles -- Code contributor
 Harry Tormey -- Inspiration and code contributor
+Daniel Pope -- Maintainer
 
 And thanks to others for their contributions of ideas and bugfixes!

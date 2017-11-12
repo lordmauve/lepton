@@ -81,7 +81,7 @@ You can download binary releases or browse the source code at our Google code si
     author_email='py-lepton-users@googlegroups.com',
     maintainer='Daniel Pope',
     maintainer_email='mauve@mauveweb.co.uk',
-    url='https://bitbucket.org/lordmauve/lepton',
+    url='https://github.com/lordmauve/lepton',
     license='MIT',
     classifiers=[
         'Development Status :: 4 - Beta',
