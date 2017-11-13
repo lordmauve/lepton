@@ -15,6 +15,12 @@ matrix:
 script:
   - pip install cibuildwheel==0.6.0
   - cibuildwheel --output-dir wheelhouse
+  - |
+      if [[ $TRAVIS_TAG ]]; then
+        python -m pip install twine
+        python -m twine upload wheelhouse/*.whl
+      fi
 env:
   global:
+    - TWINE_USERNAME="mauve"
     - CIBW_BEFORE_BUILD_LINUX="yum install -y mesa-libGLU-devel"
