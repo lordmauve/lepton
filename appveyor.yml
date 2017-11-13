@@ -7,7 +7,7 @@
 
 
 environment:
-
+  TWINE_USERNAME: mauve
   matrix:
     - PYTHON: "C:\\Python27"
     - PYTHON: "C:\\Python33"
@@ -35,6 +35,11 @@ test_script: []
 
 after_test:
   - "build.cmd %PYTHON%\\python.exe setup.py bdist_wheel"
+  - ps: >-
+      if ($env:APPVEYOR_REPO_TAG -eq "true") {
+          python -m pip install twine
+          python -m twine upload (resolve-path dist\*.whl)
+      }
 
 artifacts:
   - path: dist\*
